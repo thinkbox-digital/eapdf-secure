@@ -9,6 +9,7 @@ const GAP=24,MAX_PIXELS=16_000_000,MAX_RETAINED_PIXELS=32_000_000;
 // current page. Large archives must not allocate one canvas for every page.
 export class ScrollingPages {
   onAttachment?:(page:number,annotation:number|string)=>void;
+  embeddedLinkLabel='Open linked embedded PDF';
   private doc:Pick<BrowserDocument,'pdf'|'run'>|undefined;
   private pdf:PDFDocumentProxy|undefined;
   private slots:PageSlot[]=[];
@@ -230,7 +231,7 @@ export class ScrollingPages {
             const rect=[...view.convertToViewportPoint(annotation.rect[0],annotation.rect[1]),...view.convertToViewportPoint(annotation.rect[2],annotation.rect[3])],left=Math.max(0,Math.min(rect[0]!,rect[2]!)),top=Math.max(0,Math.min(rect[1]!,rect[3]!)),right=Math.min(view.width,Math.max(rect[0]!,rect[2]!)),bottom=Math.min(view.height,Math.max(rect[1]!,rect[3]!));
             if(right<=left||bottom<=top)continue;
             const link=document.createElement('a');link.href='#';link.setAttribute('aria-label','Go to linked page in this PDF');link.title='Go to linked page';Object.assign(link.style,{left:`${left}px`,top:`${top}px`,width:`${right-left}px`,height:`${bottom-top}px`});
-            if(annotation.embeddedAction){link.setAttribute('aria-label','Open linked embedded PDF');link.title='Open linked embedded PDF';}
+            if(annotation.embeddedAction){link.setAttribute('aria-label',this.embeddedLinkLabel);link.title=this.embeddedLinkLabel;}
             link.addEventListener('click',event=>{event.preventDefault();if(epoch!==this.epoch)return;if(annotation.embeddedAction){this.onEmbeddedLink?.(annotation.embeddedAction);return;}void (async()=>{
               try{const dest=typeof annotation.dest==='string'?await doc.run(doc.pdf.getDestination(annotation.dest)):annotation.dest;if(epoch!==this.epoch||!dest)return;const index=typeof dest[0]==='number'?dest[0]:await doc.run(doc.pdf.getPageIndex(dest[0]));if(epoch!==this.epoch)return;if(!Number.isInteger(index)||index<0||index>=doc.pdf.numPages)throw new Error('Link destination is outside this PDF.');await this.show(doc,this.scale,index+1,this.query);this.onPage(index+1);}
               catch(error){if(epoch===this.epoch)this.onError(error instanceof Error?error.message:String(error));}

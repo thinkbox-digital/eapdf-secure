@@ -38,6 +38,11 @@ final class JavaValidatorEngine implements ValidatorGui.Engine {
           "-XX:ActiveProcessorCount=4", "-Djava.awt.headless=true", "-Djava.io.tmpdir=" + directory, "-cp", classpath,
           JavaValidation.class.getName(), input.toRealPath().toString(), output.toString()), heap));
       builder.redirectOutput(diagnostic.toFile()).redirectErrorStream(true);
+      for (String key : new String[]{"eapdf.security.policy", "eapdf.security.requiredProtection"}) {
+        String value = System.getProperty(key);
+        if (value != null) builder.environment().put(key.equals("eapdf.security.policy")
+            ? "EAPDF_SECURITY_POLICY" : "EAPDF_SECURITY_REQUIRED_PROTECTION", value);
+      }
       run.check();
       run.process = builder.start();
       long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(ValidationRuntime.timeoutSeconds(Files.size(input)));
@@ -74,7 +79,9 @@ final class JavaValidatorEngine implements ValidatorGui.Engine {
         }
       }
       var result = ValidatorGui.Result.parse(output);
-      if (run.process.exitValue() != ("PASS".equals(result.status()) ? 0 : 2)
+      boolean securityFailed = !result.securityJson().isBlank() && eapdf.security.SecurityVerification.unsuccessful(
+          com.google.gson.JsonParser.parseString(result.securityJson()).getAsJsonObject());
+      if (run.process.exitValue() != ("PASS".equals(result.status()) && !securityFailed ? 0 : 2)
           && !"INCOMPLETE".equals(result.status()) && !result.findings().stream().anyMatch(f -> "VALIDATION_INCOMPLETE".equals(f.code()) && "WARN".equals(f.level()))) {
         result.close();
         throw new IOException("Validation ended unexpectedly.\n" + diagnosticText);

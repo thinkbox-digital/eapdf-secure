@@ -12,6 +12,25 @@ Supports **EML, MSG, PST, MBOX and Gmail**.
 **Beta:** creator and validator 2.2.0-beta.3; full and Lite readers 1.2.0-beta.3.
 Java applications need **Java 21 or later**. The readers run locally in your browser.
 
+**Unreleased source change:** the creator now defaults to WeasyPrint 70.0 and
+embeds its pinned Python runtime, native font libraries and standard fonts in
+the Linux creator JARs. First use verifies and extracts the renderer into a private
+versioned cache; later conversions reuse it. Users need Java, with no Python or
+WeasyPrint installation. Supported Linux sandbox facilities are required.
+See [renderer setup](docs/WEASYPRINT.md). OpenHTMLtoPDF remains available by
+explicitly setting `rendering.engine` to `openhtmltopdf`, including on Windows
+and macOS. Existing published release assets are unchanged.
+
+Accessibility and embedded searchable indexes are off by default. They can be enabled explicitly;
+ordinary viewer search remains available.
+
+**Unreleased security integration:** optional C2PA export provenance, timestamped
+signing and PAdES B-LTA protect the generated outer EA-PDF while preserving embedded
+sources. The Java validator reports security separately from conformance. See
+[settings, signing order and renewal](docs/DIGITAL_SIGNATURES.md). Browser checks
+on file open are available in Full, with explicit-root offline trust, revocation
+and trusted-timestamp checks. Lite editions omit these checks.
+
 ## Download
 
 | Tool | What it does |

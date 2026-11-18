@@ -5,6 +5,16 @@ import javax.swing.*;
 import org.junit.jupiter.api.Test;
 class GuiSearchOptionsTests {
 
+ @Test void indexesAreOffWhenConfigurationOmitsThemAndCanBeExplicitlyEnabled()throws Exception{
+  Path file=Files.createTempFile("eapdf-index-defaults-", ".json");
+  try{
+   Files.writeString(file,"{\"configVersion\":1}");
+   var defaults=EapdfConfig.load(file);assertFalse(defaults.searchIndex.enabled);assertFalse(defaults.searchIndex.fullTextEnabled);
+   Files.writeString(file,"{\"searchIndex\":{\"enabled\":true,\"fullTextEnabled\":true}}");
+   var enabled=EapdfConfig.load(file);assertTrue(enabled.searchIndex.enabled);assertTrue(enabled.searchIndex.fullTextEnabled);
+  }finally{Files.delete(file);}
+ }
+
  @Test void searchableIndexCheckboxControlsBothIndexesInChildConfiguration()throws Exception{
   var config=EapdfConfig.get();String creator=config.creator;
   try{

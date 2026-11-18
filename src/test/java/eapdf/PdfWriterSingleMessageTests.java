@@ -25,7 +25,7 @@ class PdfWriterSingleMessageTests {
       Assertions.assertFalse(xmp.contains("<pdfaid:conformance>F</pdfaid:conformance>"));
       Assertions.assertEquals(1, document.getDocumentCatalog().getOutputIntents().size());
       var record = EmlReader.readEml(TestSupport.firstInputWithExtension(".eml").toString(), "", List.of(), false);
-      PdfMailWriter.setPdfA3Metadata(document, TestSupport.iccPath(), record);
+      PdfMailWriter.setPdfAMetadata(document, TestSupport.iccPath(), record);
       Assertions.assertEquals(1, document.getDocumentCatalog().getOutputIntents().size());
       Assertions.assertTrue(TestSupport.metadataXml(document).contains("<pdfaid:part>4</pdfaid:part>"));
     }
@@ -42,7 +42,7 @@ class PdfWriterSingleMessageTests {
       try (var input = file.openData()) { expectedAttachments.add(Common.sha256Hex(input.readAllBytes())); }
     }
     Path output = tempDir.resolve("pst_default_1s.pdf");
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       Assertions.assertTrue(TestSupport.metadataXml(document).contains("<pdfmailid:conformance>s</pdfmailid:conformance>"));
       var sources = AttachmentProfilePolicyTests.files(document).values().stream()
@@ -76,7 +76,7 @@ class PdfWriterSingleMessageTests {
     Assertions.assertTrue(attachments.stream().allMatch(file -> file.embedInPdf));
     record.embedSourceMessage = false;
     Path output = tempDir.resolve("pst_1si.pdf");
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir.resolve("debug"), 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir.resolve("debug"), 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       Assertions.assertTrue(TestSupport.metadataXml(document).contains("<pdfmailid:conformance>si</pdfmailid:conformance>"));
       Assertions.assertTrue(AttachmentProfilePolicyTests.files(document).isEmpty());
@@ -86,7 +86,7 @@ class PdfWriterSingleMessageTests {
   }
 
   @Test
-  void writeEaPdfA3EmbedsExpectedFilesAndXmp() throws Exception {
+  void writeEaPdfEmbedsExpectedFilesAndXmp() throws Exception {
     Path emlPath = TestSupport.firstInputWithExtension(".eml");
     EmailRecord record = EmlReader.readEml(
         emlPath.toString(),
@@ -95,7 +95,7 @@ class PdfWriterSingleMessageTests {
         false);
 
     Path out = tempDir.resolve("test_1s.pdf");
-    PdfMailWriter.writeEaPdfA3(out, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir.resolve("debug"), 1);
+    PdfMailWriter.writeEaPdf(out, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir.resolve("debug"), 1);
 
     Assertions.assertTrue(Files.exists(out));
 

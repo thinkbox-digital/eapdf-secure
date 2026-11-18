@@ -418,3 +418,15 @@ footer #status{flex:0 1 auto}footer .privacy-note{margin-left:auto}
 #files .file-description-block:has(.file-description-disclosure[open])>.file-description{display:none}
 #files .file-description-disclosure[hidden]{display:none}
 #files .file-description-disclosure>summary{display:flex;align-items:center;min-height:44px;padding:0;border:0;font-weight:400}
+/* Full viewer export-security report; text states accompany every colour. */
+#header-filename[data-security]{cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+#header-filename[data-security="pass"]{color:#166534;background:#dcfce7;border-radius:4px;padding:2px 5px}
+#header-filename[data-security="fail"]{color:#991b1b;background:#fee2e2;border-radius:4px;padding:2px 5px}
+#header-filename[data-security="unknown"],#header-filename[data-security="not_applicable"]{color:#854d0e;background:#fef9c3;border-radius:4px;padding:2px 5px}
+#security-dialog{position:fixed;inset:50% auto auto 50%;transform:translate(-50%,-50%);margin:0;width:min(960px,calc(100vw - 32px));height:85dvh;max-height:calc(100dvh - 32px);overflow:auto;z-index:20;padding:20px;border:1px solid #9ca3af;border-radius:8px;box-shadow:0 8px 30px #0004;background:#fff;color:#111827}
+#security-dialog::backdrop{background:#14294488}
+#security-dialog h2{margin-top:0}
+#security-dialog dt{font-weight:600;margin-top:12px}
+#security-dialog dd{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+#security-dialog button{margin:12px 10px 0 0}
+#security-dialog .security-actions{position:sticky;top:-20px;background:#fff;padding-bottom:8px;z-index:1}

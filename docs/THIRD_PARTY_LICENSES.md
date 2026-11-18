@@ -21,7 +21,7 @@ unreleased dependency changes.
 
 ## Renderer and patched dependencies
 
-The creator uses **openhtmltopdf 1.1.113-eapdf.1** under LGPL-2.1-or-later, not
+The creator uses **openhtmltopdf 1.1.114-eapdf.1** under LGPL-2.1-or-later, not
 the earlier 1.1.97 dependency. [Renderer provenance](RENDERER.md) records pinned
 upstream/patch commits, builds and replacement instructions; [library packages](PACKAGES.md)
 describes distribution of maintained patched libraries. Keep the applicable
@@ -85,3 +85,14 @@ has no standalone notice file.
 No renderer migration or dependency/license change was made by this documentation
 consolidation. A renderer replacement would require a separate architecture and
 fidelity decision; it is not a drop-in documentation repair.
+
+
+## Default WeasyPrint page renderer
+
+The Linux creator JAR embeds WeasyPrint 70.0 (BSD-3-Clause), CPython, the pinned
+Python dependencies in `requirements-weasyprint.lock`, Pango, HarfBuzz, Fontconfig,
+FreeType and libseccomp with their native dependency closure. The runtime archive
+retains distribution license metadata, font notices, native copyright texts,
+source-package provenance and PyInstaller's COPYING text. These are extracted
+with the executable into its private cache. Java and the documented Linux system
+baseline remain prerequisites. See [WeasyPrint distribution](WEASYPRINT.md).

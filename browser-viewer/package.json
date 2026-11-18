@@ -1,6 +1,6 @@
 {
   "name": "eapdf-browser-viewer",
-  "version": "1.2.0-beta.3",
+  "version": "1.21.0-beta.3",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -66,16 +66,22 @@
     "build:lite": "node lite/run.mjs",
     "export:lite": "node lite/export.mjs",
     "build:lite:pdfjs": "node lite/rebuild-hooks.mjs",
-    "test:security": "node scripts/viewer-security-smoke.mjs"
+    "test:security": "node scripts/viewer-security-smoke.mjs",
+    "test:export-security": "node scripts/export-security-smoke.mjs",
+    "build:even-more-lite": "node lite/run.mjs --even-more-lite",
+    "export:even-more-lite": "node lite/export.mjs --profile even-more-lite",
+    "build:local": "node scripts/build-local.mjs"
   },
   "dependencies": {
     "@xmldom/xmldom": "0.9.12",
-    "pdfjs-dist": "6.5.438"
+    "asn1js": "3.0.6",
+    "pdfjs-dist": "6.5.438",
+    "pkijs": "3.4.0"
   },
   "devDependencies": {
+    "acorn": "8.19.0",
     "esbuild": "0.28.2",
     "playwright": "1.65.0",
-    "typescript": "7.0.2",
-    "acorn": "8.19.0"
+    "typescript": "7.0.2"
   }
 }

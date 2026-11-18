@@ -408,6 +408,7 @@ final class EaPdfChecks {
   }
 
   private void embedded(Path path) throws Exception {
+    var securityArtifacts = eapdf.security.EaPdfC2paProfile.artifacts(document);
     COSDictionary names = dict(catalog, "Names");
     readNameTree(dict(names, "EmbeddedFiles"), identitySet(), 0);
     Set<COSDictionary> allSpecs = identitySet();
@@ -475,7 +476,11 @@ final class EaPdfChecks {
         }
         files.add(embedded);
         if (isAssociated(spec)) {
-          report.check("AF_IN_NAME_TREE", nameTreeSpecs.contains(spec), "Associated file specifications must be listed in EmbeddedFiles.", Map.of("file", filename));
+          // EA-PDF p.32 permits AF outside the name tree and explicitly permits C2PA.
+          // Recognize only the exact bounded profile; arbitrary hidden files still fail.
+          report.check("AF_IN_NAME_TREE", nameTreeSpecs.contains(spec) || securityArtifacts.contains(spec),
+              securityArtifacts.contains(spec) ? "Recognized export security metadata stays outside collection membership."
+                  : "Associated file specifications must be listed in EmbeddedFiles.", Map.of("file", filename));
           COSBase modified = get(parameters, "ModDate");
           report.check("ASSOCIATED_FILE_MODDATE", modified instanceof COSString && SourceHeaders.pdfDate(string(modified)),
               "Associated embedded streams require Params ModDate as a PDF date string.", Map.of("file", filename));
@@ -490,7 +495,10 @@ final class EaPdfChecks {
     }
     if (!report.seen.contains("EMBEDDED_FILESPEC_NO_PATH_COMPONENTS")) report.check("EMBEDDED_FILESPEC_NO_PATH_COMPONENTS", true, "No embedded file specification contains a prohibited path component.", null);
     report.supported("ANNOTATION_CONTENTS_REQUIRED", "EMBEDDED_STREAM", "EMBEDDED_FILESPEC_NO_PATH_COMPONENTS", "EMBEDDED_SIZE_MATCH", "EMBEDDED_MD5_MATCH", "EMBEDDED_SIZE_RECOMMENDED", "EMBEDDED_MD5_RECOMMENDED", "EMBEDDED_MD5_BINARY_FORMAT", "EMBEDDED_MEDIATYPE_PARAMETERS_TYPE", "AF_IN_NAME_TREE", "ASSOCIATED_FILE_MODDATE", "EMBEDDED_MEDIATYPE_RECONSTRUCTION");
-    report.check("EMBEDDEDFILES_PRESENT", !nameTreeSpecs.isEmpty() || profile.endsWith("i") && associatedSpecs.isEmpty(), "Associated embedded files require the EmbeddedFiles name tree.", Map.of("files", nameTreeSpecs.size()));
+    boolean securityOnlyTree = !securityArtifacts.isEmpty() && securityArtifacts.containsAll(associatedSpecs)
+        && dict(names, "EmbeddedFiles") != null;
+    report.check("EMBEDDEDFILES_PRESENT", !nameTreeSpecs.isEmpty() || securityOnlyTree
+        || profile.endsWith("i") && associatedSpecs.isEmpty(), "Associated embedded files require the EmbeddedFiles name tree.", Map.of("files", nameTreeSpecs.size()));
   }
 
   private boolean isAssociated(COSDictionary spec) { return associatedSpecs.contains(spec); }

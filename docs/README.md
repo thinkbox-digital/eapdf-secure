@@ -6,6 +6,12 @@ Start with the [user guide](manual/user-manual.html) or [PDF manual](EA-PDF_User
 | --- | --- |
 | Current release and limits | [Project status](PROJECT_STATUS.md) |
 | Code ownership | [Code layout](ARCHITECTURE.md) |
+| Component functions and source line counts | [Software components](SOFTWARE_COMPONENTS.md) |
+| Default page renderer setup and alternate selection | [WeasyPrint](WEASYPRINT.md) |
+| Renderer measurements and recommendations | [Renderer benchmarks](RENDERER_BENCHMARKS.md) |
+| Renderer phase attribution and concurrency | [Performance analysis](RENDERER_PERFORMANCE_ANALYSIS.md) |
+| Prospective OpenHTML removal savings | [Removal estimate](OPENHTML_REMOVAL_ESTIMATE.md) |
+| Upstream renderer risks and follow-ups | [WeasyPrint upstream review](WEASYPRINT_UPSTREAM_ISSUES.md) |
 | Reader installation and use | [Reader guide](../browser-viewer/README.md) |
 | Conversion and recovery | [Operations](CONVERSION_OPERATIONS.md) |
 | Gmail | [Gmail setup](GMAIL.md) |

@@ -4,9 +4,7 @@ import java.io.*;
 import java.net.*;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.*;
 import java.util.logging.Level;
-import javax.net.ssl.SSLException;
 import com.openhtmltopdf.extend.FSStream;
 import com.openhtmltopdf.extend.FSStreamFactory;
 import com.openhtmltopdf.extend.FSUriResolver;
@@ -16,7 +14,6 @@ import com.openhtmltopdf.util.XRLog;
 /** Renderer resource resolution and budgets; no PDF construction or writer callbacks. */
 final class MailRenderPolicy {
 private MailRenderPolicy() {}
-static final ConcurrentMap<String, String> FAILED_REMOTE_ASSET_URLS = new ConcurrentHashMap<>();
 static final FSUriResolver REMOTE_ASSET_URI_RESOLVER = new RemoteAssetUriResolver();
 static final FSStreamFactory REMOTE_ASSET_STREAM_FACTORY = new BlacklistingHttpStreamFactory();
 static final InheritableThreadLocal<EmailRecord> ACTIVE_RENDER_RECORD = new InheritableThreadLocal<>();
@@ -68,19 +65,17 @@ static final class RemoteAssetUriResolver implements FSUriResolver {
     }
     if (cid) return null;
     String rawKey = remoteAssetKey(uri);
-    if (rawKey != null && FAILED_REMOTE_ASSET_URLS.containsKey(rawKey)) {
-      recordBlacklistedRemoteAssetEncounter(rawKey);
+    if (rawKey != null) {
+      blacklistRemoteAsset(rawKey, "External resource loading is disabled");
       return null;
     }
     String resolved = delegate.resolveURI(baseUri, uri);
     String resolvedKey = remoteAssetKey(resolved);
-    if (resolvedKey != null && FAILED_REMOTE_ASSET_URLS.containsKey(resolvedKey)) {
-      recordBlacklistedRemoteAssetEncounter(resolvedKey);
+    if (resolvedKey != null) {
+      blacklistRemoteAsset(resolvedKey, "External resource loading is disabled");
       return null;
     }
-    if (resolved == null && rawKey != null) blacklistRemoteAsset(rawKey, "Remote asset URI resolution failed");
     if (isAllowedRenderResource(resolved)) return orientRenderImage(resolved);
-    if (resolvedKey != null) blacklistRemoteAsset(resolvedKey, "External resource loading is disabled");
     return null;
   }
 }
@@ -93,6 +88,7 @@ static boolean isAllowedRenderResource(String uri) {
     String header = uri.substring(0, comma).toLowerCase(Locale.ROOT);
     if (header.startsWith("data:image/")) {
       byte[] bytes = decodeRenderImageUri(uri);
+      if (bytes == null) return false;
       ProcessingLimits.checkMessage(bytes.length, "inline data image");
       checkRenderImage(bytes);
     }
@@ -105,11 +101,32 @@ static boolean isAllowedRenderResource(String uri) {
 }
 
 static byte[] decodeRenderImageUri(String uri) {
-  int comma = uri.indexOf(',');
-  String header = uri.substring(0, comma).toLowerCase(Locale.ROOT);
-  return header.endsWith(";base64") ? Base64.getMimeDecoder().decode(uri.substring(comma + 1))
-      : java.net.URLDecoder.decode(uri.substring(comma + 1).replace("+", "%2B"), StandardCharsets.ISO_8859_1)
-          .getBytes(StandardCharsets.ISO_8859_1);
+  try {
+    int comma = uri.indexOf(',');
+    if (comma < 0) throw new IllegalArgumentException("Missing data URI separator");
+    boolean base64 = uri.substring(0, comma).toLowerCase(Locale.ROOT).endsWith(";base64");
+    long units = 0;
+    for (int index = comma + 1; index < uri.length(); index++) {
+      char c = uri.charAt(index);
+      if (base64) {
+        if (c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9' || c == '+' || c == '/') units++;
+      } else {
+        units++;
+        if (c == '%') {
+          if (index + 2 >= uri.length() || Character.digit(uri.charAt(index + 1), 16) < 0
+              || Character.digit(uri.charAt(index + 2), 16) < 0) throw new IllegalArgumentException("Malformed percent escape");
+          index += 2;
+        }
+      }
+    }
+    ProcessingLimits.checkMessage(base64 ? units * 6 / 8 : units, "inline data image");
+    return base64 ? Base64.getMimeDecoder().decode(uri.substring(comma + 1))
+        : java.net.URLDecoder.decode(uri.substring(comma + 1).replace("+", "%2B"), StandardCharsets.ISO_8859_1)
+            .getBytes(StandardCharsets.ISO_8859_1);
+  } catch (IllegalArgumentException malformed) {
+    Common.warn(ACTIVE_RENDER_RECORD.get(), "Skipped malformed inline data image.");
+    return null;
+  }
 }
 
 static String orientRenderImage(String uri) {
@@ -123,6 +140,7 @@ static String orientRenderImage(String uri) {
         && !uri.regionMatches(true, 0, "data:image/jpg", 0, 14)) return uri;
     bytes = decodeRenderImageUri(uri);
   }
+  if (bytes == null) return null;
   if (bytes.length < 2 || (bytes[0] & 0xff) != 0xff || (bytes[1] & 0xff) != 0xd8) return uri;
   try {
     byte[] display = ImageOrientation.orientedPng(bytes);
@@ -205,95 +223,7 @@ static String safeRenderedHref(String original, EmailRecord record) {
   } catch (URISyntaxException invalid) { return null; }
 }
 
-static boolean shouldBlacklistRemoteAssetResponse(String key, byte[] bytes) {
-  return describeRemoteAssetResponse(key, bytes) != null;
-}
 
-static String describeRemoteAssetResponse(String key, byte[] bytes) {
-  if (key == null) return "Remote asset URL was invalid";
-  if (bytes == null || bytes.length == 0) return "Remote asset returned no data";
-  if (looksLikeHtmlResponse(bytes)) return "Remote asset returned HTML instead of binary content";
-  if (!isLikelyRemoteImageUrl(key)) return null;
-  if (looksLikeSupportedImage(bytes) || looksLikeSvg(bytes)) return null;
-  return "Remote asset response was not a supported image format";
-}
-
-static boolean looksLikeHtmlResponse(byte[] bytes) {
-  if (bytes == null || bytes.length == 0) return false;
-  String prefix = new String(bytes, 0, Math.min(bytes.length, 512), StandardCharsets.UTF_8)
-      .trim()
-      .toLowerCase(Locale.ROOT);
-  return prefix.startsWith("<!doctype html")
-      || prefix.startsWith("<html")
-      || prefix.startsWith("<head")
-      || prefix.startsWith("<body")
-      || prefix.contains("<html");
-}
-
-static boolean isLikelyRemoteImageUrl(String key) {
-  String value = Common.nz(key).toLowerCase(Locale.ROOT);
-  return value.contains(".png")
-      || value.contains(".jpg")
-      || value.contains(".jpeg")
-      || value.contains(".gif")
-      || value.contains(".bmp")
-      || value.contains(".webp")
-      || value.contains(".svg")
-      || value.contains(".ico")
-      || value.contains(".tif")
-      || value.contains(".tiff");
-}
-
-static boolean looksLikeSvg(byte[] bytes) {
-  if (bytes == null || bytes.length == 0) return false;
-  String prefix = new String(bytes, 0, Math.min(bytes.length, 512), StandardCharsets.UTF_8)
-      .trim()
-      .toLowerCase(Locale.ROOT);
-  return prefix.startsWith("<svg")
-      || (prefix.startsWith("<?xml") && prefix.contains("<svg"));
-}
-
-static boolean looksLikeSupportedImage(byte[] bytes) {
-  if (bytes == null || bytes.length < 4) return false;
-  if ((bytes[0] & 0xFF) == 0x89 && bytes[1] == 'P' && bytes[2] == 'N' && bytes[3] == 'G') return true;
-  if ((bytes[0] & 0xFF) == 0xFF && (bytes[1] & 0xFF) == 0xD8 && (bytes[2] & 0xFF) == 0xFF) return true;
-  if (bytes.length >= 6) {
-    String header6 = new String(bytes, 0, 6, StandardCharsets.US_ASCII);
-    if ("GIF87a".equals(header6) || "GIF89a".equals(header6)) return true;
-  }
-  if (bytes[0] == 'B' && bytes[1] == 'M') return true;
-  if (bytes[0] == 0x00 && bytes[1] == 0x00 && bytes[2] == 0x01 && bytes[3] == 0x00) return true;
-  if (bytes.length >= 12) {
-    String riff = new String(bytes, 0, 4, StandardCharsets.US_ASCII);
-    String webp = new String(bytes, 8, 4, StandardCharsets.US_ASCII);
-    if ("RIFF".equals(riff) && "WEBP".equals(webp)) return true;
-  }
-  return ((bytes[0] == 'I' && bytes[1] == 'I' && bytes[2] == 42 && bytes[3] == 0)
-      || (bytes[0] == 'M' && bytes[1] == 'M' && bytes[2] == 0 && bytes[3] == 42));
-}
-
-static boolean shouldBlacklistRemoteAssetFailure(Throwable error) {
-  return describeRemoteAssetFailure(error) != null;
-}
-
-static String describeRemoteAssetFailure(Throwable error) {
-  Throwable current = error;
-  while (current != null) {
-    if (current instanceof UnknownHostException) return "Unknown host";
-    if (current instanceof ConnectException) return "Connection refused";
-    if (current instanceof SocketTimeoutException) return "Connection timed out";
-    if (current instanceof SSLException) return "SSL handshake failed";
-    if (current instanceof EOFException) return "Remote host closed the connection unexpectedly";
-    if (current instanceof IOException) {
-      String message = Common.nz(current.getMessage()).toLowerCase(Locale.ROOT);
-      if (message.contains("connection refused")) return "Connection refused";
-      if (message.contains("timed out")) return "Connection timed out";
-      if (message.contains("unrecognized image format")) return "Remote asset response was not a supported image format";
-    }
-    current = current.getCause();
-  }
-  return null;
-}
 
 static void configureRendererLogging() {
   XRLog.setLevel(XRLog.CSS_PARSE, Level.SEVERE);
@@ -318,22 +248,7 @@ static void configureRendererLogging() {
 static void blacklistRemoteAsset(String key, String reason) {
   if (key == null) return;
   String normalizedReason = Common.nz(reason).trim();
-  FAILED_REMOTE_ASSET_URLS.merge(key, normalizedReason, MailRenderPolicy::preferRemoteAssetReason);
-  Common.recordBlacklistedRemoteAsset(key, FAILED_REMOTE_ASSET_URLS.get(key), ACTIVE_RENDER_RECORD.get());
-}
-
-static void recordBlacklistedRemoteAssetEncounter(String key) {
-  if (key == null) return;
-  Common.recordBlacklistedRemoteAsset(key, FAILED_REMOTE_ASSET_URLS.get(key), ACTIVE_RENDER_RECORD.get());
-}
-
-static String preferRemoteAssetReason(String existing, String replacement) {
-  String current = Common.nz(existing).trim();
-  String candidate = Common.nz(replacement).trim();
-  if (candidate.isBlank()) return current;
-  if (current.isBlank()) return candidate;
-  if ("previously blacklisted".equalsIgnoreCase(current)) return candidate;
-  return current;
+  Common.recordBlacklistedRemoteAsset(key, normalizedReason, ACTIVE_RENDER_RECORD.get());
 }
 
 static AssociatedFile findLocationAsset(String uri, EmailRecord record) {

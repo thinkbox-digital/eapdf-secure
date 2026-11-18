@@ -46,6 +46,34 @@
     },
     {
       "type": "library",
+      "group": "com.augustcellars.cose",
+      "name": "cose-java",
+      "version": "1.1.0",
+      "purl": "pkg:maven/com.augustcellars.cose/cose-java@1.1.0",
+      "bom-ref": "pkg:maven/com.augustcellars.cose/cose-java@1.1.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0a3e09c438ce71d4ad68cd78880c833c7d1becedb9f3293c0367ddd0eacb8618"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "BSD3",
+            "url": "https://github.com/jimsch/COSE-JAVA/blob/master/LICENSE"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
       "group": "com.beetstra.jutf7",
       "name": "jutf7",
       "version": "1.0.0",
@@ -124,6 +152,62 @@
           "license": {
             "name": "The Apache Software License, Version 2.0",
             "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.github.peteroupc",
+      "name": "datautilities",
+      "version": "1.1.0",
+      "purl": "pkg:maven/com.github.peteroupc/datautilities@1.1.0",
+      "bom-ref": "pkg:maven/com.github.peteroupc/datautilities@1.1.0",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9afa371db3083782216e63e706d83a50d19c7e8db74af47e7339c419380f82bb"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "CC0 Universal",
+            "url": "http://www.creativecommons.org/publicdomain/zero/1.0/"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.github.peteroupc",
+      "name": "numbers",
+      "version": "1.8.2",
+      "purl": "pkg:maven/com.github.peteroupc/numbers@1.8.2",
+      "bom-ref": "pkg:maven/com.github.peteroupc/numbers@1.8.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "ed894dcb68b9aa22320d6813950d8321d4f82c2c78e68770a443df33e36bdd4e"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "CC0-1.0",
+            "url": "http://www.creativecommons.org/publicdomain/zero/1.0/"
           }
         }
       ]
@@ -384,13 +468,13 @@
       "type": "library",
       "group": "com.google.guava",
       "name": "failureaccess",
-      "version": "1.0.2",
-      "purl": "pkg:maven/com.google.guava/failureaccess@1.0.2",
-      "bom-ref": "pkg:maven/com.google.guava/failureaccess@1.0.2",
+      "version": "1.0.3",
+      "purl": "pkg:maven/com.google.guava/failureaccess@1.0.3",
+      "bom-ref": "pkg:maven/com.google.guava/failureaccess@1.0.3",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "8a8f81cf9b359e3f6dfa691a1e776985c061ef2f223c9b2c80753e1b458e8064"
+          "content": "cbfc3906b19b8f55dd7cfd6dfe0aa4532e834250d7f080bd8d211a3e246b59cb"
         }
       ],
       "properties": [
@@ -402,7 +486,7 @@
       "licenses": [
         {
           "license": {
-            "name": "The Apache Software License, Version 2.0",
+            "name": "Apache License, Version 2.0",
             "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
           }
         }
@@ -412,13 +496,13 @@
       "type": "library",
       "group": "com.google.guava",
       "name": "guava",
-      "version": "33.1.0-jre",
-      "purl": "pkg:maven/com.google.guava/guava@33.1.0-jre",
-      "bom-ref": "pkg:maven/com.google.guava/guava@33.1.0-jre",
+      "version": "33.8.0-jre",
+      "purl": "pkg:maven/com.google.guava/guava@33.8.0-jre",
+      "bom-ref": "pkg:maven/com.google.guava/guava@33.8.0-jre",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "346aec0eb8c8987360c8a264e70ff10c2fba760446eb27e8ab07e78e787a75fe"
+          "content": "97b79ec3f2c0a6313a0c2df51ce1abdf8907e6531803467b81efcaaf99b35161"
         }
       ],
       "properties": [
@@ -690,6 +774,90 @@
     },
     {
       "type": "library",
+      "group": "com.sun.activation",
+      "name": "jakarta.activation",
+      "version": "2.0.1",
+      "purl": "pkg:maven/com.sun.activation/jakarta.activation@2.0.1",
+      "bom-ref": "pkg:maven/com.sun.activation/jakarta.activation@2.0.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b9e24b7dd6e07495562ea96531be3130c96dba4d78e1dfd88adbbdebf4332871"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "EDL 1.0",
+            "url": "http://www.eclipse.org/org/documents/edl-v10.php"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.sun.istack",
+      "name": "istack-commons-runtime",
+      "version": "4.0.1",
+      "purl": "pkg:maven/com.sun.istack/istack-commons-runtime@4.0.1",
+      "bom-ref": "pkg:maven/com.sun.istack/istack-commons-runtime@4.0.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9f91115f449384886f572bd62c8812ee1004273d4b5c85cac65179ad4c16990f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Eclipse Distribution License - v 1.0",
+            "url": "http://www.eclipse.org/org/documents/edl-v10.php"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "com.upokecenter",
+      "name": "cbor",
+      "version": "4.5.6",
+      "purl": "pkg:maven/com.upokecenter/cbor@4.5.6",
+      "bom-ref": "pkg:maven/com.upokecenter/cbor@4.5.6",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "415630df447588834ac747800a6b7fac67ff8b8092862f4e3f5283f568bfc2ec"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Unlicense",
+            "url": "https://unlicense.org/"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
       "group": "com.zaxxer",
       "name": "SparseBitSet",
       "version": "1.3",
@@ -830,15 +998,855 @@
     },
     {
       "type": "library",
-      "group": "io.github.openhtmltopdf",
-      "name": "openhtmltopdf-core",
-      "version": "1.1.113-eapdf.1",
-      "purl": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-core@1.1.113-eapdf.1",
-      "bom-ref": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-core@1.1.113-eapdf.1",
+      "group": "digital.thinkbox",
+      "name": "pdf-security",
+      "version": "0.1.0",
+      "purl": "pkg:maven/digital.thinkbox/pdf-security@0.1.0",
+      "bom-ref": "pkg:maven/digital.thinkbox/pdf-security@0.1.0",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "54df67dc394982ca80d518d492552e0f445290d264455a388801a0972a8dcfb1"
+          "content": "20212b7d58070c2b9b9794ba82ee5ab0495fec79336256aa22e2f1186c7b0c4b"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Apache License 2.0",
+            "url": "https://www.apache.org/licenses/LICENSE-2.0"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-alert",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-alert@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-alert@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4e2e321a2d2e439867cf80156a3fa7ea76217d4d2666f13109e257f22fc42487"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-cades",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-cades@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-cades@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "fcc5a1acac013c62f9265a9ff07a2c4c331d5ba6c287f8370cae4512df78bc1f"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-cms-object",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-cms-object@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-cms-object@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "38af348e3520aa393e7a72a04a3c410bf1f9a1574669ff088c8dee286c5da648"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-cms",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-cms@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-cms@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "39c6f421e2db9b17e58eab80a74ea0a1f3d35198d39b57d96e4eb391523e0b32"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-crl-parser-x509crl",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-crl-parser-x509crl@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-crl-parser-x509crl@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8b73565d5a1c1b5f0044ec7d018f7dc6eb5a636ad714611e7c3cdf343daaa6e4"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-crl-parser",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-crl-parser@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-crl-parser@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0a96a56a8d4a1387bc1abb43860a1d697b1e2926c67df17218f649581fbc6c61"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-detailed-report-jaxb",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-detailed-report-jaxb@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-detailed-report-jaxb@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3d8113b041dc941401fa373712df8341e0846f903196b207139a1b5c884cd3dd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-diagnostic-jaxb",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-diagnostic-jaxb@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-diagnostic-jaxb@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "5f70f1d6d72d83727513149b28d2404eef882f92b36920af741c523f61fd9117"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-document",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-document@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-document@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "247b3bea616d9b40fd2920c5d0a1b535874d58dbd30285ca08a5ddb1dd0dd659"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-enumerations",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-enumerations@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-enumerations@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e35a9d0e8eb2ade69301838f565044d318653ee7cdf464d8c5bbd70e32de0683"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-i18n",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-i18n@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-i18n@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d97357ea34c62b19651d4d197a809ec9a8004992bcf2651726f6a75a9a6a2662"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-jaxb-common",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-jaxb-common@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-jaxb-common@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "6de985cfa57b87849c270ccb363d246366705d99103b3a2438c706e1183fa15a"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-jaxb-parsers",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-jaxb-parsers@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-jaxb-parsers@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "e6c13447fec489c6535179ccd68c9850a6d5eb36244670379a601740b11628a6"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-model",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-model@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-model@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "64c90e07fe1ee67b98b08946867a679db358823eb30a26178fd2e531f95e55e0"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-pades-pdfbox",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-pades-pdfbox@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-pades-pdfbox@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "04f76aa2fb9b423252046f010685fdbb9ce9057cdf2abb22776b57cfa8faded2"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-pades",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-pades@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-pades@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "93eb79831fedd1d5cc7e7553fa8179d69c66de70d4ab6af712539aba89734c46"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-policy-crypto-xml",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-policy-crypto-xml@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-policy-crypto-xml@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "c047d0a917d1b14748a0eb82cc79556295f39c4c80a5fdd7eb5953a34e626e46"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-policy-jaxb",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-policy-jaxb@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-policy-jaxb@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9b6b35ee80075efd3f3418d6e30fbd8c9ba4f0f3f2f63850ed5485023201ccd9"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-simple-certificate-report-jaxb",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-simple-certificate-report-jaxb@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-simple-certificate-report-jaxb@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1def0464e2c5daf9cef537c3994d22132a0531632277a319e40b51b2362988fd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-simple-report-jaxb",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-simple-report-jaxb@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-simple-report-jaxb@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "21f75e389e97a1b90a6331a9baa0498f683507eaf6f490afc91337850035abf6"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-spi",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-spi@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-spi@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "9cefd7b2bf72843bc556706e3f541bd7ec75c03a64f9235b1ae8f27404212068"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-utils-apache-commons",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-utils-apache-commons@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-utils-apache-commons@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b032d1073fd5070067a58f2243ac10643170f7a732c62cef2d1467906aff1236"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-utils",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-utils@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-utils@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "a3b4bcb0c6f266c69d1a1d02370c25f62964d6f26ee6fe7e545ae294b449734d"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-validation",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-validation@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-validation@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "14a9af420a7c1f5a51e89b3c5631f1e865262728345f5a5e5b087ab5ebc8cbd3"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "dss-xml-common",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-xml-common@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/dss-xml-common@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "1174de1818d2ae22960c39ce4c5507c7d8c68c0ae20d00660ecc5f4c73f5f007"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "specs-trusted-list-v211",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-trusted-list-v211@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-trusted-list-v211@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "0c6971d6fd620d9073c8bc645d33bb545bf50602ca7dded0bf35cec6a246cbbc"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "specs-validation-report",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-validation-report@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-validation-report@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8be2c3fb8f8f02c8337b08592ec2719bd1367db66a793109258b005992a338f5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "specs-xades",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-xades@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-xades@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "d0b8e1158795b6a1b4df77c4a354e6d66656daa5727b7f40281fdc12a641ffbc"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "eu.europa.ec.joinup.sd-dss",
+      "name": "specs-xmldsig",
+      "version": "6.5",
+      "purl": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-xmldsig@6.5",
+      "bom-ref": "pkg:maven/eu.europa.ec.joinup.sd-dss/specs-xmldsig@6.5",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "4167ea546d7822167248a28f6db12939302cf683c508f9e9513f77ba6ed63c66"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "GNU Lesser General Public License",
+            "url": "https://www.gnu.org/licenses/lgpl-2.1.html"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "io.github.openhtmltopdf",
+      "name": "openhtmltopdf-core",
+      "version": "1.1.114-eapdf.1",
+      "purl": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-core@1.1.114-eapdf.1",
+      "bom-ref": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-core@1.1.114-eapdf.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "8ea6c5b90ce7ca51a1c05169a22bfe48bf1dc0a55c4b043dc197d296c35118c2"
         }
       ],
       "properties": [
@@ -860,13 +1868,13 @@
       "type": "library",
       "group": "io.github.openhtmltopdf",
       "name": "openhtmltopdf-pdfbox",
-      "version": "1.1.113-eapdf.1",
-      "purl": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-pdfbox@1.1.113-eapdf.1",
-      "bom-ref": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-pdfbox@1.1.113-eapdf.1",
+      "version": "1.1.114-eapdf.1",
+      "purl": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-pdfbox@1.1.114-eapdf.1",
+      "bom-ref": "pkg:maven/io.github.openhtmltopdf/openhtmltopdf-pdfbox@1.1.114-eapdf.1",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "02e7624c246428a1050ad9354da846f3d40ea76151c23644ae704961b578360f"
+          "content": "025227d6065e873877cdc2a3d4684b031f54539d3901fc2ba8611f08ae474d81"
         }
       ],
       "properties": [
@@ -1059,6 +2067,34 @@
         {
           "license": {
             "name": "EDL 1.0",
+            "url": "http://www.eclipse.org/org/documents/edl-v10.php"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "jakarta.xml.bind",
+      "name": "jakarta.xml.bind-api",
+      "version": "3.0.1",
+      "purl": "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@3.0.1",
+      "bom-ref": "pkg:maven/jakarta.xml.bind/jakarta.xml.bind-api@3.0.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b8fb4bee3ff5b5c1ef77144d8411316018d7bbd41fcf1ede0646f7978546b867"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Eclipse Distribution License - v 1.0",
             "url": "http://www.eclipse.org/org/documents/edl-v10.php"
           }
         }
@@ -1264,13 +2300,13 @@
       "type": "library",
       "group": "org.apache.pdfbox",
       "name": "fontbox",
-      "version": "3.0.8",
-      "purl": "pkg:maven/org.apache.pdfbox/fontbox@3.0.8",
-      "bom-ref": "pkg:maven/org.apache.pdfbox/fontbox@3.0.8",
+      "version": "3.0.8-eapdf.1",
+      "purl": "pkg:maven/org.apache.pdfbox/fontbox@3.0.8-eapdf.1",
+      "bom-ref": "pkg:maven/org.apache.pdfbox/fontbox@3.0.8-eapdf.1",
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "a1915c24e3edbe0ecec93896dfbf6d41427810b663ade97bd4e8bae86ec3fdab"
+          "content": "68a6beb903f4c4e1c88d767b316e0a5ed3620c34192f2a2e8168dc8db5f5e239"
         }
       ],
       "properties": [
@@ -1602,34 +2638,6 @@
     },
     {
       "type": "library",
-      "group": "org.checkerframework",
-      "name": "checker-qual",
-      "version": "3.42.0",
-      "purl": "pkg:maven/org.checkerframework/checker-qual@3.42.0",
-      "bom-ref": "pkg:maven/org.checkerframework/checker-qual@3.42.0",
-      "hashes": [
-        {
-          "alg": "SHA-256",
-          "content": "ccaedd33af0b7894d9f2f3b644f4d19e43928e32902e61ac4d10777830f5aac7"
-        }
-      ],
-      "properties": [
-        {
-          "name": "eapdf:hash-scope",
-          "value": "resolved dependency JAR before application shading and local class overrides"
-        }
-      ],
-      "licenses": [
-        {
-          "license": {
-            "name": "The MIT License",
-            "url": "http://opensource.org/licenses/MIT"
-          }
-        }
-      ]
-    },
-    {
-      "type": "library",
       "group": "org.eclipse.angus",
       "name": "angus-activation",
       "version": "2.0.3",
@@ -1698,6 +2706,90 @@
     },
     {
       "type": "library",
+      "group": "org.glassfish.jaxb",
+      "name": "jaxb-core",
+      "version": "3.0.2",
+      "purl": "pkg:maven/org.glassfish.jaxb/jaxb-core@3.0.2",
+      "bom-ref": "pkg:maven/org.glassfish.jaxb/jaxb-core@3.0.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "f9a360b939597643b2676e35fc497afb561d20e8a513128a5c0070366db11bbd"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Eclipse Distribution License - v 1.0",
+            "url": "http://www.eclipse.org/org/documents/edl-v10.php"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "org.glassfish.jaxb",
+      "name": "jaxb-runtime",
+      "version": "3.0.2",
+      "purl": "pkg:maven/org.glassfish.jaxb/jaxb-runtime@3.0.2",
+      "bom-ref": "pkg:maven/org.glassfish.jaxb/jaxb-runtime@3.0.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "7b3a3784b9c6e343a8d38fc108602ba810177f03f2d8d1e7258b1cef7fd9d4c7"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Eclipse Distribution License - v 1.0",
+            "url": "http://www.eclipse.org/org/documents/edl-v10.php"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "org.glassfish.jaxb",
+      "name": "txw2",
+      "version": "3.0.2",
+      "purl": "pkg:maven/org.glassfish.jaxb/txw2@3.0.2",
+      "bom-ref": "pkg:maven/org.glassfish.jaxb/txw2@3.0.2",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "b4bcf94fb0a759456e2521724513baec94b78e93127544af162e3cff08d93343"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "Eclipse Distribution License - v 1.0",
+            "url": "http://www.eclipse.org/org/documents/edl-v10.php"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
       "group": "org.jsoup",
       "name": "jsoup",
       "version": "1.24.1",
@@ -1720,6 +2812,34 @@
           "license": {
             "name": "The MIT License",
             "url": "https://jsoup.org/license"
+          }
+        }
+      ]
+    },
+    {
+      "type": "library",
+      "group": "org.jspecify",
+      "name": "jspecify",
+      "version": "1.0.1",
+      "purl": "pkg:maven/org.jspecify/jspecify@1.0.1",
+      "bom-ref": "pkg:maven/org.jspecify/jspecify@1.0.1",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "070d75f261fe4c5b8202508366715f7f2d4660f88c8ef7e6d3575e48c9683b66"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:hash-scope",
+          "value": "resolved dependency JAR before application shading and local class overrides"
+        }
+      ],
+      "licenses": [
+        {
+          "license": {
+            "name": "The Apache License, Version 2.0",
+            "url": "http://www.apache.org/licenses/LICENSE-2.0.txt"
           }
         }
       ]
@@ -1787,7 +2907,28 @@
       "hashes": [
         {
           "alg": "SHA-256",
-          "content": "2cb90e720a1aa08deed3d5416846bc396494fd2111d7abf9f8aeaf1665df05ad"
+          "content": "58d31a4757fd24bcb49b79eff4a4c43d5db609a0f997340899671985c9a8988b"
+        }
+      ]
+    },
+    {
+      "type": "file",
+      "name": "eapdf/runtime/runtime.zip",
+      "bom-ref": "artifact:embedded-weasyprint-runtime",
+      "hashes": [
+        {
+          "alg": "SHA-256",
+          "content": "3e7608919a77e0270d4dfc89503371821bc60ed72adce21491dc43d1cddc54a5"
+        }
+      ],
+      "properties": [
+        {
+          "name": "eapdf:scope",
+          "value": "Embedded Linux x86_64 CPython/WeasyPrint/native runtime; per-file hashes, package provenance and notices retained in archive"
+        },
+        {
+          "name": "eapdf:manifest-sha256",
+          "value": "7b76df7f10fe528b4f174c9d62b98a796838fdb1dc4e0ae1a5a61a8e664a2a68"
         }
       ]
     }

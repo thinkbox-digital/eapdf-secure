@@ -9,6 +9,16 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class PatchedHtmlRendererTests {
   @org.junit.jupiter.api.io.TempDir java.nio.file.Path directory;
+  private String previousEngine;
+
+  @org.junit.jupiter.api.BeforeEach void selectPatchedRenderer() {
+    previousEngine = EapdfConfig.get().rendering.engine;
+    EapdfConfig.get().rendering.engine = "openhtmltopdf";
+  }
+
+  @org.junit.jupiter.api.AfterEach void restoreRenderer() {
+    EapdfConfig.get().rendering.engine = previousEngine;
+  }
 
   @Test void finalCaptionRemainsAssociatedWithItsTable() throws Exception {
     boolean previous = PdfMailWriter.CONFIG.accessibility.addPdfUaFeatures;
@@ -16,7 +26,7 @@ class PatchedHtmlRendererTests {
       PdfMailWriter.CONFIG.accessibility.addPdfUaFeatures = true;
       var record = EmlReader.readEml("src/test/resources/eapdf/patched-renderer-table.eml", "", java.util.List.of(), false);
       var output = directory.resolve("table.pdf");
-      PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, directory, 1);
+      PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, directory, 1);
       try (var document = Loader.loadPDF(output.toFile())) {
         var root = document.getDocumentCatalog().getCOSObject().getCOSDictionary(COSName.STRUCT_TREE_ROOT);
         assertTrue(checkCaptions(root.getDictionaryObject(COSName.K)) > 0);

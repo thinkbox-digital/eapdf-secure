@@ -68,7 +68,7 @@ twice. Redistribution/source/relinking review remains release-specific.
 
 ### LGPL 2.1 or later
 
-- `io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.113-eapdf.1`
+- `io.github.openhtmltopdf:openhtmltopdf-pdfbox:1.1.114-eapdf.1`
 
 This is the one runtime dependency that makes commercial redistribution more
 complex than a pure Apache/MIT/EPL stack. The project itself can still be
@@ -147,7 +147,7 @@ So the realistic replacement story is:
 
 ## Source Pointers
 
-The test-only `src/test/resources/eapdf/email/attached-message.pst` fixture comes from Apache Tika. Its pinned upstream source, license link, and SHA-256 are recorded in the adjacent `attached-message.pst.md` provenance file. It is not packaged in release jars.
+The public `in/attached-message.pst` fixture comes from Apache Tika. Its pinned upstream source, license link, and SHA-256 are recorded in `src/test/resources/eapdf/email/attached-message.pst.md`. Maven copies it into the test classpath; it is not packaged in release jars.
 
 - OpenHTMLtoPDF license file in the upstream repository:
   `https://github.com/openhtmltopdf/openhtmltopdf/blob/main/LICENSE`
@@ -176,7 +176,7 @@ The creator's `IndexedPdfLoader` adapts Apache PDFBox 3.0.8 object-stream loadin
 under the Apache License 2.0, retaining the source license header. It shares the
 outer parser's object-key index; PDFBox parsing and leniency remain in use.
 
-The local `StructureElementAccessObject` adaptation of veraPDF parser 1.31.71
+The local `StructureElementAccessObject` adaptation, originally based on veraPDF parser 1.31.71 and rechecked with 1.31.72,
 reuses the same parent-number-tree lookup wrapper within an immutable document.
 It preserves number-tree lookup and malformed-tree behavior, and clears the
 thread-local reference after each upstream check. The adapted MPL 2.0 source is
@@ -184,9 +184,9 @@ bundled under META-INF/eapdf/modified-verapdf-sources.
 
 ## Patched OpenHTMLtoPDF build
 
-The core and PDFBox modules use community OpenHTMLtoPDF 1.1.113 with four
+The core and PDFBox modules use community OpenHTMLtoPDF 1.1.114 with four
 unmodified patches from Jia Liang's HTML-to-PDF-UA repository. Version
-`1.1.113-eapdf.1` identifies this derivative; it is not an upstream release.
+`1.1.114-eapdf.1` identifies this derivative; it is not an upstream release.
 Patch sources, immutable provenance, checksums and corresponding source JARs
 are supplied under `third_party/openhtmltopdf/` and `third_party/maven/`.
 The upstream LGPL-2.1-or-later license continues to apply. Rebuilding and
@@ -196,3 +196,37 @@ resolution instructions are in `docs/RENDERER.md`.
 
 The Java creator uses the existing Apache PDFBox dependency for text extraction.
 PDF.js and its notices remain part of the separately distributed browser viewer.
+
+## FontBox backport
+
+FontBox 3.0.8-eapdf.1 is a local Apache-2.0 derivative of 3.0.8. PDFBOX-6297
+bounds cmap groups and fixes a glyph-index boundary; PDFBOX-6308 limits Type 1/2
+subroutine depth. The local follow-up restores the Type 2 depth on return and
+skips overlapping groups while retaining U+0000 mappings. The original notices,
+full corresponding source JAR, patch provenance and checksums are supplied in
+`third_party/fontbox/` and `third_party/maven/`. Rebuild with
+`python3 scripts/build_patched_fontbox.py --rebuild`. PDFBox remains 3.0.8.
+
+## Embedded Linux renderer runtime
+
+The Linux creator JARs include a frozen WeasyPrint 70.0 worker, CPython and
+native font libraries. These resources are verified and extracted into a private
+cache for execution. Pinned Python/build dependencies are recorded in
+`requirements-weasyprint.lock` and `requirements-weasyprint-build.lock`.
+Runtime package versions, native source-package provenance and file checksums
+are retained with the executable. Python distribution license metadata, font
+notices, native copyright texts and PyInstaller's COPYING text are retained in
+the runtime's `_internal/` and `licenses/` directories. Retain these materials
+with the runtime when copying a complete application bundle.
+
+## PDF security library dependency
+
+`digital.thinkbox:pdf-security:0.1.0` uses Apache License 2.0 and brings the
+EU DSS 6.5 PDFBox backend and offline providers under LGPL-2.1-or-later,
+COSE-JAVA 1.1.0 under BSD-3-Clause, and PeterO CBOR and supporting libraries
+under their retained upstream terms. Library notices, license texts and DSS
+source JARs remain in `META-INF/pdf-security/` inside creator and Java validator packages.
+Retain those materials and the ability to rebuild/relink modified LGPL modules.
+EA-PDF enables these capabilities only through explicit export-security settings;
+see `docs/DIGITAL_SIGNATURES.md`. The companion source module includes the
+collection-preserving profile hook and its signing/renewal regression test.

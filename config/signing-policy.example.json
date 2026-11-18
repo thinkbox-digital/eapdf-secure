@@ -1,0 +1,6 @@
+{
+  "trustCertificates": ["signer-root.pem", "timestamp-root.pem"],
+  "supportingCertificates": ["timestamp-intermediate.pem", "timestamp-responder.pem"],
+  "crls": ["signer-root.crl", "timestamp-root.crl"],
+  "ocsps": ["timestamp-responder.ocsp.der"]
+}

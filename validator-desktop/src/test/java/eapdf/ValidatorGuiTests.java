@@ -78,6 +78,18 @@ class ValidatorGuiTests {
     assertThrows(IOException.class, () -> ValidatorGui.Result.parse(REPORT.replace("\"ran\":true,", "")));
   }
 
+  @Test void securityFailureRemainsVisibleAlongsidePassingConformance() throws Exception {
+    var root = JsonParser.parseString(REPORT).getAsJsonObject();
+    root.add("security", JsonParser.parseString("{\"status\":\"FAIL\",\"checks\":{\"pdf.coverage\":{\"status\":\"FAIL\"}}}"));
+    var result = ValidatorGui.Result.parse(root.toString());
+    assertEquals("PASS", result.status());
+    assertEquals("FAIL", result.securityStatus());
+    assertTrue(result.securityJson().contains("pdf.coverage"));
+    assertTrue(eapdf.security.SecurityVerification.unsuccessful(root.getAsJsonObject("security")));
+    root.add("security", JsonParser.parseString("{\"status\":\"UNKNOWN\",\"requestedProtectionMet\":false}"));
+    assertTrue(eapdf.security.SecurityVerification.unsuccessful(root.getAsJsonObject("security")));
+  }
+
   @Test void rejectsPassContradictingFindings() {
     assertThrows(IOException.class, () -> ValidatorGui.Result.parse(REPORT.replace("\"level\":\"PASS\"", "\"level\":\"FAIL\"")));
     assertThrows(IOException.class, () -> ValidatorGui.Result.parse(REPORT.replace("\"level\":\"PASS\"", "\"level\":\"WARN\"")

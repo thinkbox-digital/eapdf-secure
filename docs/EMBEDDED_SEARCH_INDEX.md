@@ -80,8 +80,9 @@ child bytes differ. There is no wall-clock field in the index.
 
 ## Creator behavior
 
-`searchIndex.enabled` defaults to `true`; set it to `false` in `EAPDF_CONFIG` to
-omit the optimization. No command-line argument was added. The collection writer
+`searchIndex.enabled` defaults to `false`; set it to `true` in `EAPDF_CONFIG` to
+enable the optimization. The GUI checkbox starts off and enables both index types
+when selected. No command-line argument was added. The collection writer
 uses EmailRecords, folder aliases and already-established embedded-stream
 checksums. It does not reopen children to construct the index. Generation occurs
 inside the existing staged creation/publication transaction.
@@ -288,7 +289,7 @@ all PDFs. Indexed counts describe PDFBox-extracted text. The viewer displays
 that limitation and verifies selected matches with PDF.js before highlighting.
 
 `searchIndex.enabled` controls both indexes; `searchIndex.fullTextEnabled`
-defaults to `true` and can independently disable full text. Extraction failure, ambiguity or resource limits
+defaults to `false` and must also be enabled to generate full text. Extraction failure, ambiguity or resource limits
 emit `SEARCH_INDEX_UNAVAILABLE` and publish the valid PDF without full text.
 Cancellation still aborts conversion. The staged original is replaced only
 after the complete replacement index and binding succeed. Signed outputs retain full text using the signature-compatible binding described below.

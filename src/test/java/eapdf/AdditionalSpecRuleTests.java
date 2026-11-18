@@ -114,7 +114,7 @@ class AdditionalSpecRuleTests {
     member.checksumMd5 = Common.md5Hex(member.bytes);
     record.associatedFiles.add(member);
     Path output = directory.resolve("source-set.pdf");
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, directory, 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, directory, 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       var file = AttachmentProfilePolicyTests.files(document).get("mailbox.dat");
       Assertions.assertNotNull(file);

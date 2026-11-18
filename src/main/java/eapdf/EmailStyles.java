@@ -4,6 +4,7 @@ import com.openhtmltopdf.css.parser.CSSParser;
 import com.openhtmltopdf.css.sheet.MediaRule;
 import com.openhtmltopdf.css.sheet.Ruleset;
 import com.openhtmltopdf.css.sheet.StylesheetInfo;
+import com.openhtmltopdf.css.newmatch.Selector;
 import com.openhtmltopdf.layout.SharedContext;
 import com.openhtmltopdf.swing.NaiveUserAgent;
 import com.openhtmltopdf.util.ThreadCtx;
@@ -149,14 +150,11 @@ final class EmailStyles {
     for (Object rule : rules) {
       if (rule instanceof Ruleset declarations) {
         for (var selector : declarations.getFSSelectors()) {
-          StringBuilder serialized = new StringBuilder();
-          selector.toCSS(serialized, new HashSet<>());
-          String scoped = serialized.toString().trim()
+          String scoped = serializeSelector(selector)
               .replaceFirst("(?i)^html\\s*>?\\s+body(?=[\\s.#:\\[]|$)", "body")
               .replaceFirst("(?i)^(html|body|:root)(?=[\\s.#:\\[]|$)", ".ea-email-body");
           if (scoped.isBlank()) scoped = "*";
           output.append("#email-root ").append(scoped);
-          if (selector.getPseudoElement() != null) output.append("::").append(selector.getPseudoElement());
           output.append(" {");
           for (var property : declarations.getPropertyDeclarations()) {
             if (Set.of("content", "text-decoration").contains(property.getPropertyName())
@@ -202,5 +200,54 @@ final class EmailStyles {
         problems.add("Email page-layout rules were omitted to preserve archive navigation");
       }
     }
+  }
+
+  private static String serializeSelector(Selector selector) {
+    StringBuilder serialized = new StringBuilder();
+    selector.toCSS(serialized, new HashSet<>());
+    String css = serialized.toString();
+    Selector first = selector;
+    while (first.getAncestorSelector() != null) first = first.getAncestorSelector();
+    StringBuilder output = new StringBuilder();
+    int offset = 0;
+    for (Selector part = first; part != null; part = part.getChainedSelector()) {
+      if (part.getAxis() == Selector.CHILD_AXIS && css.startsWith("> ", offset)) offset += 2;
+      int end = selectorCompoundEnd(css, offset);
+      if (output.length() > 0) output.append(part.getAxis() == Selector.CHILD_AXIS ? " > " : " ");
+      output.append(end == offset ? "*" : css.substring(offset, end));
+      // Upstream toCSS writes conditions such as :link, but omits these state flags.
+      appendPseudoClass(output, part, Selector.VISITED_PSEUDOCLASS, "visited");
+      appendPseudoClass(output, part, Selector.HOVER_PSEUDOCLASS, "hover");
+      appendPseudoClass(output, part, Selector.ACTIVE_PSEUDOCLASS, "active");
+      appendPseudoClass(output, part, Selector.FOCUS_PSEUDOCLASS, "focus");
+      appendPseudoClass(output, part, Selector.MARKER_PSEUDOCLASS, "marker");
+      appendPseudoClass(output, part, Selector.FIRST_FRAGMENT_PSEUDOCLASS, "-fs-first-fragment");
+      appendPseudoClass(output, part, Selector.LAST_FRAGMENT_PSEUDOCLASS, "-fs-last-fragment");
+      if (part.getPseudoElement() != null) output.append("::").append(part.getPseudoElement());
+      offset = Math.min(css.length(), end + 1);
+    }
+    return output.toString().trim();
+  }
+
+  private static void appendPseudoClass(StringBuilder output, Selector selector, int flag, String name) {
+    if (selector.isPseudoClass(flag)) output.append(':').append(name);
+  }
+
+  private static int selectorCompoundEnd(String css, int start) {
+    int brackets = 0, parentheses = 0;
+    char quote = 0;
+    for (int index = start; index < css.length(); index++) {
+      char current = css.charAt(index);
+      if (current == '\\') { index++; continue; }
+      if (quote != 0) {
+        if (current == quote) quote = 0;
+      } else if (current == '\'' || current == '"') quote = current;
+      else if (current == '[') brackets++;
+      else if (current == ']') brackets--;
+      else if (current == '(') parentheses++;
+      else if (current == ')') parentheses--;
+      else if (Character.isWhitespace(current) && brackets == 0 && parentheses == 0) return index;
+    }
+    return css.length();
   }
 }

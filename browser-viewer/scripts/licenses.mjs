@@ -12,7 +12,7 @@ for (const field of ['dependencies', 'devDependencies']) {
     assert.match(version, /^\d+\.\d+\.\d+$/);
     const installed = await json(`node_modules/${name}/package.json`);
     assert.equal(installed.version, version);
-    assert.equal(installed.license, ['@xmldom/xmldom','esbuild','acorn'].includes(name)?'MIT':'Apache-2.0');
+    assert.equal(installed.license, ['pkijs','asn1js'].includes(name)?'BSD-3-Clause':['@xmldom/xmldom','esbuild','acorn'].includes(name)?'MIT':'Apache-2.0');
     assert.equal(lock.packages[`node_modules/${name}`].version, version);
   }
 }

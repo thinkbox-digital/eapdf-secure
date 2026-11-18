@@ -167,7 +167,7 @@ class ReleaseRegressionTests {
     byte[] raw = ("Date: Fri, 16 Oct 2026 12:00:00 +0000\r\nSubject: Languages\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n" + text).getBytes(StandardCharsets.UTF_8);
     EmailRecord record = EmlReader.readRfc822Bytes(raw, "languages.eml", "languages.eml", "", List.of(), false);
     Path output = tempDir.resolve("languages.pdf");
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       Assertions.assertTrue(new PDFTextStripper().getText(document).contains(text));
     }
@@ -187,7 +187,7 @@ class ReleaseRegressionTests {
     String missing = new String(Character.toChars(0x10FFFF));
     String subject = jakarta.mail.internet.MimeUtility.encodeText(missing, "UTF-8", "B");
     EmailRecord record = EmlReader.readRfc822Bytes(("Date: Fri, 16 Oct 2026 12:00:00 +0000\r\nSubject: " + subject + "\r\n\r\nBody").getBytes(StandardCharsets.UTF_8), "missing.eml", "missing.eml", "", List.of(), false);
-    PdfMailWriter.writeEaPdfA3(tempDir.resolve("missing.pdf"), record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+    PdfMailWriter.writeEaPdf(tempDir.resolve("missing.pdf"), record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
     Assertions.assertTrue(record.conversionWarnings.stream().anyMatch(warning -> warning.contains("subject") && warning.contains("U+10FFFF")));
   }
 
@@ -227,7 +227,7 @@ class ReleaseRegressionTests {
         Path output = tempDir.resolve("semantic_1" + profile + ".pdf");
         if (profile.startsWith("s")) {
           first.embedSourceMessage = profile.equals("s");
-          PdfMailWriter.writeEaPdfA3(output, first, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+          PdfMailWriter.writeEaPdf(output, first, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
         } else if (profile.startsWith("m")) PdfMailWriter.writeEaPdfArchive(output, List.of(first, second), TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, profile);
         else PdfMailWriter.writeEaPdfCollection(output, List.of(first, second), TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, profile);
         try (PDDocument document = Loader.loadPDF(output.toFile())) {

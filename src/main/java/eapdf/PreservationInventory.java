@@ -220,8 +220,10 @@ final class PreservationInventory {
       Map<Asset, Integer> actualAssets = new HashMap<>();
       IdentityHashMap<COSStream, Fingerprint> streams = new IdentityHashMap<>();
       var associated = document.getDocumentCatalog().getCOSObject().getDictionaryObject(COSName.getPDFName("AF"));
+      var securityArtifacts = eapdf.security.EaPdfC2paProfile.artifacts(document);
       if (associated instanceof COSArray array) for (int index = 0; index < array.size(); index++) {
         if (!(array.getObject(index) instanceof COSDictionary file)) continue;
+        if (securityArtifacts.contains(file)) continue;
         String relationship = file.getNameAsString(COSName.getPDFName("AFRelationship"));
         if ("Source".equals(relationship) || "Supplement".equals(relationship))
           addAsset(actualAssets, new Asset(relationship, payload(new PDComplexFileSpecification(file), streams)));

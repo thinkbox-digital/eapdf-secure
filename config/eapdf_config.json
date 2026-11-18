@@ -1,18 +1,32 @@
 {
   "configVersion": 1,
   "creator": "Thinkbox.DIGITAL",
+  "rendering": {
+    "engine": "weasyprint",
+    "pythonExecutable": "",
+    "timeoutSeconds": 120,
+    "maxProcesses": 2,
+    "memoryMiB": 512,
+    "maxOutputMiB": 128
+  },
   "signing": {
     "enabled": false,
     "pkcs12Path": "",
+    "passphraseFile": "",
     "alias": "",
-    "reason": ""
+    "reason": "",
+    "c2pa": false,
+    "protection": "CMS_AND_PDF",
+    "policyPath": "",
+    "tsaUrl": "",
+    "tsaPolicyOid": ""
   },
   "searchIndex": {
-    "enabled": true,
-    "fullTextEnabled": true
+    "enabled": false,
+    "fullTextEnabled": false
   },
   "accessibility": {
-    "addPdfUaFeatures": true,
+    "addPdfUaFeatures": false,
     "markInfoMarked": true,
     "language": "en",
     "readingDirection": "L2R",

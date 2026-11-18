@@ -15,6 +15,13 @@ export function messagePages(inspection: InspectionResult, message: MailMessage)
   }
   return [...pages].sort((a, b) => a - b);
 }
+export function messagePageOwners(inspection:InspectionResult):Map<number,MailMessage|null> {
+  const owners=new Map<number,MailMessage|null>();
+  for(const message of inspection.messages)for(const page of messagePages(inspection,message)){
+    const existing=owners.get(page);owners.set(page,existing===undefined?message:existing===message?message:null);
+  }
+  return owners;
+}
 
 export function fileLabel(file: AssociatedFile): string {
   return file.unicodeFilename.value ?? file.filename.value ?? 'Unnamed embedded file';

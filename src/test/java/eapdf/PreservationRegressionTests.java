@@ -62,7 +62,7 @@ class PreservationRegressionTests {
     Assertions.assertArrayEquals(grandchild, childRecord.associatedFiles.stream().filter(file -> file.emailAttachment).findFirst().orElseThrow().bytes);
     record.embedSourceMessage = true;
     Path output = tempDir.resolve("attached_message.pdf");
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       var embedded = document.getDocumentCatalog().getNames().getEmbeddedFiles().getNames();
       Assertions.assertEquals(1, embedded.size());
@@ -153,7 +153,7 @@ class PreservationRegressionTests {
     }
     record.embedSourceMessage = true;
     Path output = tempDir.resolve("attached_msg.pdf");
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       var embedded = document.getDocumentCatalog().getNames().getEmbeddedFiles().getNames();
       Assertions.assertEquals(1, embedded.size());
@@ -274,7 +274,7 @@ class PreservationRegressionTests {
     Path output = tempDir.resolve("existing.pdf");
     Files.writeString(output, "old output");
     EmailRecord record = EmlReader.readRfc822Bytes(nestedEml("Overwrite", "Content-Type: text/plain\r\n\r\nBody"), "overwrite.eml", "overwrite.eml", "", List.of(), false);
-    PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+    PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
     try (PDDocument document = Loader.loadPDF(output.toFile())) {
       Assertions.assertTrue(document.getNumberOfPages() > 0);
     }

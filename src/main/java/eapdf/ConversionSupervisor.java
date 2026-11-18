@@ -14,16 +14,16 @@ public final class ConversionSupervisor {
   private static final List<String> ENTRIES = List.of("eapdf.EmailToPDFA", "eapdf.GmailDownloadToPdf", "eapdf.MonthlyFilenameArchiveToPdf");
   record Owner(long supervisor, String supervisorStart, long child, String childStart) {}
 
-  static boolean run(Class<?> entry, String[] arguments) {
-    if (worker) return false;
+  /** Null identifies the worker; otherwise return the command exit status. */
+  static Integer run(Class<?> entry, String[] arguments) {
+    if (worker) return null;
     try {
-      int status = supervise(entry.getName(), arguments);
-      if (status != 0) System.exit(status);
+      return supervise(entry.getName(), arguments);
     } catch (Exception error) {
       if (error instanceof InterruptedException) Thread.currentThread().interrupt();
-      Common.exitWithError(Common.nz(error.getMessage()));
+      Common.reportError(Common.nz(error.getMessage()));
+      return 2;
     }
-    return true;
   }
 
   static int supervise(String entry, String[] arguments) throws Exception {
@@ -73,7 +73,14 @@ public final class ConversionSupervisor {
       command.add(entry);
       command.add(directory.toString());
       command.addAll(Arrays.asList(arguments));
-      process = new ProcessBuilder(nativeLimits(command, budget)).inheritIO().start();
+      ProcessBuilder workerBuilder = new ProcessBuilder(nativeLimits(command, budget)).inheritIO();
+      if (EapdfConfig.get().rendering.engine.equals("weasyprint")) {
+        Path slots = Files.createDirectory(directory.resolve("weasy-slots"));
+        workerBuilder.environment().put("EAPDF_WEASYPRINT_SLOT_ROOT", slots.toString());
+        System.out.println("WeasyPrint allowance: " + EapdfConfig.get().rendering.maxProcesses + " Python workers, "
+            + EapdfConfig.get().rendering.memoryMiB + " MiB each, separate from the Java heap.");
+      }
+      process = workerBuilder.start();
       Process child = process;
       writeOwner(directory, new Owner(supervisor.pid(), supervisorStart, child.pid(), workerStart(child)));
       cleanup = new Thread(() -> {
@@ -240,15 +247,31 @@ public final class ConversionSupervisor {
 
   static void monitor(Process process, Path directory, Duration timeout, long maxTemporaryBytes, long maxFiles) throws Exception {
     long started = System.nanoTime(), nextScan = started;
+    boolean weasy = EapdfConfig.get().rendering.engine.equals("weasyprint");
+    long peakPythonRss = 0;
     try {
       while (!process.waitFor(100, TimeUnit.MILLISECONDS)) {
         if (System.nanoTime() - started > timeout.toNanos()) throw Common.fail("Conversion exceeded the whole-job time limit");
+        if (weasy) {
+          long pythonRss = 0;
+          for (ProcessHandle child : process.descendants().toList()) {
+            boolean renderer = java.util.Arrays.stream(child.info().arguments().orElse(new String[0]))
+                .anyMatch(argument -> argument.endsWith("/worker.py") && argument.contains("eapdf-weasy-"));
+            if (!renderer) continue;
+            try { pythonRss += WeasyPrintRenderer.residentBytes(child.pid()); }
+            catch (java.nio.file.NoSuchFileException ended) { if (child.isAlive()) throw ended; }
+          }
+          peakPythonRss = Math.max(peakPythonRss, pythonRss);
+          long limit = EapdfConfig.get().rendering.maxProcesses * (long) EapdfConfig.get().rendering.memoryMiB * 1024 * 1024;
+          if (pythonRss > limit) throw Common.fail("WeasyPrint exceeded the aggregate Python memory allowance.");
+        }
         if (System.nanoTime() >= nextScan) {
           checkTemporary(directory, maxTemporaryBytes, maxFiles);
           nextScan = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
         }
       }
       checkTemporary(directory, maxTemporaryBytes, maxFiles);
+      if (weasy) System.out.println("[weasyprint-job] peakPythonRssBytes=" + peakPythonRss);
     } catch (Exception error) {
       stopTree(process);
       throw error;
@@ -305,15 +328,8 @@ public final class ConversionSupervisor {
     if (owner == null || owner.supervisor() != parent.pid() || !sameProcess(owner.supervisor(), owner.supervisorStart())) {
       throw Common.fail("Invalid supervised-worker ownership");
     }
-    // Intentional bounded polling: notice parent death even if conversion hangs.
-    Thread watchdog = new Thread(() -> {
-      while (parent.isAlive()) {
-        try { Thread.sleep(100); } catch (InterruptedException error) { return; }
-      }
-      Runtime.getRuntime().halt(2);
-    }, "eapdf-parent-watchdog");
-    watchdog.setDaemon(true);
-    watchdog.start();
+    // The process-exit notification remains independent of conversion progress.
+    parent.onExit().thenRun(() -> Runtime.getRuntime().halt(2));
     ConversionProgress.attach(directory);
     try (OutputTransaction transaction = new OutputTransaction(directory.resolve("outputs"), directory)) {
       String[] forwarded = Arrays.copyOfRange(arguments, 2, arguments.length);

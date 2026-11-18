@@ -27,6 +27,23 @@ integrity checks precede use; selected full-text pages are confirmed with PDF.js
 Invalid indexes fall back to ordinary traversal. Digests do not establish
 authenticity. See [index resource and trust limits](../../docs/EMBEDDED_SEARCH_INDEX.md#full-text-resource-limits).
 
+Full now also runs a separate security worker on open: it verifies supported CMS,
+timestamp imprints and EA-PDF C2PA signatures/current-file binding. Its green filename
+means covered-content integrity; the filename also states whether offline
+certificate checks passed against selected roots. Red means
+failed checks; yellow means unsigned or incomplete/unsupported checking. Click the
+filename to open the centred modal report and export JSON evidence. Validation never
+opens the report automatically. Checking is cancelled
+on close/reopen and uses a 120-second deadline. Choose trusted public CA roots
+in the report for bounded X.509 paths, fresh signed CRL/OCSP checks and trusted
+timestamp checks using embedded evidence. Roots stay in memory for the session.
+Full historical/archival changes and PAdES B-LTA status still require Java. No
+document-selected certificate/TSA URLs are fetched. Lite editions omit this feature.
+See [supported security checks and limits](../../docs/DIGITAL_SIGNATURES.md#browser-security-on-open).
+The report starts with a reminder to use the standalone EA-PDF Validator and
+your trust JSON for full verification, including revocation and trusted timestamps.
+Browser UNKNOWN does not mean that creation omitted CRLs or timestamp tokens.
+
 Every active PDF uses a dedicated terminable worker. At most three document
 workers remain active per session; an isolated search/export session can temporarily
 add up to three more. Inactive child inspections additionally use a 32 MiB

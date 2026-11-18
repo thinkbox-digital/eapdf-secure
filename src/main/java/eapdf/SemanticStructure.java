@@ -231,13 +231,7 @@ final class SemanticStructure {
     if (original != null) {
       Map<Integer, COSBase> oldParents = new LinkedHashMap<>();
       numberEntries(dictionary(original.getDictionaryObject(COSName.getPDFName("ParentTree"))), oldParents);
-      COSDictionary root = dictionary(original.getDictionaryObject(COSName.K));
-      if (root != null) {
-        COSBase oldChildren = root.getDictionaryObject(COSName.K);
-        if (oldChildren instanceof COSArray array) {
-          for (COSBase child : array) appendChild(document, contentSet, children, child, oldParents);
-        } else if (oldChildren != null) appendChild(document, contentSet, children, oldChildren, oldParents);
-      }
+      appendRenderedRoots(document, contentSet, children, original.getDictionaryObject(COSName.K), oldParents);
       Map<Integer, Integer> remapped = new LinkedHashMap<>();
       for (var entry : oldParents.entrySet()) {
         int key = nextKey(tree);
@@ -270,6 +264,25 @@ final class SemanticStructure {
     return value instanceof COSDictionary dictionary ? dictionary : null;
   }
 
+  private static void appendRenderedRoots(PDDocument document, COSDictionary parent, COSArray children,
+                                          COSBase roots, Map<Integer, COSBase> oldParents) throws IOException {
+    if (roots instanceof COSArray array) {
+      // WeasyPrint uses an array even for its single Document root.
+      for (COSBase root : array) appendRenderedRoots(document, parent, children, root, oldParents);
+      return;
+    }
+    COSDictionary root = dictionary(roots);
+    if (root == null) return;
+    if (!"Document".equals(root.getNameAsString(COSName.S))) {
+      appendChild(document, parent, children, roots, oldParents);
+      return;
+    }
+    COSBase content = root.getDictionaryObject(COSName.K);
+    if (content instanceof COSArray array) {
+      for (COSBase child : array) appendChild(document, parent, children, child, oldParents);
+    } else if (content != null) appendChild(document, parent, children, content, oldParents);
+  }
+
   private static void appendChild(PDDocument document, COSDictionary parent, COSArray children, COSBase child,
                                   Map<Integer, COSBase> oldParents) throws IOException {
     COSDictionary element = dictionary(child);
@@ -291,6 +304,14 @@ final class SemanticStructure {
     boolean inline = false;
     boolean block = false;
     String role = element.getNameAsString(COSName.S);
+    if ("NonStruct".equals(role)) {
+      // WeasyPrint uses NonStruct for elements such as PRE. Like Div, it is
+      // transparent to ISO 32005 inclusion rules. Keep inline wrappers inside
+      // links/spans inline; otherwise paragraph-normalize their text below.
+      // Existing MCIDs and ParentTree owners remain unchanged.
+      role = parentRole != null && INLINE_ROLES.contains(parentRole) ? "Span" : "Div";
+      element.setName(COSName.S, role);
+    }
     // The renderer uses a transparent Div for table + caption. Associate the
     // caption with Table so it cannot become a middle child of outer containers.
     // Keep order and existing MCIDs/ParentTree owners unchanged.

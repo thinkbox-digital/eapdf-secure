@@ -7,3 +7,9 @@ export function extensionVersion(version) {
     throw new Error(`Invalid browser version: ${version}`);
   return parts.join('.');
 }
+export function advanceMinorVersion(version) {
+  extensionVersion(version);
+  const match=/^(\d+)\.(\d+)\.\d+(-beta\.\d+)?$/.exec(version);
+  const next=`${match[1]}.${Number(match[2])+1}.0${match[3]??''}`;
+  extensionVersion(next);return next;
+}

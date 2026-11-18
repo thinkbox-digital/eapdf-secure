@@ -20,10 +20,11 @@ import {BrowserSession,type BrowserDocument} from './browser-session.js';
 import {AttachmentViewer} from './attachment-viewer.js';
 import {ScrollingPages} from './scrolling-pages.js';
 import type {AssociatedFile,EmbeddedStream,MailMessage} from './domain/inspection.js';
-import {fileLabel,messagePages,folderFiles} from './navigation.js';
+import {fileLabel,messagePages,messagePageOwners,folderFiles} from './navigation.js';
 import {metadataCsv,type CsvOptions} from './metadata-csv.js';
 import {MetadataDialog} from './metadata-dialog.js';
 import {setupLinkedOpening} from './linked-opening.js';
+import {SecurityController} from './security-controller.js';
 
 const fileInput=element<HTMLInputElement>('file'),pageInput=element<HTMLInputElement>('page'),zoom=element<HTMLSelectElement>('zoom');
 const status=element('status'),tree=element('tree'),files=element('files');
@@ -75,6 +76,7 @@ let exportSession:BrowserSession|undefined;
 let cancelExport:(()=>void)|undefined;
 const exportDialog=element<HTMLDialogElement>('export-dialog');
 const metadataDialog=new MetadataDialog();
+const security=new SecurityController();
 element('export-cancel').addEventListener('click',()=>cancelExport?.());
 exportDialog.addEventListener('cancel',event=>{event.preventDefault();cancelExport?.();});
 
@@ -155,6 +157,7 @@ function finishLoading():void {
 element('loading-cancel').addEventListener('click',()=>close());
 loadingDialog.addEventListener('cancel',event=>{event.preventDefault();close();});
 function close():void {
+  security.reset();
   pendingOpen=undefined;
   threadPreview.reset();finishLoading();metadataDialog.close();cancelExport?.();
   collectionView.reset();delete document.body.dataset.documentKind;
@@ -205,10 +208,7 @@ function syncMessageToPage():void {
   if(!doc||doc.inspection.collection.value||doc.inspection.messages.length<2)return;
   let owners=pageOwners.get(doc);
   if(!owners){
-    owners=new Map();
-    for(const message of doc.inspection.messages)for(const page of messagePages(doc.inspection,message)){
-      const existing=owners.get(page);owners.set(page,existing===undefined?message:existing===message?message:null);
-    }
+    owners=messagePageOwners(doc.inspection);
     pageOwners.set(doc,owners);
   }
   const message=owners.get(pageNumber)??undefined;
@@ -247,7 +247,7 @@ function showInformation(doc:BrowserDocument):void {
   const notice=detectDocument(doc.inspection).notice||detection.notice||openingWarnings.get(doc)||'';
   element('document-notice').textContent=notice;element('document-notice').hidden=!notice;
   if(detection.kind!=='eapdf')profile.textContent=detection.kind==='portfolio'?collectionView.documentLabel():'PDF';
-  element('header-filename').textContent=root.name;element('header-filename').title=root.name;
+  element('header-filename').textContent=root.name;if(!element('header-filename').dataset.security)element('header-filename').title=root.name;
   element('message-count').textContent=String(browseMessageCounts.get(root)??root.inspection.messages.length);
   element('archive-stats').hidden=true;
   void archiveStats(root).then(stats=>{let shown=current;while(shown?.parent)shown=shown.parent;if(shown!==root)return;element('archive-stats').hidden=!stats;element('archive-stats').textContent=stats??'';});
@@ -440,7 +440,7 @@ async function openFile(file:Blob,name:string):Promise<void>{
     const doc=await active.open(file,name,fraction=>{if(ticket===generation)status.textContent=`Inspecting ${name} · ${Math.round(fraction*100)}%`;},null,undefined,undefined,async preview=>{check(ticket);const meta=await preview.run(preview.pdf.getMetadata());check(ticket);if(['c','ci'].includes(String(meta.metadata?.get('pdfmailid:conformance')??'')))return;empty.hidden=true;await pages.show(preview,await pageScale(preview,1),1,'',false);check(ticket);status.textContent='First page ready. Email and file inspection continues…';},message=>{check(ticket);status.textContent=message;element('loading-message').textContent=message;});check(ticket);
     tree.append(documentTree(doc));await showDocument(doc,ticket);
     await collectionView.opened(doc,ticket,true);
-    if(ticket===generation){finishLoading();if(!collectionView.active)prepareBrowseSubjects(doc,ticket);}
+    if(ticket===generation){finishLoading();if(!collectionView.active)prepareBrowseSubjects(doc,ticket);void security.start(active,doc);}
     } catch(error) {
       if(ticket===generation){
         clearTimeout(loadingTimer);loadingTimer=undefined;

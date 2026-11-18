@@ -22,7 +22,7 @@ class UnfixedRegressionTests {
     EmailRecord record = EmlReader.readRfc822Bytes(raw, "fallback.eml", "fallback.eml", "", List.of(), false);
     var attempts = new java.util.concurrent.atomic.AtomicInteger();
     Path output = tempDir.resolve("fallback.pdf");
-    try (Common.JobReport job = Common.beginJob(); var capture = Common.beginPerFileLog(output)) {
+    try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.JobReport job = Common.beginJob(); var capture = Common.beginPerFileLog(output)) {
       byte[] rendered = PdfMailWriter.renderHtmlPdf("<html><body>Visible body<img src='cid:missing'/></body></html>",
           tempDir.toUri().toString(), TestSupport.fontPath(), record, false, (xhtml, baseUri, fontPath) -> {
             if (attempts.incrementAndGet() == 1) throw new java.io.IOException("primary rendering failed");
@@ -106,7 +106,7 @@ class UnfixedRegressionTests {
     Path output = tempDir.resolve("warnings.pdf");
     try {
       System.setOut(new java.io.PrintStream(console, true, StandardCharsets.UTF_8));
-      try (Common.JobReport job = Common.beginJob(); var capture = Common.beginPerFileLog(output)) {
+      try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.JobReport job = Common.beginJob(); var capture = Common.beginPerFileLog(output)) {
         Common.inputState("done.eml", "completed");
         Common.inputState("failed.eml", "started");
         Common.inputState("later.eml", "accepted");
@@ -148,7 +148,7 @@ class UnfixedRegressionTests {
       Assertions.assertEquals(originalXmp.replaceAll(generatedProperties, ""),
           PdfMailWriter.buildXmpMetadata(record).replaceAll(generatedProperties, ""));
       Path output = tempDir.resolve("staged.pdf");
-      PdfMailWriter.writeEaPdfA3(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
+      PdfMailWriter.writeEaPdf(output, record, TestSupport.fontPath(), TestSupport.iccPath(), false, tempDir, 1);
       try (PDDocument document = Loader.loadPDF(output.toFile())) {
         Assertions.assertTrue(new PDFTextStripper().getText(document).contains("Preserved body"));
         Assertions.assertArrayEquals(raw, AttachmentProfilePolicyTests.bytes(

@@ -15,7 +15,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PstItemSelectionTests {
-  static final Path SOURCE = Path.of("src/test/resources/eapdf/email/attached-message.pst");
+  static final Path SOURCE = Path.of("in/attached-message.pst");
 
   static PSTMessage firstMessage(PSTFolder folder) throws Exception {
     for (int i = 0; i < folder.getContentCount(); i++) {

@@ -442,7 +442,7 @@ public class EapdfGui {
       return;
     }
     final char[] signingPassword;
-    if (configOverrides.signing.enabled) {
+    if (configOverrides.signing.enabled && Common.nz(configOverrides.signing.passphraseFile).isBlank()) {
       JPasswordField password = new JPasswordField(24);
       int choice = showSigningPasswordDialog(frame, password);
       signingPassword = password.getPassword();
@@ -603,6 +603,19 @@ public class EapdfGui {
     return panel;
   }
 
+  record ProtectionChoice(String code, String label) {
+    @Override public String toString() { return label + " (" + code + ")"; }
+  }
+  static ProtectionChoice[] protectionChoices() {
+    return new ProtectionChoice[]{new ProtectionChoice("CMS_AND_PDF", "Sign the PDF"),
+        new ProtectionChoice("CMS_AND_PDF_TIMESTAMPED", "Sign with a trusted timestamp"),
+        new ProtectionChoice("PADES_B_LTA", "Sign for long-term preservation")};
+  }
+  private static ProtectionChoice protectionChoice(String code) {
+    for (var choice : protectionChoices()) if (choice.code().equals(code)) return choice;
+    throw new IllegalArgumentException("Unsupported protection: " + code);
+  }
+
   static RunConfigControls buildRunConfigControls() {
     EapdfConfig cfg = EapdfConfig.normalize(EapdfConfig.get());
     JCheckBox searchIndex = new JCheckBox("Embed searchable index", cfg.searchIndex.enabled);
@@ -623,11 +636,30 @@ public class EapdfGui {
       if (value != null) EapdfConfig.get().creator = value.strip();
     });
     JButton certificate = new JButton("Signing settings...");
-    certificate.setToolTipText("Choose a signing certificate and optional key alias and signature reason.");
+    certificate.setToolTipText("Choose export credentials, protection level, trust policy and timestamp service.");
     certificate.addActionListener(event -> {
       JTextField path = new JTextField(controls.signing.pkcs12Path, 36);
       JTextField alias = new JTextField(controls.signing.alias, 24);
       JTextField reason = new JTextField(controls.signing.reason, 24);
+      JTextField passphrase = new JTextField(controls.signing.passphraseFile, 36);
+      JCheckBox c2pa = new JCheckBox("Add C2PA export provenance", controls.signing.c2pa);
+      JComboBox<ProtectionChoice> protection = new JComboBox<>(protectionChoices());
+      protection.setSelectedItem(protectionChoice(controls.signing.protection));
+      com.google.gson.JsonObject[] importedTrust = {controls.signing.trustPolicy == null ? null : controls.signing.trustPolicy.deepCopy()};
+      boolean[] importedEnabled = {false};
+      JTextField policy = new JTextField(importedTrust[0] == null ? controls.signing.policyPath : "Imported trust evidence", 36);
+      policy.setEditable(importedTrust[0] == null);
+      JTextField tsa = new JTextField(controls.signing.tsaUrl, 36);
+      Runnable updateProtection = () -> {
+        boolean archival = "PADES_B_LTA".equals(((ProtectionChoice) protection.getSelectedItem()).code());
+        if (archival) c2pa.setSelected(true);
+        c2pa.setEnabled(!archival);
+        if ("CMS_AND_PDF".equals(((ProtectionChoice) protection.getSelectedItem()).code())) tsa.setText("");
+        else if (tsa.getText().isBlank()) tsa.setText(EapdfConfig.SigningConfig.DEFAULT_TSA_URL);
+      };
+      protection.addActionListener(changed -> updateProtection.run());
+      updateProtection.run();
+      JTextField oid = new JTextField(controls.signing.tsaPolicyOid, 24);
       JPanel settings = new JPanel(new GridBagLayout());
       GridBagConstraints gc = new GridBagConstraints();
       gc.insets = new Insets(5, 5, 5, 5);
@@ -635,12 +667,46 @@ public class EapdfGui {
           e -> choosePath(path, JFileChooser.FILES_ONLY, false));
       addRow(settings, gc, 1, "Key alias (optional)", alias);
       addRow(settings, gc, 2, "Reason (optional)", reason);
-      addRow(settings, gc, 3, "", new JLabel("The password is requested when conversion starts."));
-      if (JOptionPane.showConfirmDialog(frame, settings, "Digital signature",
+      addRow(settings, gc, 3, "Export provenance", c2pa);
+      addRow(settings, gc, 4, "Protection", protection);
+      addPathRow(settings, gc, 5, "Signing / trust JSON", policy, e -> {
+        JFileChooser chooser = new JFileChooser(launchDirectory.toFile());
+        chooser.setDialogTitle("Load signing settings JSON");
+        chooser.setFileFilter(new FileNameExtensionFilter("JSON settings", "json"));
+        if (chooser.showOpenDialog(settings) != JFileChooser.APPROVE_OPTION) return;
+        try {
+          var base = new Gson().fromJson(new Gson().toJson(controls.signing), EapdfConfig.SigningConfig.class);
+          base.pkcs12Path = path.getText().trim(); base.passphraseFile = passphrase.getText().trim();
+          base.alias = alias.getText().trim(); base.reason = reason.getText().trim(); base.c2pa = c2pa.isSelected();
+          base.protection = ((ProtectionChoice) protection.getSelectedItem()).code();
+          base.tsaUrl = tsa.getText().trim(); base.tsaPolicyOid = oid.getText().trim();
+          base.trustPolicy = importedTrust[0]; base.policyPath = importedTrust[0] == null ? policy.getText().trim() : "";
+          var loaded = SigningSettings.read(chooser.getSelectedFile().toPath(), base);
+          path.setText(loaded.pkcs12Path); passphrase.setText(loaded.passphraseFile);
+          alias.setText(loaded.alias); reason.setText(loaded.reason); c2pa.setSelected(loaded.c2pa);
+          protection.setSelectedItem(protectionChoice(loaded.protection)); tsa.setText(loaded.tsaUrl); oid.setText(loaded.tsaPolicyOid);
+          importedTrust[0] = loaded.trustPolicy; importedEnabled[0] = loaded.enabled;
+          policy.setText(importedTrust[0] == null ? loaded.policyPath : "Imported trust evidence");
+          policy.setEditable(importedTrust[0] == null);
+        } catch (Exception invalid) { JOptionPane.showMessageDialog(settings, "Cannot load signing settings: " + invalid.getMessage(), "Signing settings", JOptionPane.ERROR_MESSAGE); }
+      });
+      addRow(settings, gc, 6, "Timestamp service URL", tsa);
+      addRow(settings, gc, 7, "Timestamp policy OID (optional)", oid);
+      addPathRow(settings, gc, 8, "Passphrase file (optional)", passphrase, e -> choosePath(passphrase, JFileChooser.FILES_ONLY, false));
+      addRow(settings, gc, 9, "", new JLabel("The password is requested unless a passphrase file is selected. Sources remain unchanged."));
+      if (JOptionPane.showConfirmDialog(frame, settings, "Export security",
           JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
         controls.signing.pkcs12Path = path.getText().trim();
         controls.signing.alias = alias.getText().trim();
         controls.signing.reason = reason.getText().trim();
+        controls.signing.passphraseFile = passphrase.getText().trim();
+        controls.signing.c2pa = c2pa.isSelected();
+        controls.signing.protection = ((ProtectionChoice) protection.getSelectedItem()).code();
+        controls.signing.trustPolicy = importedTrust[0] == null ? null : importedTrust[0].deepCopy();
+        controls.signing.policyPath = importedTrust[0] == null ? policy.getText().trim() : "";
+        controls.signing.tsaUrl = tsa.getText().trim();
+        controls.signing.tsaPolicyOid = oid.getText().trim();
+        if (importedEnabled[0] || !"CMS_AND_PDF".equals(controls.signing.protection)) controls.signOutput.setSelected(true);
       }
     });
     return inlinePanel(controls.pdfUa, controls.searchIndex,

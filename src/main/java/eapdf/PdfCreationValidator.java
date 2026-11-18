@@ -410,6 +410,7 @@ final class PdfCreationValidator {
   private static void validateContainedFiles(PDDocument document, org.w3c.dom.Document metadata,
                                             int depth, ChildValidationContext context) throws Exception {
     var listedFiles = context.inventory == null ? null : PreservationInventory.listedFiles(document);
+    var securityArtifacts = eapdf.security.EaPdfC2paProfile.artifacts(document);
     java.util.Set<COSDictionary> sources = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     java.util.Set<COSStream> related = java.util.Collections.newSetFromMap(new java.util.IdentityHashMap<>());
     var af = document.getDocumentCatalog().getCOSObject().getDictionaryObject(COSName.getPDFName("AF"));
@@ -431,7 +432,7 @@ final class PdfCreationValidator {
           && sourceSupplement(file, metadata)) supplements.add(file);
     }
     visitDocumentDictionaries(document, file -> {
-      if (!(file.getDictionaryObject(COSName.EF) instanceof COSDictionary ef) || sources.contains(file) || supplements.contains(file)) return;
+      if (!(file.getDictionaryObject(COSName.EF) instanceof COSDictionary ef) || sources.contains(file) || supplements.contains(file) || securityArtifacts.contains(file)) return;
       COSBase stream = ef.getDictionaryObject(COSName.UF, COSName.F);
       if (stream instanceof COSStream payload && related.contains(payload)) return;
       require(stream instanceof COSStream, "Contained file has no embedded stream");

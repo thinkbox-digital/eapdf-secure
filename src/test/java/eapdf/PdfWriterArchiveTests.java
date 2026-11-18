@@ -1,7 +1,5 @@
 package eapdf;
 
-import java.net.ConnectException;
-import java.net.SocketTimeoutException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.charset.StandardCharsets;
@@ -68,18 +66,21 @@ class PdfWriterArchiveTests {
   }
 
   @Test
-  void blacklistsConnectionFailuresAndHtmlImageResponses() {
-    Assertions.assertTrue(PdfMailWriter.shouldBlacklistRemoteAssetFailure(new ConnectException("Connection refused")));
-    Assertions.assertTrue(PdfMailWriter.shouldBlacklistRemoteAssetFailure(new SocketTimeoutException("connect timed out")));
-    Assertions.assertEquals("Connection refused", PdfMailWriter.describeRemoteAssetFailure(new ConnectException("Connection refused")));
-
-    byte[] html = "<html><body>tracking page</body></html>".getBytes(StandardCharsets.UTF_8);
-    Assertions.assertTrue(PdfMailWriter.shouldBlacklistRemoteAssetResponse("https://example.com/logo.gif", html));
-    Assertions.assertEquals("Remote asset returned HTML instead of binary content",
-        PdfMailWriter.describeRemoteAssetResponse("https://example.com/logo.gif", html));
-
-    byte[] png = new byte[] {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
-    Assertions.assertFalse(PdfMailWriter.shouldBlacklistRemoteAssetResponse("https://example.com/logo.png", png));
+  void externalResourcesAreBlockedWithoutFetching() throws Exception {
+    EmailRecord record = new EmailRecord();
+    try (Common.CommandRuntime runtime = Common.commandRuntime();
+         Common.PerFileLogCapture capture = Common.beginPerFileLog(tempDir.resolve("blocked.pdf"))) {
+      MailRenderPolicy.ACTIVE_RENDER_RECORD.set(record);
+      try {
+        Assertions.assertNull(MailRenderPolicy.REMOTE_ASSET_URI_RESOLVER.resolveURI("", "https://example.com/logo.gif"));
+        Assertions.assertNull(MailRenderPolicy.REMOTE_ASSET_URI_RESOLVER.resolveURI("", "https://example.com/logo.gif"));
+        Assertions.assertFalse(MailRenderPolicy.isAllowedRenderResource("https://example.com/logo.gif"));
+        Assertions.assertNull(MailRenderPolicy.REMOTE_ASSET_STREAM_FACTORY.getUrl("https://example.com/logo.gif").getStream());
+      } finally { MailRenderPolicy.ACTIVE_RENDER_RECORD.remove(); }
+    }
+    String log = Files.readString(tempDir.resolve("logs/blocked.log"));
+    Assertions.assertTrue(log.contains("External resource loading is disabled"));
+    Assertions.assertTrue(log.contains("encounters: 3"));
   }
 
   @Test
@@ -89,7 +90,7 @@ class PdfWriterArchiveTests {
     record.subject = "Monthly Sample";
     record.sourcePath = "gmail://message-123";
 
-    try (Common.PerFileLogCapture capture = Common.beginPerFileLog(out)) {
+    try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.PerFileLogCapture capture = Common.beginPerFileLog(out)) {
       capture.append("Mar 28, 2026 12:00:38 PM org.apache.pdfbox.pdmodel.font.PDType1Font <init>\n");
       capture.append("WARNING: Using fallback font LiberationSans for base font Symbol\n");
       capture.append("WARNING: Using fallback font LiberationSans for base font Symbol\n");

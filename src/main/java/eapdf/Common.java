@@ -36,7 +36,9 @@ class Common {
   }
   static final Map<String, Path> BUNDLED_ASSETS = new HashMap<>();
   static final Object LOG_CAPTURE_LOCK = new Object();
-  static volatile boolean LOG_CAPTURE_INSTALLED = false;
+  private static int commandRuntimeUsers;
+  private static PrintStream commandOut, commandErr, capturedOut, capturedErr;
+  private static boolean commandSetDeflate;
   static volatile String PROJECT_VERSION = null;
   static final InheritableThreadLocal<PerFileLogCapture> ACTIVE_LOG_CAPTURE = new InheritableThreadLocal<>();
   static final InheritableThreadLocal<JobReport> ACTIVE_JOB = new InheritableThreadLocal<>();
@@ -145,6 +147,7 @@ class Common {
 
   static final class JobReport implements AutoCloseable {
     final JobReport previous = ACTIVE_JOB.get();
+    final java.time.Instant exportInstant = java.time.Instant.now();
     final java.util.concurrent.ConcurrentMap<String, String> inputs = new java.util.concurrent.ConcurrentHashMap<>();
     final java.util.concurrent.ConcurrentMap<String, String> warnings = new java.util.concurrent.ConcurrentHashMap<>();
     final java.util.concurrent.ConcurrentMap<String, ConversionDiagnostic> diagnostics = new java.util.concurrent.ConcurrentHashMap<>();
@@ -172,6 +175,15 @@ class Common {
       warnings.put(key, warning);
       diagnostics.put(diagnosticKey, diagnostic);
       return fresh;
+    }
+
+    synchronized void importDiagnostics(Map<String, String> importedWarnings,
+        Map<String, ConversionDiagnostic> importedDiagnostics, long size) {
+      if (size > ProcessingLimits.metadataBytes() - metadataSize - warningSize)
+        throw fail("Combined process diagnostics exceed the metadata budget");
+      warningSize += size;
+      warnings.putAll(importedWarnings);
+      diagnostics.putAll(importedDiagnostics);
     }
 
     synchronized void stage(EmailRecord record) throws Exception {
@@ -274,8 +286,9 @@ class Common {
     Path output = destination.toAbsolutePath();
     Files.createDirectories(output.getParent());
     Path temporary = Files.createTempFile(output.getParent(), "." + output.getFileName() + ".", ".tmp");
-    try {
+    try (AutoCloseable cleanup = () -> Files.deleteIfExists(temporary)) {
       writer.write(temporary);
+      preserveOutputPermissions(output, temporary);
       try (var channel = java.nio.channels.FileChannel.open(temporary, StandardOpenOption.WRITE)) {
         channel.force(true);
       }
@@ -284,9 +297,23 @@ class Common {
       } catch (AtomicMoveNotSupportedException unsupported) {
         Files.move(temporary, output, StandardCopyOption.REPLACE_EXISTING);
       }
-    } finally {
-      Files.deleteIfExists(temporary);
     }
+  }
+
+  static void preserveOutputPermissions(Path destination, Path temporary) throws IOException {
+    if (Files.isRegularFile(destination, LinkOption.NOFOLLOW_LINKS)
+        && Files.getFileStore(destination).supportsFileAttributeView("posix")) {
+      Files.setPosixFilePermissions(temporary, Files.getPosixFilePermissions(destination, LinkOption.NOFOLLOW_LINKS));
+    } else if (!Files.exists(destination, LinkOption.NOFOLLOW_LINKS)
+        && Files.getFileStore(temporary).supportsFileAttributeView("posix")) {
+      // Renderer/index/security replacements can change the initial temporary-file mode.
+      Files.setPosixFilePermissions(temporary, java.nio.file.attribute.PosixFilePermissions.fromString("rw-------"));
+    }
+  }
+
+  static int checkedPayloadSize(long size) {
+    if (size < 0 || size > Integer.MAX_VALUE) throw fail("Embedded PDF exceeds the supported size of " + Integer.MAX_VALUE + " bytes");
+    return (int) size;
   }
 
   static void writeAtomically(Path destination, byte[] bytes) throws Exception {
@@ -312,6 +339,7 @@ class Common {
       ProcessingLimits.checkCancelled();
       writer.write(temporary);
       if (outermost) FullTextSearchIndex.add(temporary);
+      if (outermost) EaPdfSecurity.prepareConfigured(temporary);
       boolean checked = EapdfConfig.get().validateOnCreation;
       if (checked) {
         if (outermost) ConversionProgress.stage("checking");
@@ -319,7 +347,7 @@ class Common {
       } else if (outermost) {
         System.out.println("[validation] Creation checks skipped by configuration.");
       }
-      if (outermost && EapdfConfig.get().signing.enabled) {
+      if (outermost && (EapdfConfig.get().signing.enabled || EapdfConfig.get().signing.c2pa)) {
         ConversionProgress.stage("signing");
         PdfSigning.signConfigured(temporary);
         if (checked) {
@@ -332,9 +360,8 @@ class Common {
     });
   }
 
-  static void exitWithError(String s) {
+  static void reportError(String s) {
     System.out.println("error: " + s);
-    System.exit(2);
   }
 
   static void dbg(EmailRecord r, String s) {
@@ -343,23 +370,72 @@ class Common {
   }
 
   static PerFileLogCapture beginPerFileLog(Path pdfOut) {
-    ensureLogCaptureInstalled();
     return new PerFileLogCapture(pdfOut);
   }
 
-  static void ensureLogCaptureInstalled() {
-    if (LOG_CAPTURE_INSTALLED) return;
-    synchronized (LOG_CAPTURE_LOCK) {
-      if (LOG_CAPTURE_INSTALLED) return;
-      PrintStream originalOut = System.out;
-      PrintStream originalErr = System.err;
-      System.setOut(new PrintStream(new TeeLoggingOutputStream(originalOut), true, StandardCharsets.UTF_8));
-      System.setErr(new PrintStream(new TeeLoggingOutputStream(originalErr), true, StandardCharsets.UTF_8));
-      LOG_CAPTURE_INSTALLED = true;
+  static CommandRuntime commandRuntime() { return new CommandRuntime(); }
+
+  /** Explicit command scope: library PDF writing does not replace process streams. */
+  static final class CommandRuntime implements AutoCloseable {
+    private boolean closed;
+    CommandRuntime() {
+      synchronized (LOG_CAPTURE_LOCK) {
+        if (commandRuntimeUsers++ != 0) return;
+        commandOut = System.out;
+        commandErr = System.err;
+        capturedOut = new PrintStream(new TeeLoggingOutputStream(commandOut), true, StandardCharsets.UTF_8);
+        capturedErr = new PrintStream(new TeeLoggingOutputStream(commandErr), true, StandardCharsets.UTF_8);
+        System.setOut(capturedOut);
+        System.setErr(capturedErr);
+        commandSetDeflate = System.getProperties().putIfAbsent("org.apache.pdfbox.filter.deflatelevel", "9") == null;
+      }
+    }
+    @Override public void close() {
+      synchronized (LOG_CAPTURE_LOCK) {
+        if (closed) return;
+        closed = true;
+        if (--commandRuntimeUsers != 0) return;
+        capturedOut.flush(); capturedErr.flush();
+        if (System.out == capturedOut) System.setOut(commandOut);
+        if (System.err == capturedErr) System.setErr(commandErr);
+        if (commandSetDeflate) System.getProperties().remove("org.apache.pdfbox.filter.deflatelevel", "9");
+        commandOut = commandErr = capturedOut = capturedErr = null;
+      }
     }
   }
 
+  static boolean embedsSource(String profile) {
+    return switch (profile) {
+      case "s", "m", "c" -> true;
+      case "si", "mi", "ci" -> false;
+      default -> throw fail("Unsupported EA-PDF profile: " + profile);
+    };
+  }
+
+  static void rethrowTaskFailure(java.util.concurrent.ExecutionException error) throws Exception {
+    Throwable cause = error;
+    while ((cause instanceof java.util.concurrent.ExecutionException || cause instanceof java.util.concurrent.CompletionException)
+        && cause.getCause() != null && cause.getCause() != cause) cause = cause.getCause();
+    if (cause instanceof Exception exception) throw exception;
+    if (cause instanceof Error fatal) throw fatal;
+    throw new RuntimeException(cause);
+  }
+
+  static java.time.Instant exportInstant() {
+    JobReport job = ACTIVE_JOB.get();
+    if (job != null) return job.exportInstant;
+    PerFileLogCapture capture = ACTIVE_LOG_CAPTURE.get();
+    return capture == null ? java.time.Instant.now() : capture.exportInstant;
+  }
+
+  static Calendar exportCalendar() {
+    return GregorianCalendar.from(exportInstant().atZone(java.time.ZoneOffset.UTC));
+  }
+
+
   static final class PerFileLogCapture implements AutoCloseable {
+    final PerFileLogCapture previous = ACTIVE_LOG_CAPTURE.get();
+    final java.time.Instant exportInstant = Common.exportInstant();
     final Path pdfOut;
     final Path logPath;
     final StringBuilder pendingLine = new StringBuilder();
@@ -413,7 +489,8 @@ class Common {
 
     @Override
     public void close() {
-      ACTIVE_LOG_CAPTURE.remove();
+      if (previous == null) ACTIVE_LOG_CAPTURE.remove();
+      else ACTIVE_LOG_CAPTURE.set(previous);
       try {
         Files.createDirectories(logPath.getParent());
         synchronized (this) {
@@ -675,7 +752,7 @@ class Common {
   t = t.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]+","_");
   t = t.replaceAll("\\s+"," ").trim();
   if(t.isEmpty()) t="message";
-  if(t.length()>120) t=t.substring(0,120);
+  t = truncateUtf16(t, 120);
   return t;
 }
 
@@ -697,10 +774,10 @@ static String sourceContentType(AssociatedFile file) {
 
 static String sourceDerivation(EmailRecord record) {
   if ("pst".equals(record.sourceType)) return "PST preprocessing: exported the selected message to RFC 822 from "
-      + nz(record.sourcePath) + "; the original PST container and unexported storage properties are not embedded.";
+      + "the PST source; the original PST container and unexported storage properties are not embedded.";
   if ("mbox".equals(record.sourceType)) {
     String description = "MBOX preprocessing: extracted an RFC 822 message and reversed mailbox quoting from "
-        + nz(record.sourcePath) + "; the original mailbox container and envelope are not embedded.";
+        + "the MBOX source; the original mailbox container and envelope are not embedded.";
     if (record.mboxProvenance != null) {
       var provenance = record.mboxProvenance;
       var entry = provenance.entry();
@@ -1011,7 +1088,7 @@ static String stripInvalidXml(String s) {
 
   static String fmtDate(Date d) {
     if (d == null) return "";
-    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z").format(d);
+    return new SimpleDateFormat("yyyy-MM-dd HH:mm:ss Z", Locale.ROOT).format(d);
   }
 
   static String rfc822Date(Date d) {
@@ -1022,7 +1099,7 @@ static String stripInvalidXml(String s) {
 
   static String xmpDate(Date d) {
     if (d == null) return "";
-    SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX");
+    SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssXXX", Locale.ROOT);
     return f.format(d);
   }
 
@@ -1139,13 +1216,38 @@ static String stripInvalidXml(String s) {
       String webp = new String(b, 8, 4, StandardCharsets.ISO_8859_1);
       if ("RIFF".equals(riff) && "WEBP".equals(webp)) return "image/webp";
     }
-    if (b[0] == 'B' && b[1] == 'M') return "image/bmp";
+    if (plausibleBmp(b)) return "image/bmp";
     if (b.length >= 5) {
       String s = new String(b, 0, Math.min(b.length, 256), StandardCharsets.UTF_8).toLowerCase(Locale.ROOT);
       if (s.contains("<svg")) return "image/svg+xml";
-      if (s.contains("mime-version:") || s.contains("message-id:") || s.contains("subject:")) return "message/rfc822";
+      if (plausibleEmailHeaders(s)) return "message/rfc822";
     }
     return "";
+  }
+
+  private static boolean plausibleBmp(byte[] bytes) {
+    if (bytes.length < 26 || bytes[0] != 'B' || bytes[1] != 'M') return false;
+    var header = java.nio.ByteBuffer.wrap(bytes).order(java.nio.ByteOrder.LITTLE_ENDIAN);
+    long size = Integer.toUnsignedLong(header.getInt(2));
+    long offset = Integer.toUnsignedLong(header.getInt(10));
+    long dib = Integer.toUnsignedLong(header.getInt(14));
+    return bytes[6] == 0 && bytes[7] == 0 && bytes[8] == 0 && bytes[9] == 0
+        && (dib == 12 || dib == 40 || dib == 52 || dib == 56 || dib == 108 || dib == 124)
+        && offset >= 14 + dib && size >= offset;
+  }
+
+  private static boolean plausibleEmailHeaders(String prefix) {
+    int recognized = 0;
+    boolean field = false;
+    for (String line : prefix.split("\\r?\\n")) {
+      if (line.isEmpty()) break;
+      if ((line.startsWith(" ") || line.startsWith("\t")) && field) continue;
+      int colon = line.indexOf(':');
+      if (colon <= 0 || !line.substring(0, colon).matches("[a-z0-9!#$%&'*+.^_`|~-]+")) return false;
+      field = true;
+      if (Set.of("from", "to", "date", "subject", "message-id", "mime-version", "content-type").contains(line.substring(0, colon))) recognized++;
+    }
+    return recognized >= 2;
   }
 
   static String mimeFromFilename(String filename) {
@@ -1248,9 +1350,9 @@ static String stripInvalidXml(String s) {
   static String nz(String s) { return s == null ? "" : s; }
 
   static String safeFileStem(String s) {
-    String t = nz(s).trim();
+    String t = stripInvalidXml(nz(s)).trim();
     if (t.isEmpty()) t = "message";
-    t = t.replaceAll("[\\\\/:*?\"<>|]+", "_");
+    t = t.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]+", "_");
     t = t.replaceAll("\\s+", " ").trim();
     // Bulk names combine two stems and a sequence suffix. Bound UTF-8 bytes
     // as well as characters so ordinary international names fit a filesystem
@@ -1270,24 +1372,30 @@ static String stripInvalidXml(String s) {
     return t;
   }
 
+  static String truncateUtf16(String value, int limit) {
+    if (value.length() <= limit) return value;
+    int end = limit;
+    if (end > 0 && Character.isHighSurrogate(value.charAt(end - 1)) && Character.isLowSurrogate(value.charAt(end))) end--;
+    return value.substring(0, end);
+  }
+
   static String safeCollectionLabel(String s, String fallback) {
-    String label = nz(s).trim();
-    if (label.isEmpty()) label = nz(fallback).trim();
+    String label = stripInvalidXml(nz(s)).trim();
+    if (label.isEmpty()) label = stripInvalidXml(nz(fallback)).trim();
     if (label.isEmpty()) label = "Collection";
     label = label.replaceAll("[\\\\/:*?\"<>|\\p{Cntrl}]+", "_");
     label = label.replaceAll("\\s+", " ").trim();
     while (label.endsWith(".")) label = label.substring(0, label.length() - 1).trim();
-    if (label.length() > 120) label = label.substring(0, 120).trim();
+    label = truncateUtf16(label, 120).trim();
     while (label.endsWith(".")) label = label.substring(0, label.length() - 1).trim();
-    if (label.isEmpty()) label = nz(fallback).trim();
     if (label.isEmpty()) label = "Collection";
     return label;
   }
 
   static String xmpDateNowUtc() {
-    SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    SimpleDateFormat f = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.ROOT);
     f.setTimeZone(TimeZone.getTimeZone("UTC"));
-    return f.format(new Date());
+    return f.format(Date.from(exportInstant()));
   }
 
   static String xml(String s) {

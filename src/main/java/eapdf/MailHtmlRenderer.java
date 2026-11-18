@@ -70,7 +70,7 @@ byte[] renderHtmlPdf(String html, String baseUri, String fontPath, EmailRecord r
   try {
     try {
       byte[] rendered = renderer.render(finalXhtml, baseUri, fontPath);
-      if (debug) Common.dbg(r, "OpenHTMLtoPDF run complete");
+      if (debug) Common.dbg(r, EapdfConfig.get().rendering.engine.equals("weasyprint") ? "WeasyPrint run complete" : "OpenHTMLtoPDF run complete");
       return rendered;
     } catch (Exception ex) {
       for (Throwable cause = ex; cause != null && cause.getCause() != cause; cause = cause.getCause()) {
@@ -109,6 +109,8 @@ byte[] renderXhtmlPdf(String xhtml, String baseUri, String fontPath) throws Exce
 }
 
 byte[] renderXhtmlPdf(String xhtml, String baseUri, String fontPath, boolean fitWideContent) throws Exception {
+  if (EapdfConfig.get().rendering.engine.equals("weasyprint"))
+    return WeasyPrintRenderer.render(xhtml, baseUri, fontPath, fitWideContent);
   ByteArrayOutputStream baos = new ByteArrayOutputStream();
   PdfRendererBuilder builder = new PdfRendererBuilder();
   builder.useFastMode();
@@ -229,7 +231,7 @@ String buildRenderHtml(EmailRecord r, boolean debug, Path assetDir, String profi
 String buildRenderHtml(EmailRecord r, boolean debug, Path assetDir, String profileOverride, String archiveSourceName) throws Exception {
   if (Common.nz(r.headerTagMarker).isBlank()) r.headerTagMarker = "EA-PDF-" + UUID.randomUUID() + ":";
   for (String warning : r.conversionWarnings) System.err.println("warning: " + warning);
-  r.embedSourceMessage = !profile.apply(r, profileOverride).endsWith("i");
+  r.embedSourceMessage = Common.embedsSource(profile.apply(r, profileOverride));
   String htmlBody = Common.htmlBody(r);
   String textBody = Common.textBody(r);
   ProcessingLimits.checkBody(htmlBody, r.sourcePath);
@@ -566,7 +568,9 @@ String canonicalizeEmailHtml(String html, EmailRecord r, boolean debug) {
       if (value.matches("\\d+")) declarations.append(dimension).append(':').append(value).append("px;");
       else if (value.matches("(?:\\d+(?:\\.\\d+)?|\\.\\d+)%"))
         declarations.append(dimension).append(':').append(value).append(';');
-      e.removeAttr(dimension);
+      // Image attributes also describe intrinsic aspect ratio for an unavailable
+      // graphic's placeholder, even when authored CSS overrides height to auto.
+      if (!"img".equals(e.normalName())) e.removeAttr(dimension);
     }
     if (declarations.length() == 0) continue;
     // Legacy presentation attributes are defaults; scoped author rules and inline CSS take priority.

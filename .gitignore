@@ -20,6 +20,7 @@ __pycache__/
 # Local secrets / auth state
 config/credentials.json
 config/credentials.local.json
+/config/*.local.json
 scripts/x_state.json
 scripts/facebook_state.json
 in/twitter/x_state.json
@@ -32,6 +33,9 @@ in/facebook/scrape/facebook_state.json
 
 # Generated review output and local development state
 output/
+# Local renderer comparison samples may retain private correspondence.
+/examples/*/*_renderer_eval_*
+/.venv-weasyprint/
 .idea/
 *.iml
 .aiignore
@@ -44,7 +48,7 @@ in/email/test3_old.eml
 # New local email corpora stay private; existing tracked fixtures remain tracked.
 /in/*
 !/in/enron-sample.mbox
-!/in/quality-attached-message.pst
+!/in/attached-message.pst
 
 # Adapted veraPDF implementation and its regression tests are source, not reports.
 !/validator-desktop/src/main/java/org/verapdf/pdfa/validation/

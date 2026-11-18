@@ -20,7 +20,7 @@ SAMPLE_INPUTS = {
     "eml": ("in/Agenda and timeline slides.eml", "in/eml_01_403.eml"),
     "msg": ("in/TxtSampleEmailWithAttachment.msg",
             "in/test.MSG"),
-    "pst": ("in/quality-attached-message.pst",),
+    "pst": ("in/attached-message.pst",),
     "mbox": ("in/enron-sample.mbox",),
 }
 PROFILES = ("1s", "1si", "1m", "1mi", "1c", "1ci")

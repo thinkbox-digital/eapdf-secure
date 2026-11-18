@@ -1,5 +1,13 @@
 # Standalone Java EA-PDF validator
 
+Unreleased export-security integration reports PDF signatures, C2PA binding and
+PAdES B-LTA separately from EA-PDF/PDF/A conformance. The window includes an
+**Export security** tab. Select independent local evidence with
+`EAPDF_SECURITY_POLICY`; optionally require a level with
+`EAPDF_SECURITY_REQUIRED_PROTECTION`. Unknown trust is not a pass. Failed security
+or an unmet required level gives exit 2 while retaining the conformance verdict.
+See [settings and verification limits](../docs/DIGITAL_SIGNATURES.md).
+
 This is a Java desktop app that checks one PDF at a time. It builds into one
 runnable JAR. **Java 21 or later is the only runtime installation needed.**
 No Python, Docker, browser, server, source checkout or separate rule files are

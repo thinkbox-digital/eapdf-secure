@@ -28,6 +28,16 @@
 
   <dependencyManagement>
     <dependencies>
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>33.8.0-jre</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.pdfbox</groupId>
+        <artifactId>fontbox</artifactId>
+        <version>3.0.8-eapdf.1</version>
+      </dependency>
       <!-- CVE-2026-49844: override the older API pulled in by POI. -->
       <dependency>
         <groupId>org.apache.logging.log4j</groupId>
@@ -124,7 +134,7 @@
 	<dependency>
   <groupId>io.github.openhtmltopdf</groupId>
   <artifactId>openhtmltopdf-pdfbox</artifactId>
-  <version>1.1.113-eapdf.1</version>
+  <version>1.1.114-eapdf.1</version>
 </dependency>
 
     <!-- RTF conversion dependency (fixes CodePage error) -->
@@ -204,6 +214,21 @@
     </dependency>
 
     <dependency>
+      <groupId>digital.thinkbox</groupId>
+      <artifactId>pdf-security</artifactId>
+      <version>0.1.0</version>
+    </dependency>
+
+    <dependency>
+      <groupId>digital.thinkbox</groupId>
+      <artifactId>pdf-security</artifactId>
+      <version>0.1.0</version>
+      <type>test-jar</type>
+      <classifier>tests</classifier>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
       <version>2.15.0</version>
@@ -244,6 +269,7 @@
         <targetPath>eapdf/email</targetPath>
         <includes>
           <include>test.pst</include>
+          <include>attached-message.pst</include>
         </includes>
       </testResource>
     </testResources>

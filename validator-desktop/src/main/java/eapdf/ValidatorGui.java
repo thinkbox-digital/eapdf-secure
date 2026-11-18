@@ -126,7 +126,14 @@ public final class ValidatorGui {
 
   private void showOutcome() {
     String state = result.status();
+    if ("PASS".equals(state) && !result.securityJson().isBlank()
+        && eapdf.security.SecurityVerification.unsuccessful(JsonParser.parseString(result.securityJson()).getAsJsonObject())) {
+      outcome.setText("Conformance complete; export security failed"); state = "FAIL";
+    } else if ("PASS".equals(state) && "UNKNOWN".equals(result.securityStatus())) {
+      outcome.setText("Conformance complete; export security needs review"); state = "INCOMPLETE";
+    } else {
     outcome.setText(switch (state) { case "PASS" -> "Validation complete"; case "FAIL" -> "Validation failed"; default -> "Validation incomplete"; });
+    }
     outcome.setBackground(switch (state) { case "PASS" -> new Color(49, 118, 51); case "FAIL" -> new Color(172, 49, 39); default -> new Color(143, 99, 15); });
     outcome.setForeground(Color.WHITE); outcome.setVisible(true);
     long count = groups.stream().filter(group -> "WARN".equals(group.level())).mapToLong(FindingGroup::count).sum();
@@ -205,7 +212,10 @@ public final class ValidatorGui {
   }
 
   record Result(String status, String pdfaStatus, String profile, String scope,
-                List<Finding> findings, String json) {
+                List<Finding> findings, String json, String securityStatus, String securityJson) {
+    Result(String status, String pdfaStatus, String profile, String scope, List<Finding> findings, String json) {
+      this(status, pdfaStatus, profile, scope, findings, json, "NOT_ASSESSED", "");
+    }
     Result {
       if (!(findings instanceof ReportFindings)) findings = List.copyOf(findings);
     }
@@ -229,6 +239,9 @@ public final class ValidatorGui {
   private final Engine engine;
   private final JFrame frame = new JFrame("EA-PDF Validator");
   private final JTextField file = new JTextField();
+  private final JTextField trustPolicy = new JTextField(System.getProperty("eapdf.security.policy",
+      System.getenv().getOrDefault("EAPDF_SECURITY_POLICY", "")));
+  private final JButton chooseTrust = new JButton("Browse…");
   private final JButton browse = new JButton("Browse…");
   private final JButton validate = new JButton("Validate");
   private final JButton stop = new JButton("Stop");
@@ -247,6 +260,7 @@ public final class ValidatorGui {
   private final JTable table = new JTable(rows);
   private final TableRowSorter<DefaultTableModel> sorter = new TableRowSorter<>(rows);
   private final JTextArea detail = new JTextArea();
+  private final JTextArea securityDetail = new JTextArea();
   private final JTextPane specification = new JTextPane();
   private Result result;
   private List<FindingGroup> groups = List.of();
@@ -292,6 +306,16 @@ public final class ValidatorGui {
     ruleFilter.setToolTipText("Filter rule names with case-insensitive keywords. Press Escape to clear.");
     JPanel header = new JPanel(new BorderLayout(0, 10));
     header.add(input, BorderLayout.NORTH);
+    JPanel trust = new JPanel(new BorderLayout(10, 0));
+    JLabel trustLabel = new JLabel("Trust JSON (optional):"); trustLabel.setLabelFor(trustPolicy);
+    trust.add(trustLabel, BorderLayout.WEST); trust.add(trustPolicy, BorderLayout.CENTER);
+    trust.add(chooseTrust, BorderLayout.EAST); header.add(trust, BorderLayout.CENTER);
+    trustPolicy.setToolTipText("Choose independently trusted certificates and revocation evidence to assess signature trust. No private key is needed.");
+    chooseTrust.addActionListener(event -> {
+      var picker = new JFileChooser(); picker.setFileFilter(new FileNameExtensionFilter("Security policy JSON", "json"));
+      if (picker.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION)
+        trustPolicy.setText(picker.getSelectedFile().getAbsolutePath());
+    });
     header.add(new JLabel("EA-PDF, PDF/A and applicable ISO 32005 checks run locally."), BorderLayout.SOUTH);
     content.add(header, BorderLayout.NORTH);
     table.setRowSorter(sorter);
@@ -332,6 +356,9 @@ public final class ValidatorGui {
     specification.setMargin(new Insets(12, 12, 12, 12));
     JScrollPane findingPane = new JScrollPane(detail);
     JTabbedPane findingTabs = new JTabbedPane(); findingTabs.addTab("Finding", findingPane);
+    securityDetail.setEditable(false); securityDetail.setLineWrap(true); securityDetail.setWrapStyleWord(true);
+    securityDetail.setMargin(new Insets(12, 12, 12, 12));
+    findingTabs.addTab("Export security", new JScrollPane(securityDetail));
     JScrollPane specificationPane = new JScrollPane(specification);
     JTabbedPane specificationTabs = new JTabbedPane(); specificationTabs.addTab("Specification", specificationPane);
     JSplitPane information = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT, findingTabs, specificationTabs);
@@ -456,6 +483,7 @@ public final class ValidatorGui {
   }
 
   private void clear() {
+    securityDetail.setText("");
     if (result != null) result.close();
     result = null;
     groups = List.of();
@@ -477,6 +505,12 @@ public final class ValidatorGui {
       if (file.getText().isBlank()) throw new IOException("Choose a PDF first.");
       input = Path.of(file.getText().strip()).toAbsolutePath().normalize();
       if (!Files.isRegularFile(input) || !Files.isReadable(input)) throw new IOException("The PDF cannot be read.");
+      String policy = trustPolicy.getText().strip();
+      if (!policy.isEmpty()) {
+        Path selected = Path.of(policy).toAbsolutePath().normalize();
+        if (!Files.isRegularFile(selected) || !Files.isReadable(selected)) throw new IOException("The trust JSON cannot be read.");
+        System.setProperty("eapdf.security.policy", selected.toString());
+      } else System.setProperty("eapdf.security.policy", "");
     } catch (Exception error) {
       status.setText("Validation did not start.");
       detail.setText(error.getMessage());
@@ -499,7 +533,10 @@ public final class ValidatorGui {
             for (FindingGroup finding : groups) rows.addRow(new Object[]{finding.level(), finding.ruleNumber(), finding.code(), finding.message()});
             filterRules();
             status.setText("Result: " + result.status() + "    PDF/A: " + result.pdfaStatus()
-                + (result.profile().isBlank() ? "" : "    EA-PDF: " + result.profile()));
+                + (result.profile().isBlank() ? "" : "    EA-PDF: " + result.profile())
+                + "    Security: " + result.securityStatus());
+            securityDetail.setText(result.securityJson().isBlank() ? "Export security was not assessed." : result.securityJson());
+            securityDetail.setCaretPosition(0);
             detail.setText(result.scope());
             save.setEnabled(true);
             showOutcome();
@@ -529,6 +566,7 @@ public final class ValidatorGui {
   private void setRunning(boolean value) {
     file.setEnabled(!value);
     browse.setEnabled(!value);
+    trustPolicy.setEnabled(!value); chooseTrust.setEnabled(!value);
     validate.setEnabled(!value);
     stop.setEnabled(value);
     progress.setIndeterminate(value); groupProgress.setIndeterminate(value);

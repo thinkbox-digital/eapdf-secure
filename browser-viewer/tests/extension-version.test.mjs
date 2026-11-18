@@ -1,7 +1,13 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
-import {extensionVersion} from '../scripts/extension-version.mjs';
+import {extensionVersion,advanceMinorVersion} from '../scripts/extension-version.mjs';
+test('new viewer builds advance the minor version and reset patch zero',()=>{
+ assert.equal(advanceMinorVersion('1.4.8-beta.3'),'1.5.0-beta.3');
+ assert.equal(advanceMinorVersion(advanceMinorVersion('1.4.0-beta.3')),'1.6.0-beta.3');
+ assert.equal(advanceMinorVersion('1.9.4'),'1.10.0');
+ assert.throws(()=>advanceMinorVersion('1.65535.0'));
+});
 test('browser versions follow package versions through multi-digit beta updates',()=>{
  assert.equal(extensionVersion('0.5.0-beta.9'),'0.5.0.9');
  assert.equal(extensionVersion('0.5.0-beta.10'),'0.5.0.10');

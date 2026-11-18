@@ -3,13 +3,16 @@
 Looking for an application? Use [Releases](https://github.com/thinkbox-digital/eapdf/releases).
 GitHub Packages contains our modified HTML-to-PDF libraries for developers.
 
-| Library | Version |
+| Published library | Version |
 | --- | --- |
 | `io.github.openhtmltopdf:openhtmltopdf-core` | `1.1.113-eapdf.1` |
 | `io.github.openhtmltopdf:openhtmltopdf-pdfbox` | `1.1.113-eapdf.1` |
 
 These builds include our PDF/A and PDF/UA changes. Each has a matching source JAR
 and license information. See [renderer details](RENDERER.md).
+
+Unreleased source builds now use **1.1.114-eapdf.1** for both modules.
+Those copies are local; the table above records the earlier registry publication.
 
 Normal EA-PDF source builds use the verified copies in `third_party/maven/`.
 **No GitHub token is needed.**

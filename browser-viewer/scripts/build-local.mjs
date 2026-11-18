@@ -1,0 +1,21 @@
+// A new installable viewer build always advances the minor version once for all editions.
+import {readFile,writeFile} from 'node:fs/promises';
+import {execFileSync} from 'node:child_process';
+import {fileURLToPath} from 'node:url';
+import {join} from 'node:path';
+import {advanceMinorVersion} from './extension-version.mjs';
+import {installLocalBuild} from './local-install.mjs';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const pkg=JSON.parse(await readFile(join(root,'package.json'),'utf8'));
+const lock=JSON.parse(await readFile(join(root,'package-lock.json'),'utf8'));
+if(lock.version!==pkg.version||lock.packages[''].version!==pkg.version)throw Error('Align package and lock versions before building.');
+const previous=pkg.version;pkg.version=advanceMinorVersion(previous);
+lock.version=lock.packages[''].version=pkg.version;
+await writeFile(join(root,'package.json'),JSON.stringify(pkg,null,2)+'\n');
+await writeFile(join(root,'package-lock.json'),JSON.stringify(lock,null,2)+'\n');
+console.log(`New viewer build: ${previous} → ${pkg.version}`);
+const run=script=>execFileSync('npm',['run',script],{cwd:root,stdio:'inherit'});
+run('check');run('package:beta');
+for(const browser of ['chromium','firefox'])await installLocalBuild(join(root,'dist',browser),join(root,'local-install/full',browser),pkg.version);
+run('build:lite');run('build:even-more-lite');
+console.log(`Local viewer ${pkg.version} is ready. Reload the installed extension, then reopen its viewer tab.`);

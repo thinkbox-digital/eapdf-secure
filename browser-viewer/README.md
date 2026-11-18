@@ -1,6 +1,7 @@
 # EA-PDF readers
 
-**Full and Lite readers 1.2.0-beta.3**, with creator/validator 2.2.0-beta.3.
+**Local Full, Lite and Even More Lite builds: 1.15.0-beta.3.**
+The published Full/Lite readers remain 1.2.0-beta.3, with creator/validator 2.2.0-beta.3.
 Read local PDFs, browse email folders and save attachments. Files stay on your
 computer. No Java, server or internet connection is needed by the extensions.
 
@@ -15,11 +16,20 @@ computer. No Java, server or internet connection is needed by the extensions.
 | PDF text search and message filtering | Yes | Yes |
 | Conversations and Portfolio view | Yes | No |
 | Embedded search indexes and large-archive optimizations | Yes | No |
+| Export signature and C2PA integrity checks, filename status and report | Yes | No |
 | PDF size/page limit | See [full-reader limits](docs/security.md) | 32 MiB / 2,048 pages per PDF |
 
 Lite uses the same reading layout. It still scans message metadata for filtering;
 this is separate from the embedded search indexes it leaves out.
 The two extensions can be installed together.
+
+**Even More Lite** has three adjustable panes: messages/folders, PDF pages and
+embedded assets. It supports asset downloads, attachment links, embedded PDF
+opening and known page/object locations. Its application stays under 2,000 physical
+source lines. Download/view icons, file categories, message labels and supported
+attachment previews use the Full viewer's shared code. Search, filtering controls
+and CSV/XMP export are omitted. Full and Lite retain their CSV export.
+See [Even More Lite](even-more-lite/README.md) for measured sizes and limits.
 
 ## Install
 
@@ -27,9 +37,19 @@ The two extensions can be installed together.
 **Developer mode**, choose **Load unpacked**, and select the folder containing
 `manifest.json`. Click the extension icon to open the reader.
 
+For development, use the permanent unpacked folders under
+`browser-viewer/local-install/`: `full/chromium`, `lite/chromium` or
+`even-more-lite/chromium`. Load the desired folder once. After the next local
+build finishes, click **Reload** on that extension's card in `chrome://extensions`
+and reopen its viewer tab. If an older installation points to an extracted ZIP,
+replace it once with the permanent folder.
+
 **Firefox:** extract the Firefox ZIP. Open `about:debugging#/runtime/this-firefox`,
 choose **Load Temporary Add-on**, and select `manifest.json`. Repeat after restarting
 Firefox. These beta packages are unsigned.
+
+The corresponding permanent Firefox folders end in `/firefox`. Select their
+`manifest.json` once, then use **Reload** in `about:debugging` after a local build.
 
 **Lite web page:** extract the web ZIP, then run:
 
@@ -73,11 +93,14 @@ Use the Node.js/npm versions listed in `package.json`, then run from this folder
 npm ci
 npm run check
 npm test
-npm run package:beta
-npm run build:lite
+npm run build:local
 ```
 
-Packages appear in `releases/`. The Lite command also makes a standalone source ZIP.
+Packages appear in `releases/`. Both smaller-edition commands also make standalone source ZIPs.
+`build:local` advances the viewer minor version, resets patch to zero, rebuilds
+all editions and refreshes the permanent unpacked directories in place. Each
+invocation creates a new minor version. Beta suffixes are retained. The install
+copies are verified and are separate from temporary builds and `dist/`.
 Shared fixes belong in this repository; regenerate Lite rather than editing an
 exported copy. See [Lite maintenance](lite/README.md) and [code layout](../docs/ARCHITECTURE.md#maintained-lite-viewer-export).
 
@@ -86,6 +109,12 @@ exported copy. See [Lite maintenance](lite/README.md) and [code layout](../docs/
 `npm test` runs the full unit and Chromium suites. `npm run test:firefox` covers
 Firefox. The independent PDF inspection checks use Python and
 `reference/requirements.txt`; run them with `npm run test:m1`.
+The inspection provenance records exact package versions and source hashes. After
+changing those requirements, install the complete pins in an isolated CPython 3.12
+environment and run `python -B reference/fixtures.py --write`. Review the manifest
+and extracted-record differences, then run `npm run test:m1` and
+`npm run fixtures:check` with that environment on `PATH`. Tests never refresh
+their expected records automatically.
 Browser tests need the corresponding browser and driver installed. Use
 `CHROMIUM_PATH`, `FIREFOX_PATH` and `GECKODRIVER_PATH` when they are outside the default locations.
 
@@ -93,3 +122,15 @@ For PDF.js API and fixture details, see the [inspection contract](docs/inspectio
 
 Build uses TypeScript and PDF.js **6.5.438**.
 PDF.js upstream commit: `0a4153349dc473ba950fc17941c5ca7eda43c1de`.
+
+## Full viewer export security
+
+Full checks supported PDF/C2PA signatures and covered bytes automatically on open.
+The filename is green for verified content integrity, red for failed checks and
+yellow for unsigned or incomplete checking. Click the filename to open the larger,
+centred security report and download JSON evidence. The report opens only on user
+activation. Select public CA roots (.pem/.crt/.cer/.der) in the report for offline
+certificate-chain, CRL/OCSP and trusted-timestamp checks. The file must contain
+supported status evidence. Roots stay in the current session. Full archival policy
+and historical validation still require the Java validator with independent evidence. Lite editions omit these checks. See
+[supported checks and limits](../docs/DIGITAL_SIGNATURES.md#browser-security-on-open).

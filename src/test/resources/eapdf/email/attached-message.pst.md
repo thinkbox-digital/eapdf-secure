@@ -1,7 +1,10 @@
 # Attached-message PST fixture
 
-`attached-message.pst` is Apache Tika's `testPST.pst`, used to exercise real
+The canonical fixture at `in/attached-message.pst` is Apache Tika's `testPST.pst`, used to exercise real
 embedded-message extraction and the attached email's nested DOCX file.
+Maven copies it into the test classpath as `eapdf/email/attached-message.pst`.
+Native-file and worker tests use the canonical input directly; no duplicate
+test-resource copy or input symlink is required.
 
 - Source: https://github.com/apache/tika/blob/dc571dddba324485fdb6dc1d665163e56267d0fc/tika-parsers/tika-parsers-standard/tika-parsers-standard-modules/tika-parser-microsoft-module/src/test/resources/test-documents/testPST.pst
 - Upstream project license: Apache License 2.0, https://github.com/apache/tika/blob/dc571dddba324485fdb6dc1d665163e56267d0fc/LICENSE

@@ -45,3 +45,12 @@ PDF.js upstream revision; the PDF scripting interpreter is excluded.
 ## XML interpretation worker
 
 @xmldom/xmldom 0.9.12 (MIT) is bundled for background XML interpretation. Its license is shipped as xmldom-LICENSE. esbuild 0.28.2 (MIT) is a build-only dependency.
+
+## Full viewer security worker
+
+PKIjs 3.4.0, ASN1js 3.0.6 and bytestreamjs 2.0.1 are BSD-3-Clause.
+pvutils 1.2.0 and pvtsutils 1.3.6 are MIT; tslib 2.9.1 is 0BSD.
+These libraries are bundled locally into the Full security worker. Their original
+licenses ship as `pkijs-LICENSE`, `asn1js-LICENSE`, `bytestreamjs-LICENSE`,
+`pvutils-LICENSE`, `pvtsutils-LICENSE` and `tslib-LICENSE`. Lite editions omit
+this worker and these runtime libraries.

@@ -33,6 +33,7 @@ try {
   execFileSync(process.execPath, ['node_modules/typescript/bin/tsc', '--outDir', temporary], { stdio: 'inherit' });
   execFileSync('node_modules/.bin/esbuild',['src/interpret-worker.ts','--bundle','--format=esm','--platform=browser','--outfile='+join(temporary,'interpret-worker.js')],{stdio:'inherit'});
   execFileSync('node_modules/.bin/esbuild',['src/thread-worker.ts','--bundle','--format=esm','--platform=browser','--outfile='+join(temporary,'thread-worker.js')],{stdio:'inherit'});
+  execFileSync('node_modules/.bin/esbuild',['src/security-worker.ts','--bundle','--format=esm','--platform=browser','--outfile='+join(temporary,'security-worker.js')],{stdio:'inherit'});
   await rm('dist', { recursive: true, force: true });
   for (const browser of ['chromium', 'firefox']) {
     const directory = join('dist', browser);
@@ -56,6 +57,7 @@ try {
     for (const name of ['quickjs-eval.js', 'quickjs-eval.wasm', 'LICENSE_QUICKJS', 'LICENSE_PDFJS_QUICKJS'])
       await rm(join(directory,'vendor/pdfjs/wasm',name),{force:true});
     await cp('node_modules/@xmldom/xmldom/LICENSE',join(directory,'xmldom-LICENSE'));
+    for(const name of ['pkijs','asn1js','pvutils','pvtsutils','bytestreamjs','tslib'])await cp(join('node_modules',name,name==='tslib'?'LICENSE.txt':'LICENSE'),join(directory,name+'-LICENSE'));
     await cp('LICENSE', join(directory, 'LICENSE'));
     await cp('../docs/site/privacy.md', join(directory, 'PRIVACY.md'));
     await cp('THIRD_PARTY_NOTICES.md', join(directory, 'THIRD_PARTY_NOTICES.md'));

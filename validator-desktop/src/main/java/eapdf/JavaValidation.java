@@ -61,7 +61,8 @@ public final class JavaValidation {
       try (Report report = inspect(input, new Children(), 0, true)) {
         report.write(output);
         session.completed();
-        code = "PASS".equals(text(report.summary(), "status")) ? 0 : 2;
+        code = "PASS".equals(text(report.summary(), "status"))
+            && !eapdf.security.SecurityVerification.unsuccessful(report.security) ? 0 : 2;
       } catch (OutOfMemoryError | StackOverflowError error) {
         session.failed("Validation ran out of memory; no complete compliance verdict was produced.");
       } catch (Exception error) {
@@ -78,7 +79,7 @@ public final class JavaValidation {
 
   static synchronized void initialise() {
     if (!initialised) {
-      Map<String, String> pins = Map.of("core", "1.31.56", "validation-model", "1.31.221", "parser", "1.31.71", "pdf-model", "1.31.14");
+      Map<String, String> pins = Map.of("core", "1.31.56", "validation-model", "1.31.225", "parser", "1.31.72", "pdf-model", "1.31.14");
       pins.forEach((artifact, expected) -> {
         try (InputStream input = JavaValidation.class.getResourceAsStream("/META-INF/maven/org.verapdf/" + artifact + "/pom.properties")) {
           if (input == null) throw new IOException("Missing bundled version information for " + artifact);
@@ -183,6 +184,7 @@ public final class JavaValidation {
       else report.check("OPEN", false, "Unable to open the PDF.", Map.of("error", error.toString()));
     }
     report.finishCoverage();
+    if (depth == 0) report.security = eapdf.security.SecurityVerification.inspect(path);
     complete = true;
     return report;
     } finally { if (!complete) report.close(); }
@@ -311,6 +313,7 @@ public final class JavaValidation {
     final Set<String> implemented = new LinkedHashSet<>();
     JsonObject pdfa;
     JsonObject iso32005;
+    JsonObject security;
     String profile = "";
     private final Path spool;
     private java.io.BufferedWriter spoolWriter;
@@ -383,6 +386,7 @@ public final class JavaValidation {
       summary.addProperty("pdfa_status", pdfaStatus);
       summary.addProperty("rule_total", RULES.size());
       summary.addProperty("java_port_complete", PORT_COMPLETE);
+      if (security != null) summary.addProperty("security_status", text(security, "status"));
       counts.forEach((key, value) -> summary.addProperty("N/A".equals(key) ? "na" : key.toLowerCase(java.util.Locale.ROOT), value));
       return summary;
     }
@@ -390,6 +394,7 @@ public final class JavaValidation {
       if (spool != null) throw new IllegalStateException("Use streaming report output");
       JsonObject result = new JsonObject();
       result.add("summary", summary()); result.add("pdfa", pdfa); result.add("items", items);
+      if (security != null) result.add("security", security);
       return result;
     }
     void write(Path output) throws IOException {
@@ -399,6 +404,7 @@ public final class JavaValidation {
         try (var writer = JSON.newJsonWriter(Files.newBufferedWriter(temporary))) {
           writer.beginObject(); writer.name("summary"); JSON.toJson(summary(), writer);
           writer.name("pdfa"); JSON.toJson(pdfa, writer);
+          if (security != null) { writer.name("security"); JSON.toJson(security, writer); }
           writer.name("items"); writer.beginArray();
           if (spool == null) for (var item : items) JSON.toJson(item, writer);
           else try (var reader = Files.newBufferedReader(spool)) {
@@ -408,6 +414,7 @@ public final class JavaValidation {
         }
         ValidationSession.replace(temporary, output);
         JsonObject brief = new JsonObject(); brief.add("summary", summary()); brief.add("pdfa", pdfa);
+        if (security != null) brief.add("security", security);
         brief.add("failure_codes", JSON.toJsonTree(failureCodes)); brief.add("unavailable_examples", unavailableExamples);
         ValidationSession.writeAtomic(output.resolveSibling(output.getFileName() + ".summary.json"), brief);
       } finally { Files.deleteIfExists(temporary); }

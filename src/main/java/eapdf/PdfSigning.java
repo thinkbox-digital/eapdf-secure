@@ -49,13 +49,34 @@ final class PdfSigning {
   }
 
   static synchronized void preflight() throws Exception {
+    if (EaPdfSecurity.active()) { EaPdfSecurity.preflight(); return; }
     EapdfConfig.SigningConfig cfg = EapdfConfig.get().signing;
     if (!cfg.enabled || configured != null) return;
-    String password = System.getenv(PASSWORD_ENV);
-    if (password == null) throw Common.fail("Signing is enabled. Enter the certificate password in the GUI or set " + PASSWORD_ENV + ".");
-    char[] chars = password.toCharArray();
+    char[] chars = password(cfg, System.getenv(PASSWORD_ENV));
     try { configured = load(cfg, chars); }
     finally { Arrays.fill(chars, '\0'); }
+  }
+
+  /** The GUI/environment overrides the optional local file; no secret enters JSON or logs. */
+  static char[] password(EapdfConfig.SigningConfig cfg, String override) throws IOException {
+    if (override != null) return override.toCharArray();
+    if (Common.nz(cfg.passphraseFile).isBlank())
+      throw Common.fail("Signing requires a passphrase file, the GUI password prompt or " + PASSWORD_ENV + ".");
+    byte[] encoded;
+    try (var input = Files.newInputStream(Path.of(cfg.passphraseFile))) { encoded = input.readNBytes(4097); }
+    java.nio.CharBuffer decoded = null; char[] characters = null;
+    try {
+      if (encoded.length > 4096) throw new IOException("Signing passphrase file exceeds the 4096-byte limit.");
+      decoded = java.nio.charset.StandardCharsets.UTF_8.newDecoder().decode(java.nio.ByteBuffer.wrap(encoded));
+      characters = new char[decoded.remaining()]; decoded.get(characters);
+      int length = characters.length;
+      while (length > 0 && (characters[length - 1] == '\r' || characters[length - 1] == '\n')) length--;
+      return Arrays.copyOf(characters, length);
+    } finally {
+      Arrays.fill(encoded, (byte) 0);
+      if (characters != null) Arrays.fill(characters, '\0');
+      if (decoded != null && decoded.hasArray()) Arrays.fill(decoded.array(), '\0');
+    }
   }
 
   static PdfSigning load(EapdfConfig.SigningConfig cfg, char[] password) throws Exception {
@@ -101,6 +122,7 @@ final class PdfSigning {
   }
 
   static void signConfigured(Path pdf) throws Exception {
+    if (EaPdfSecurity.active()) { EaPdfSecurity.protectConfigured(pdf); return; }
     preflight();
     if (EapdfConfig.get().signing.enabled) configured.signInPlace(pdf);
   }

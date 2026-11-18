@@ -1,0 +1,71 @@
+--- a/src/core/document_assets.js
++++ b/src/core/document_assets.js
+@@ -125,7 +125,68 @@
+     this.registered = new Map();
+   }
+ 
++  // Security facts only; application policy and cryptography stay outside PDF.js.
++  async inspectSecurity() {
++    const signatures = [], seen = new Set(), fields = new Set();
++    const add = value => {
++      if (!(value instanceof Dict) || seen.has(value)) return;
++      seen.add(value);
++      const contents = value.get("Contents"), range = value.getArray("ByteRange");
++      if (signatures.length >= 64 || typeof contents !== "string" || contents.length > 1048576 ||
++          !Array.isArray(range) || range.length !== 4 || !range.every(Number.isSafeInteger))
++        throw new Error("Invalid or oversized PDF signature");
++      signatures.push({ contents: Uint8Array.from(contents, c => c.charCodeAt(0)), byteRange: range,
++        type: value.get("Type")?.name || "Sig", subFilter: value.get("SubFilter")?.name || "" });
++    };
++    const form = this.root.get("AcroForm"), pending = [];
++    if (form !== undefined && !(form instanceof Dict)) throw new Error("Invalid AcroForm");
++    const initial = form?.get("Fields");
++    if (initial !== undefined && (!Array.isArray(initial) || initial.length > 4096)) throw new Error("Invalid form fields");
++    for (const raw of initial || []) pending.push([raw, "", 0]);
++    let count = 0;
++    while (pending.length) {
++      const [raw, inherited, depth] = pending.pop();
++      if (++count > 4096 || depth > 32) throw new Error("Security field traversal limit");
++      const field = raw instanceof Ref ? this.catalog.xref.fetch(raw) : raw;
++      if (!(field instanceof Dict) || fields.has(field)) throw new Error("Invalid or cyclic form fields");
++      fields.add(field);
++      const kind = field.get("FT")?.name || inherited;
++      if (kind === "Sig" && field.get("V") !== undefined && field.get("V") !== null) {
++        if (!(field.get("V") instanceof Dict)) throw new Error("Invalid signature value");
++        add(field.get("V"));
++      }
++      const kids = field.get("Kids");
++      if (kids !== undefined && (!Array.isArray(kids) || count + pending.length + kids.length > 4096)) throw new Error("Invalid form children");
++      for (const child of kids || []) pending.push([child, kind, depth + 1]);
++      if (count % 128 === 0) await yieldInspection();
++    }
++    const perms = this.root.get("Perms");
++    if (perms instanceof Dict) add(perms.get("DocMDP"));
++    const evidence = { certificates: [], crls: [], ocsps: [] };
++    try {
++      const dss = this.root.get("DSS");
++      if (dss !== undefined && !(dss instanceof Dict)) throw new Error("Invalid DSS evidence dictionary");
++      let total = 0;
++      for (const [key, category] of [["Certs", "certificates"], ["CRLs", "crls"], ["OCSPs", "ocsps"]]) {
++        const values = dss?.get(key);
++        if (values !== undefined && (!Array.isArray(values) || values.length > 32)) throw new Error("DSS evidence count limit");
++        for (const raw of values || []) {
++          const stream = raw instanceof Ref ? this.catalog.xref.fetch(raw) : raw;
++          const bytes = boundedBytes(stream, 1048576);
++          total += bytes.length;
++          if (total > 4194304) throw new Error("DSS evidence byte limit");
++          evidence[category].push(bytes);
++        }
++      }
++    } catch (error) {
++      if (error instanceof MissingDataException) throw error;
++      evidence.error = "Embedded certificate/revocation evidence is invalid, unsupported or exceeds limits.";
++    }
++    return { files: [], signatures, encrypted: !!this.catalog.xref.encrypt, evidence };
++  }
++
+   async inspect(options = {}) {
++    if (options.securityOnly === true) return this.inspectSecurity();
+     if (options.presentationOnly === true) {
+       this.collectionThumbnails = new Map();
+       return collectionPresentation(this.root, this.catalog.xref, this.collectionThumbnails);

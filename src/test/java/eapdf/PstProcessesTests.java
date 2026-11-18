@@ -11,7 +11,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 class PstProcessesTests {
   @TempDir Path directory;
-  static final String INPUT = "in/quality-attached-message.pst";
+  static final String INPUT = PstItemSelectionTests.SOURCE.toString();
 
   @Test void nativePstPayloadsAndMetadataSurviveWorkerSerialization() throws Exception {
     try (var job=Common.beginJob()) {

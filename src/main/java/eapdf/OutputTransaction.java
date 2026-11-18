@@ -158,6 +158,7 @@ final class OutputTransaction implements AutoCloseable {
           writeJournal(journal, new Journal(false, pending));
         }
         Files.copy(Path.of(entry.staged()), temporary, StandardCopyOption.REPLACE_EXISTING);
+        Common.preserveOutputPermissions(destination, temporary);
         try (var channel = java.nio.channels.FileChannel.open(temporary, java.nio.file.StandardOpenOption.WRITE)) {
           channel.force(true);
         }

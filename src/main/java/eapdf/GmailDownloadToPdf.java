@@ -23,8 +23,12 @@ public class GmailDownloadToPdf {
   static final List<String> SCOPES = Collections.singletonList(GmailScopes.GMAIL_READONLY);
 
   public static void main(String[] args) throws Exception {
-    if (ConversionSupervisor.run(GmailDownloadToPdf.class, args)) return;
-    try (Common.JobReport job = Common.beginJob()) {
+    Integer status = ConversionSupervisor.run(GmailDownloadToPdf.class, args);
+    if (status != null) {
+      if (status != 0) System.exit(status);
+      return;
+    }
+    try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.JobReport job = Common.beginJob()) {
       Map<String,Object> opt = parseArgs(args);
       EapdfConfig.get().requireCreator();
       PdfSigning.preflight();
@@ -114,7 +118,7 @@ public class GmailDownloadToPdf {
           records.add(Common.stageRecord(r));
         } else {
           Path pdfPath = Paths.get(outPdfDir).resolve(stem + ".pdf");
-          PdfMailWriter.writeEaPdfA3(pdfPath, r, fontPath, iccPath, debug, Paths.get(debugDir), seq);
+          PdfMailWriter.writeEaPdf(pdfPath, r, fontPath, iccPath, debug, Paths.get(debugDir), seq);
           List<Path> completedOutputs = new ArrayList<>(List.of(pdfPath));
           resume.rememberCompleted(meta.getId(), completedOutputs);
           System.out.println("wrote pdf: " + pdfPath);
@@ -128,7 +132,7 @@ public class GmailDownloadToPdf {
             && !"c".equals(archiveProfile) && !"ci".equals(archiveProfile)) {
           throw Common.fail("unsupported --archive-profile (expected m, mi, c, or ci): " + archiveProfile);
         }
-        boolean embedSource = "m".equals(archiveProfile) || "c".equals(archiveProfile);
+        boolean embedSource = Common.embedsSource(archiveProfile);
         for (EmailRecord r : records) r.embedSourceMessage = embedSource;
 
         Path out;
@@ -153,7 +157,8 @@ public class GmailDownloadToPdf {
       System.out.println("done. converted: " + written);
       }
     } catch (Common.UserFacingException e) {
-      Common.exitWithError(e.getMessage());
+      Common.reportError(e.getMessage());
+      System.exit(2);
     }
   }
 
@@ -176,6 +181,7 @@ public class GmailDownloadToPdf {
     return message;
   }
 
+  @SuppressWarnings("BusyWait") // Two bounded network retry delays; no work queue is polled.
   static com.google.api.services.gmail.model.Message downloadMessage(Gmail service, String user, String messageId) throws IOException {
     for (int attempt = 0; ; attempt++) {
       try {

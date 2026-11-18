@@ -11,10 +11,18 @@ import java.nio.file.Paths;
 
 class EapdfConfig {
   static class SigningConfig {
+    static final String DEFAULT_TSA_URL = "http://timestamp.digicert.com";
     boolean enabled = false;
     String pkcs12Path = "";
+    String passphraseFile = "";
     String alias = "";
     String reason = "";
+    boolean c2pa = false;
+    String protection = "CMS_AND_PDF";
+    String policyPath = "";
+    JsonObject trustPolicy;
+    String tsaUrl = "";
+    String tsaPolicyOid = "";
   }
 
 
@@ -22,11 +30,20 @@ class EapdfConfig {
 
 
   static class SearchIndexConfig {
-    boolean enabled = true;
-    boolean fullTextEnabled = true;
+    boolean enabled = false;
+    boolean fullTextEnabled = false;
   }
 
 
+
+  static class RenderingConfig {
+    String engine = "weasyprint";
+    String pythonExecutable = "";
+    int timeoutSeconds = 120;
+    int maxProcesses = 2;
+    int memoryMiB = 512;
+    int maxOutputMiB = 128;
+  }
 
   static class AccessibilityConfig {
     boolean addPdfUaFeatures = false;
@@ -56,6 +73,7 @@ class EapdfConfig {
   String creator = DEFAULT_CREATOR;
   SearchIndexConfig searchIndex = new SearchIndexConfig();
   AccessibilityConfig accessibility = new AccessibilityConfig();
+  RenderingConfig rendering = new RenderingConfig();
 
   String requireCreator() {
     if (creator == null || creator.isBlank()) {
@@ -123,6 +141,10 @@ class EapdfConfig {
         if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isNumber() || !value.getAsString().matches("[0-9]+")) throw new IllegalArgumentException(key + " must be an integer");
       } else if (field.getType() == String.class) {
         if (!value.isJsonPrimitive() || !value.getAsJsonPrimitive().isString()) throw new IllegalArgumentException(key + " must be a string");
+      } else if (field.getType() == JsonObject.class) {
+        if (!value.isJsonObject()) throw new IllegalArgumentException(key + " must be an object");
+        try { eapdf.security.SecurityPolicy.validate(value.getAsJsonObject()); }
+        catch (java.io.IOException invalid) { throw new IllegalArgumentException(invalid.getMessage(), invalid); }
       } else {
         if (!value.isJsonObject()) throw new IllegalArgumentException(key + " must be an object");
         validateKeys(value.getAsJsonObject(), field.getType(), key + ".");
@@ -131,7 +153,22 @@ class EapdfConfig {
   }
 
   static EapdfConfig normalize(EapdfConfig cfg) {
+    if (cfg.rendering == null) cfg.rendering = new RenderingConfig();
+    if (!java.util.Set.of("openhtmltopdf", "weasyprint").contains(Common.nz(cfg.rendering.engine)))
+      throw new IllegalArgumentException("rendering.engine must be openhtmltopdf or weasyprint");
+    if (cfg.rendering.timeoutSeconds < 1 || cfg.rendering.timeoutSeconds > 3600
+        || cfg.rendering.maxProcesses < 1 || cfg.rendering.maxProcesses > 16
+        || cfg.rendering.memoryMiB < 128 || cfg.rendering.memoryMiB > 8192
+        || cfg.rendering.maxOutputMiB < 1 || cfg.rendering.maxOutputMiB > 1024)
+      throw new IllegalArgumentException("Invalid rendering limits: timeout 1..3600 seconds, processes 1..16, memory 128..8192 MiB, output 1..1024 MiB");
     if (cfg.signing == null) cfg.signing = new SigningConfig();
+    try { digital.thinkbox.pdfsecurity.PdfSecurity.Protection.valueOf(cfg.signing.protection); }
+    catch (Exception invalid) { throw new IllegalArgumentException("signing.protection must be CMS_AND_PDF, CMS_AND_PDF_TIMESTAMPED or PADES_B_LTA"); }
+    if (!cfg.signing.enabled && !"CMS_AND_PDF".equals(cfg.signing.protection))
+      throw new IllegalArgumentException("Timestamped protection requires signing.enabled");
+    if ("PADES_B_LTA".equals(cfg.signing.protection)) cfg.signing.c2pa = true;
+    if (!"CMS_AND_PDF".equals(cfg.signing.protection) && Common.nz(cfg.signing.tsaUrl).isBlank())
+      cfg.signing.tsaUrl = SigningConfig.DEFAULT_TSA_URL;
     if (cfg.searchIndex == null) cfg.searchIndex = new SearchIndexConfig();
     if (cfg.accessibility == null) cfg.accessibility = new AccessibilityConfig();
     if (cfg.accessibility.pageLabels == null) cfg.accessibility.pageLabels = new PageLabelsConfig();

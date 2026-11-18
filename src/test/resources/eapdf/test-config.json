@@ -1,4 +1,6 @@
 {
   "configVersion": 1,
-  "creator": "EA-PDF regression test organization"
+  "creator": "EA-PDF regression test organization",
+  "rendering": { "engine": "openhtmltopdf" },
+  "searchIndex": { "enabled": true, "fullTextEnabled": true }
 }

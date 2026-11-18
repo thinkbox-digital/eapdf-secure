@@ -44,7 +44,7 @@ try {
     build: Number(manifest.version.split(".").at(-1)), commit: manifest.upstreamCommit.slice(0, 9) }) + '\n');
   await appendFile(join(temporary, 'gulpfile.mjs'), '\n' + await readFile(join(root, 'vendor/pdfjs-patches/build-task.mjs'), 'utf8'));
   run(process.execPath, ['node_modules/gulp/bin/gulp.js', 'document-parts-bundle']);
-  run(process.execPath, ['--test', join(root, 'vendor/pdfjs-patches/core.test.mjs'), join(root, 'vendor/pdfjs-patches/assets.test.mjs')], {
+  run(process.execPath, ['--test', ...['core','assets','security'].map(name=>join(root, `vendor/pdfjs-patches/${name}.test.mjs`))], {
     env: { ...process.env, PDFJS_SOURCE: temporary },
   });
   // Source tests need the same upstream core-js Map support as the legacy build on Node 24.

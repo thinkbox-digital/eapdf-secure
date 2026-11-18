@@ -13,7 +13,9 @@ Current contents include:
 
 `EAPDF_CONFIG` selects the JSON configuration file. An explicitly selected missing or unreadable file is an error; only an absent default configuration falls back to built-in settings. The supported `configVersion` is `1`; unsupported versions or invalid value types stop loading with an explanation. Unknown keys produce warnings that include the full setting name.
 
-- `searchIndex.enabled` defaults to `true` for embedded search indexes. `searchIndex.fullTextEnabled` independently controls full-text generation for `1m`, `1mi`, `1c`, and `1ci`; it uses built-in PDFBox extraction. Extraction failures or exceeded limits produce a warning and retain ordinary PDF.js searching. See [format, limits and fallback](../docs/EMBEDDED_SEARCH_INDEX.md).
+- `rendering.engine` defaults to `weasyprint`. The Linux creator JAR includes Python, WeasyPrint, native font libraries and matching standard font styles. It verifies and extracts these into a private versioned cache on first use and reuses the copy. Users do not install these components. See [renderer setup](../docs/WEASYPRINT.md) for platform requirements and maintainer builds. OpenHTMLtoPDF remains explicitly selectable, including on Windows and macOS.
+- A nonblank `rendering.pythonExecutable` selects an absolute executable path. When blank, `EAPDF_WEASYPRINT_PYTHON` supplies an absolute path, or the creator uses its embedded runtime, a matching runtime beside the JAR, then `.venv-weasyprint/bin/python` under the current working directory. An invalid explicit path is an error. Missing runtime, sandbox or rendering failures stop conversion without switching engines or reducing WeasyPrint HTML to plain text.
+- `searchIndex.enabled` and `searchIndex.fullTextEnabled` both default to `false`. Select **Embed searchable index** to enable both, or set them explicitly in JSON. Full-text generation supports `1m`, `1mi`, `1c`, and `1ci` using built-in PDFBox extraction. Ordinary PDF.js search remains available without an embedded index. See [format, limits and fallback](../docs/EMBEDDED_SEARCH_INDEX.md).
 - `accessibility.addPdfUaFeatures` enables semantic headings, paragraphs, tables, image descriptions, and annotation associations in message PDFs and collection/archival front matter. It remains partial accessibility support, not proven PDF/UA conformance.
 - The remaining `accessibility.experimental` setting are unavailable. Setting them to `true` produces a warning; they do not change output.
 
@@ -36,7 +38,7 @@ These environment variables also have JVM property equivalents:
 
 Numeric processing limits must be positive integers. Oversized inputs stop with an explanation; the program does not silently truncate email content. Heap-aware worker limits also apply to local parallel conversion. Limits bound accepted workloads, not total process RSS; font/native runtime memory is additional.
 
-MIME preflight bounds traversal and cumulative decoded leaf bytes before body selection. Raster dimensions are checked from image headers before decoding inline/CID resources. A renderer rejection may produce the existing explicitly warned reduced-rendering fallback, not a fidelity guarantee. These are not process-isolation controls: initial third-party MIME parsing, single-threaded work, vector images, pathological codecs/fonts, and uninterruptible workers can still require an external process supervisor. A worker-shutdown warning means the process must be discarded rather than reused; daemon workers do not prevent JVM exit.
+MIME preflight bounds traversal and cumulative decoded leaf bytes before body selection. Raster dimensions are checked from image headers before decoding inline/CID resources. WeasyPrint failures stop conversion. Explicit OpenHTMLtoPDF selection retains its existing warned reduced-rendering fallback for recoverable renderer errors; it is not a fidelity guarantee. These preflight limits are not process-isolation controls: initial third-party MIME parsing, single-threaded work, vector images, pathological codecs/fonts, and uninterruptible workers can still require an external process supervisor. A worker-shutdown warning means the process must be discarded rather than reused; daemon workers do not prevent JVM exit.
 
 Separate fallback font paths using the platform path separator (`:` on Linux, `;` on Windows). Only explicitly configured fonts and the bundled fonts are used. Missing glyph warnings include field names and Unicode code points. Complex-script shaping and language-specific reading order still require review.
 
@@ -50,9 +52,16 @@ the profile excludes PDF/UA requirements.
 
 ## Digital signatures
 
-Optional signing applies only to each outer EA-PDF after creation and repairs.
+Optional signing and C2PA provenance apply only to each outer EA-PDF after creation
+and repairs. Embedded source files remain unchanged. **Signing settings...** also
+selects timestamped protection or PAdES B-LTA, local trust evidence and the TSA.
 Enable **Sign output** and choose a `.p12`/`.pfx` file in **Signing settings...**
-in the creator GUI. The password is requested when conversion starts.
+in the creator GUI. Select an optional UTF-8 passphrase file or enter the password
+when conversion starts. Timestamped protection fills DigiCert's
+`http://timestamp.digicert.com` endpoint automatically; custom URLs are supported.
+Use [creator signing settings](signing-digicert.example.json) and
+[trust evidence](signing-policy.example.json) as layouts. Machine-specific
+`*.local.json` configurations are ignored by Git.
 For configuration, supported keys and limitations, see
 [digital signatures](../docs/DIGITAL_SIGNATURES.md). CLI arguments are unchanged.
 
@@ -64,7 +73,7 @@ The value becomes the first `dc:creator` item. `xmp:CreatorTool` and
 `pdf:Producer` continue to identify software. Validation checks the required
 metadata structure separately from provenance-backed attribution.
 
-Branding, finding-aid generation and PREMIS output have been removed. Old configuration keys for these features are ignored with an unknown-setting warning. Collections retain their required cover page. The GUI checkbox is **Accessibility (PDF/UA)**.
+Branding, finding-aid generation and PREMIS output have been removed. Old configuration keys for these features are ignored with an unknown-setting warning. Collections retain their required cover page. The GUI checkbox is **Accessibility (PDF/UA)** and defaults off.
 
 The regeneration workflow sets `validationWarning` after a failed or incomplete
 validation attempt. The “WARNING — Validation requires review” banner and its explanation are rendered visibly in message PDFs, with a notice

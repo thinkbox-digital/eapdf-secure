@@ -26,6 +26,7 @@ Rules:
 - Work on EA-PDF creation, validation, and reader development; the user authorized reader development on 2026-11-03
 - Do not add new features without the user's express permission
 - Keep output text plain and succinct
+- Never comment, reply, submit issues or pull requests, publish reviews, or post any other content to any website or external service without the user's explicit permission. Read-only browsing and research do not authorize posting.
 - Whenever the user says "push" or "push to GitHub", check open pull requests and address outstanding fixes before pushing.
 - Whenever the user requests a push to GitHub, also publish the corresponding GitHub Release with versioned distributable assets and checksums; use prerelease status for beta versions. Retain only the current release and its immediate predecessor; verify the new release assets before deleting older releases.
 - Keep GitHub release notes brief: versions, a few user-visible changes, essential setup information, and beta status. Put implementation details, benchmarks, test counts, and audit evidence in project documentation.
@@ -47,6 +48,8 @@ Rules:
 - Public documentation must not cite or link to unpublished generated documents or evidence under the local output directories. Summarize verified results in tracked documentation; use published examples or release assets for downloadable files. Use explicit temporary destinations in command examples.
 
 - Whenever the user requests a new version or a version bump, also bump the browser viewer version and rebuild both viewer packages.
+- Whenever the browser viewer is rebuilt, advance its minor version and reset its patch version to zero.
+- For a new installable local viewer build, use `npm --prefix browser-viewer run build:local`; it advances the minor version once for all editions and updates permanent unpacked files under `browser-viewer/local-install/` for the browser's Reload button. Keep those install paths stable across updates.
 - Representative bulk samples must be balanced by output count: retain only a handful of standalone 1s/1si PDFs per input type, group EML/MSG sources into 1m/1mi archives, and use predominantly 1c/1ci/1m/1mi for PSTs. Preserve every source in the grouped/archive coverage.
 
 - Signature-compatible embedded full-text indexing was authorized on 2026-11-07; see docs/EMBEDDED_SEARCH_INDEX.md for its supported signing workflow and limits.
@@ -65,3 +68,4 @@ Rules:
 
 - Maintain current handover status in docs/PROJECT_STATUS.md and separation decisions in docs/ARCHITECTURE.md. Keep docs/DEVELOPMENT_STATUS.md and docs/private local and ignored. Update the authoritative user/reference guide when behaviour changes; historical audit counts remain dated evidence.
 - Before every push, regenerate the software architecture PDF. Draw arrows downward from each Tool to the Libraries it uses to show their connections.
+- Before every push, regenerate `docs/SOFTWARE_COMPONENTS.md` with `python3 scripts/build_component_inventory.py`; review component descriptions and assignments for changed code, and include the refreshed inventory in the push. Verify it with `python3 scripts/build_component_inventory.py --check`.

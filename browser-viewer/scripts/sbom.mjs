@@ -16,6 +16,10 @@ export async function makeSbom(root) {
   ['JBIG2 and PDF.js wrapper','bundled-'+pin.version,'BSD and Apache-2.0','vendor/pdfjs/wasm/LICENSE_JBIG2'],
   ['ICC profiles','bundled-'+pin.version,'CC0-1.0','vendor/pdfjs/iccs/LICENSE'],
  ];
+ if(pkg.name==='eapdf-browser-viewer')for(const name of ['pkijs','asn1js','pvutils','pvtsutils','bytestreamjs','tslib']){
+  const dependency=JSON.parse(await read('node_modules/'+name+'/package.json'));
+  materials.push([name,dependency.version,dependency.license,name+'-LICENSE']);
+ }
  return {bomFormat:'CycloneDX',specVersion:'1.6',version:1,
   metadata:{component:{type:'application',name:pkg.name,version:pkg.version,licenses:[{license:{id:'Apache-2.0'}}]}},
   components:materials.map(([name,version,license,path])=>({type:'library','bom-ref':name,name,version,licenses:[{license:{name:license}}],properties:[{name:'notice-path',value:path}]})),

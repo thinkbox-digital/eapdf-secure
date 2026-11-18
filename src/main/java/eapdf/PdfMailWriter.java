@@ -5,11 +5,6 @@ import eapdf.PdfCollectionSupport.*;
 
 import org.apache.pdfbox.Loader;
 import java.io.*;
-import java.awt.image.BufferedImage;
-import java.net.MalformedURLException;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
@@ -23,30 +18,22 @@ import com.openhtmltopdf.extend.FSUriResolver;
 import org.jsoup.*;
 import org.jsoup.nodes.*;
 import org.jsoup.parser.*;
-import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
-import com.openhtmltopdf.outputdevice.helper.ExternalResourceControlPriority;
 import org.apache.pdfbox.cos.*;
 import org.apache.pdfbox.multipdf.PDFCloneUtility;
 import org.apache.pdfbox.pdmodel.*;
 import org.apache.pdfbox.pdmodel.common.*;
 import org.apache.pdfbox.pdmodel.common.filespecification.*;
 import org.apache.pdfbox.pdmodel.font.PDType0Font;
-import org.apache.pdfbox.pdmodel.graphics.image.LosslessFactory;
-import org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject;
 import org.apache.pdfbox.pdmodel.graphics.color.PDOutputIntent;
 import org.apache.pdfbox.pdmodel.interactive.action.PDActionGoTo;
-import org.apache.pdfbox.pdmodel.interactive.action.PDActionURI;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotation;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationFileAttachment;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceDictionary;
-import org.apache.pdfbox.pdmodel.interactive.annotation.PDAppearanceStream;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
-import org.apache.pdfbox.pdmodel.interactive.annotation.PDBorderStyleDictionary;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.destination.PDPageFitWidthDestination;
 import org.apache.pdfbox.pdmodel.interactive.documentnavigation.outline.*;
 import org.apache.pdfbox.pdmodel.interactive.viewerpreferences.PDViewerPreferences;
 import org.apache.poi.ss.usermodel.*;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 class PdfMailWriter {
 static final EapdfConfig CONFIG = EapdfConfig.get();
@@ -64,7 +51,6 @@ static final MailHtmlRenderer HTML = new MailHtmlRenderer(PdfMailWriter::pdfUaFe
 static final String EMBEDDED_LINK_PREFIX = PdfAttachmentSupport.EMBEDDED_LINK_PREFIX;
 static final String EMBEDDED_BADGE_LINK_PREFIX = PdfAttachmentSupport.EMBEDDED_BADGE_LINK_PREFIX;
 static final Set<String> PDF17_STRUCTURE_ROLES = Set.of("Art", "BlockQuote", "TOC", "TOCI", "Index", "Private", "Quote", "Note", "Reference", "BibEntry", "Code");
-static final ConcurrentMap<String, String> FAILED_REMOTE_ASSET_URLS = MailRenderPolicy.FAILED_REMOTE_ASSET_URLS;
 static final FSUriResolver REMOTE_ASSET_URI_RESOLVER = MailRenderPolicy.REMOTE_ASSET_URI_RESOLVER;
 static final FSStreamFactory REMOTE_ASSET_STREAM_FACTORY = MailRenderPolicy.REMOTE_ASSET_STREAM_FACTORY;
 static final InheritableThreadLocal<EmailRecord> ACTIVE_RENDER_RECORD = MailRenderPolicy.ACTIVE_RENDER_RECORD;
@@ -72,8 +58,6 @@ static final ThreadLocal<Set<String>> RENDERED_IMAGES = MailRenderPolicy.RENDERE
 static final ThreadLocal<Map<String, String>> ORIENTED_IMAGE_URIS = MailRenderPolicy.ORIENTED_IMAGE_URIS;
 
 static {
-  // Lossless compression only; preserve an explicit PDFBox override.
-  System.getProperties().putIfAbsent("org.apache.pdfbox.filter.deflatelevel", "9");
   configureRendererLogging();
 }
 
@@ -382,37 +366,7 @@ static String safeRenderedHref(String original, EmailRecord record) {
   return MailRenderPolicy.safeRenderedHref(original, record);
 }
 
-static boolean shouldBlacklistRemoteAssetResponse(String key, byte[] bytes) {
-  return MailRenderPolicy.shouldBlacklistRemoteAssetResponse(key, bytes);
-}
 
-static String describeRemoteAssetResponse(String key, byte[] bytes) {
-  return MailRenderPolicy.describeRemoteAssetResponse(key, bytes);
-}
-
-static boolean looksLikeHtmlResponse(byte[] bytes) {
-  return MailRenderPolicy.looksLikeHtmlResponse(bytes);
-}
-
-static boolean isLikelyRemoteImageUrl(String key) {
-  return MailRenderPolicy.isLikelyRemoteImageUrl(key);
-}
-
-static boolean looksLikeSvg(byte[] bytes) {
-  return MailRenderPolicy.looksLikeSvg(bytes);
-}
-
-static boolean looksLikeSupportedImage(byte[] bytes) {
-  return MailRenderPolicy.looksLikeSupportedImage(bytes);
-}
-
-static boolean shouldBlacklistRemoteAssetFailure(Throwable error) {
-  return MailRenderPolicy.shouldBlacklistRemoteAssetFailure(error);
-}
-
-static String describeRemoteAssetFailure(Throwable error) {
-  return MailRenderPolicy.describeRemoteAssetFailure(error);
-}
 
 static void configureRendererLogging() {
   MailRenderPolicy.configureRendererLogging();
@@ -422,15 +376,7 @@ static void blacklistRemoteAsset(String key, String reason) {
   MailRenderPolicy.blacklistRemoteAsset(key, reason);
 }
 
-static void recordBlacklistedRemoteAssetEncounter(String key) {
-  MailRenderPolicy.recordBlacklistedRemoteAssetEncounter(key);
-}
-
-static String preferRemoteAssetReason(String existing, String replacement) {
-  return MailRenderPolicy.preferRemoteAssetReason(existing, replacement);
-}
-
-static void writeEaPdfA3(Path out, EmailRecord r, String fontPath, String iccPath, boolean debug, Path debugDir, int idx) throws Exception {
+static void writeEaPdf(Path out, EmailRecord r, String fontPath, String iccPath, boolean debug, Path debugDir, int idx) throws Exception {
   try (Common.PerFileLogCapture ignored = Common.beginPerFileLog(out)) {
   ConversionProgress.stage("rendering");
   SingleMessageBuildResult built = buildSingleMessagePdf(out, r, fontPath, iccPath, debug, debugDir, idx, null, out, true);
@@ -464,7 +410,7 @@ private static SingleMessageBuildResult buildSingleMessagePdf(Path logicalOut, E
   Path assetDir = debug ? debugDir.resolve(stem + "_assets") : Files.createTempDirectory("emailtopdfa-assets-");
   Files.createDirectories(assetDir);
 
-  try {
+  try (AutoCloseable cleanup = () -> { if (!debug) Common.deleteTree(assetDir); }) {
     String html = buildRenderHtml(r, debug, assetDir, profileOverride);
     if (debug) {
       Path htmlFile = debugDir.resolve(stem + ".rendered.html");
@@ -498,7 +444,7 @@ private static SingleMessageBuildResult buildSingleMessagePdf(Path logicalOut, E
       Map<String, PDComplexFileSpecification> embeddedFiles = embedAssociatedFiles(doc, r, debug);
       PdfAttachmentSupport.rewriteAttachmentLaunchLinks(doc, embeddedFiles);
       addLogicalStructure(doc, r);
-      setPdfA3Metadata(doc, iccPath, r, profileOverride);
+      setPdfAMetadata(doc, iccPath, r, profileOverride);
       normalizePageContentStreams(doc);
       SemanticStructure.balanceParentTree(doc);
       if (destination != null) {
@@ -519,8 +465,6 @@ private static SingleMessageBuildResult buildSingleMessagePdf(Path logicalOut, E
     } finally {
       try { doc.close(); } catch (Exception ignored) {}
     }
-  } finally {
-    if (!debug) Common.deleteTree(assetDir);
   }
 }
 
@@ -537,7 +481,7 @@ static byte[] buildArchiveMessagePdfBytes(EmailRecord r, String fontPath, boolea
   Path assetDir = debug ? debugDir.resolve(stem + "_assets") : Files.createTempDirectory("emailtopdfa-assets-");
   Files.createDirectories(assetDir);
 
-  try {
+  try (AutoCloseable cleanup = () -> { if (!debug) Common.deleteTree(assetDir); }) {
     String html = buildRenderHtml(r, debug, assetDir, profileOverride, archiveSourceName);
     if (debug) {
       Path htmlFile = debugDir.resolve(stem + ".rendered.html");
@@ -566,8 +510,6 @@ static byte[] buildArchiveMessagePdfBytes(EmailRecord r, String fontPath, boolea
       PdfFontMetadata.save(doc, finalized);
       return finalized.toByteArray();
     }
-  } finally {
-    if (!debug) Common.deleteTree(assetDir);
   }
 }
 
@@ -623,9 +565,7 @@ static void forEachArchiveMessagePart(List<EmailRecord> records, String fontPath
       ConversionProgress.completed();
     }
   } catch (ExecutionException e) {
-    Throwable cause = e.getCause();
-    if (cause instanceof Exception ex) throw ex;
-    throw new RuntimeException(cause);
+    Common.rethrowTaskFailure(e);
   } finally {
     Common.stopWorkers(pool);
   }
@@ -637,7 +577,7 @@ static void writeEaPdfArchive(Path out, List<EmailRecord> records, String fontPa
   ProcessingLimits.checkCount(records.size());
   Set<String> identifiers = new HashSet<>();
   for (EmailRecord record : records) {
-    record.embedSourceMessage = !archiveProfile.endsWith("i");
+    record.embedSourceMessage = Common.embedsSource(archiveProfile);
     Common.finalizeRecordMetadata(record);
     if (!identifiers.add(record.mailGuid)) throw Common.fail("Each email in an archive must have a unique internal Mail_GUID.");
   }
@@ -685,7 +625,7 @@ private static void saveArchiveDocument(Path temporary, Path out, List<EmailReco
       ConversionProgress.begin("tagging", segments.size(), "emails");
       addArchiveLogicalStructure(archive, segments, 0);
       ConversionProgress.stage("metadata");
-      setPdfA3Metadata(archive, iccPath, records, archiveProfile);
+      setPdfAMetadata(archive, iccPath, records, archiveProfile);
       ConversionProgress.begin("page_streams", archive.getNumberOfPages(), "pages");
       normalizePageContentStreams(archive);
       Files.createDirectories(out.getParent() == null ? Paths.get(".") : out.getParent());
@@ -751,15 +691,14 @@ static void writeEaPdfCollection(Path out, List<EmailRecord> records, String fon
     setDocumentInfo(archive, records.get(0));
     configureArchiveCatalog(archive, collectionProfile);
     applyPageLabels(archive, archive.getNumberOfPages(), false);
-    PdfCollectionSupport.addTopLevelCollectionDictionary(archive, folders);
     addOutlines(archive, PdfCollectionSupport.buildCollectionFrontRecord(records, collectionProfile, members));
     PdfCollectionSupport.addCollectionDPartStructure(archive, records, collectionProfile);
-    setPdfA3Metadata(archive, iccPath, records, collectionProfile);
+    setPdfAMetadata(archive, iccPath, records, collectionProfile);
+    PdfCollectionSupport.addTopLevelCollectionDictionary(archive, folders);
     PdfCollectionSupport.embedCollectionFiles(archive, records, members, debug, true);
     // Embedded streams now own their copied bytes. Release child working PDFs before saving the collection.
     memberStore.close();
     PdfCollectionSupport.addCollectionLogicalStructure(archive);
-    PdfCollectionSupport.addTopLevelCollectionDictionary(archive, folders);
     normalizePageContentStreams(archive);
     Files.createDirectories(out.getParent() == null ? Paths.get(".") : out.getParent());
     Common.writeOuterPdfAtomically(out, temporary -> {
@@ -1028,7 +967,7 @@ static void addMessageCollectionDictionary(PDDocument doc) {
 
 
 static String pdfDateNow() {
-  Calendar now = Calendar.getInstance();
+  Calendar now = Common.exportCalendar();
   int offsetMinutes = now.getTimeZone().getOffset(now.getTimeInMillis()) / (60 * 1000);
   char sign = offsetMinutes >= 0 ? '+' : '-';
   int abs = Math.abs(offsetMinutes);
@@ -1106,11 +1045,11 @@ static void setCompressedMetadata(PDDocument doc, String xmp) throws IOException
   doc.getDocumentCatalog().setMetadata(metadata);
 }
 
-static void setPdfA3Metadata(PDDocument doc, String iccPath, EmailRecord r) throws Exception {
-  setPdfA3Metadata(doc, iccPath, r, null);
+static void setPdfAMetadata(PDDocument doc, String iccPath, EmailRecord r) throws Exception {
+  setPdfAMetadata(doc, iccPath, r, null);
 }
 
-static void setPdfA3Metadata(PDDocument doc, String iccPath, EmailRecord r, String profileOverride) throws Exception {
+static void setPdfAMetadata(PDDocument doc, String iccPath, EmailRecord r, String profileOverride) throws Exception {
   PDDocumentCatalog cat = doc.getDocumentCatalog();
   String xmp = buildXmpMetadata(r, profileOverride);
   setCompressedMetadata(doc, xmp);
@@ -1126,9 +1065,7 @@ static void setPdfA3Metadata(PDDocument doc, String iccPath, EmailRecord r, Stri
   }
 }
 
-
-
-static void setPdfA3Metadata(PDDocument doc, String iccPath, List<EmailRecord> records, String archiveProfile) throws Exception {
+static void setPdfAMetadata(PDDocument doc, String iccPath, List<EmailRecord> records, String archiveProfile) throws Exception {
   PDDocumentCatalog cat = doc.getDocumentCatalog();
   String xmp = buildXmpMetadata(records, archiveProfile);
   setCompressedMetadata(doc, xmp);
@@ -1721,7 +1658,7 @@ static Map<String, PDComplexFileSpecification> embedAssociatedFiles(PDDocument d
     }
     setEmbeddedMediaType(ef, mime);
     ef.setSize(af.size());
-    Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    Calendar now = Common.exportCalendar();
     ef.setCreationDate(now);
     ef.setModDate(now);
     setEmbeddedChecksum(ef, md5);
@@ -1805,7 +1742,7 @@ static EmbeddedFileBindings embedAssociatedFiles(PDDocument doc, List<EmailRecor
     }
     setEmbeddedMediaType(ef, mime);
     ef.setSize(af.size());
-    Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    Calendar now = Common.exportCalendar();
     ef.setCreationDate(now);
     ef.setModDate(now);
     setEmbeddedChecksum(ef, md5);
@@ -1927,7 +1864,7 @@ static void addOmittedAttachmentAnnotations(PDDocument doc, EmailRecord record, 
       String contentType = Common.sourceContentType(file);
       setEmbeddedMediaType(placeholder, contentType);
       placeholder.setSize(storedAttachmentSize(record, file));
-      placeholder.setModDate(Calendar.getInstance(TimeZone.getTimeZone("UTC")));
+      placeholder.setModDate(Common.exportCalendar());
       setEmbeddedChecksum(placeholder, record.embedSourceMessage ? file.checksumMd5 : Common.md5Hex(new byte[0]));
       specification.setEmbeddedFile(placeholder);
       specification.setEmbeddedFileUnicode(placeholder);
@@ -2254,15 +2191,6 @@ static void addDirectPageLink(PDDocument doc, PDPage sourcePage, PDRectangle rec
   sourcePage.getAnnotations().add(annotation);
 }
 
-static void writeFolderMessageCollection(Path out, List<EmailRecord> records, String fontPath, String iccPath, boolean debug, Path debugDir,
-                                         String collectionProfile, String folderName) throws Exception {
-  PdfCollectionSupport.writeFolderMessageCollection(out, records, fontPath, iccPath, debug, debugDir, collectionProfile, folderName);
-}
-
-static List<CollectionMember> buildMessageCollectionMembers(List<EmailRecord> records, String fontPath, String iccPath, boolean debug, Path debugDir, String collectionProfile) throws Exception {
-  return PdfCollectionSupport.buildMessageCollectionMembers(records, fontPath, iccPath, debug, debugDir, collectionProfile);
-}
-
 static String childProfileForCollection(String collectionProfile, int count) {
   return PdfCollectionSupport.childProfileForCollection(collectionProfile, count);
 }
@@ -2315,7 +2243,7 @@ static void addEmbeddedPlan(PDDocument doc, COSArray afArray, Map<String, PDComp
   PDEmbeddedFile ef = new PDEmbeddedFile(doc, new ByteArrayInputStream(bytes), COSName.FLATE_DECODE);
   ef.setSubtype(mime);
   ef.setSize(bytes.length);
-  Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+  Calendar now = Common.exportCalendar();
   ef.setCreationDate(now);
   ef.setModDate(now);
   setEmbeddedChecksum(ef, checksumMd5);

@@ -22,7 +22,7 @@
     "vendor/pdfjs-patches/0001-document-parts.patch": "b3d54b75e5f9dcbe6a25ee925904f7d7994307d409256b3f6cfdf173d6850fc6",
     "vendor/pdfjs-patches/build-task.mjs": "4aab30eba5ff01eaab59b3d31644e540fa5c6b7f3b3da7c25d0dcc329c735a28",
     "vendor/pdfjs-patches/core.test.mjs": "3803b9b7d8bd3ce46578f4ba82ee7de69c43914d82eeea185e26af0650acee0a",
-    "scripts/rebuild-pdfjs.mjs": "ecf221832581abf19442a9ff70db96f39d219ec5adb1cb4a8ceb017a79725020",
+    "scripts/rebuild-pdfjs.mjs": "05f3e02b769d5550ba68a2c47b603c666c505efc34bae3256011b31b612186c3",
     "vendor/pdfjs-patches/0002-document-assets.patch": "cd376f863c20e96684f557db40d19e9fd08b0dd1b067f4a11535c650ec2e69c1",
     "vendor/pdfjs-patches/assets.test.mjs": "21e5dffb59b5fe79b4c70942af4a43df1ce9aaa7bae9022b4fcc893a197e0b09",
     "vendor/pdfjs-patches/0003-large-archives.patch": "610144363542a8c75d68cd457efac86bf8a0cf3d28252f7cae6ae259e5bd260b",
@@ -33,11 +33,13 @@
     "vendor/pdfjs-patches/0008-metadata-extraction.patch": "d24007c43d04bbf99015228aca61b7f8ee659e8e2f1a2a5b7456337818634279",
     "vendor/pdfjs-patches/0009-named-opening.patch": "9980dabc6a3afc0aff21d65a676f2c5b3d45e969061605e16f57fc1aa3e52c3c",
     "vendor/pdfjs-patches/0010-rtl-ligatures.patch": "ce85a51ec7456d0cfa2465935d3c9ec28f681da3a269010b76d9c9d746a11527",
-    "vendor/pdfjs-patches/0011-page-only-extraction.patch": "5c5147380076d0a4c0817d6d85538809446ad659872c33fa54e790a1997d99f1"
+    "vendor/pdfjs-patches/0011-page-only-extraction.patch": "5c5147380076d0a4c0817d6d85538809446ad659872c33fa54e790a1997d99f1",
+    "vendor/pdfjs-patches/0012-security-facts.patch": "eda8b96b012d00a0ec4557a0dd1b4cc3d1f35c70c5b9d5fbbaaa4021c7241887",
+    "vendor/pdfjs-patches/security.test.mjs": "1554845e74b62b2328e7af2332d7f8d70ac79723d80c9e385537042f0eb05e5f"
   },
   "outputs": {
     "vendor/pdfjs-patched/pdf.mjs": "8b40947296f939f61f1b042fd805a73fd0e6f5f3b056bffed6d9ec0e07a2a095",
-    "vendor/pdfjs-patched/pdf.worker.mjs": "5ab1cad3e974aae576bc9a8ed7a25b90ebef601754a8c78f331be2019fb100c6"
+    "vendor/pdfjs-patched/pdf.worker.mjs": "87d788336fe37e42b24a9ae3ece828b0e330e89b0df3a8c561c103e1d2a8c4fd"
   },
   "internalEventBuildDefine": "0a475cb6-573c-46ed-869d-fa7c5839d995",
   "patches": [
@@ -51,6 +53,7 @@
     "vendor/pdfjs-patches/0008-metadata-extraction.patch",
     "vendor/pdfjs-patches/0009-named-opening.patch",
     "vendor/pdfjs-patches/0010-rtl-ligatures.patch",
-    "vendor/pdfjs-patches/0011-page-only-extraction.patch"
+    "vendor/pdfjs-patches/0011-page-only-extraction.patch",
+    "vendor/pdfjs-patches/0012-security-facts.patch"
   ]
 }

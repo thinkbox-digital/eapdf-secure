@@ -134,6 +134,7 @@ export class BrowserSession {
     throw new Error('Collection presentation is unavailable.');
   }
   cachedMessageIndex(doc:BrowserDocument):MessageIndex|undefined{return this.entries.get(doc)?.messageIndex;}
+  cachedAssets(doc:BrowserDocument):DocumentAssets{this.check();const entry=this.entries.get(doc);if(!entry)throw new Error('Document is no longer open.');return entry.assets;}
   rememberMessageIndex(doc:BrowserDocument,index:MessageIndex|undefined):void{const entry=this.entries.get(doc);if(entry){entry.messageIndex=index;this.accountMetadata(doc,entry);}}
   async adoptAssociations(doc:BrowserDocument,source:BrowserSession,copy:BrowserDocument):Promise<void> {
     this.check();source.check();

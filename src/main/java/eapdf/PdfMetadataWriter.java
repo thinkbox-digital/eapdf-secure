@@ -51,9 +51,16 @@ final class PdfMetadataWriter {
       Common.finalizeRecordMetadata(record);
       Common.requireCreationDate(record);
     }
-    EmailRecord first = records.isEmpty() ? null : records.getFirst();
-    String title = archive ? buildArchiveTitle(records) : Common.nz(first.subject).isBlank() ? "Email" : first.subject;
-    String description = archive ? buildArchiveDescription(records, profile) : buildDescription(first);
+    String title;
+    String description;
+    if (archive) {
+      title = buildArchiveTitle(records);
+      description = buildArchiveDescription(records, profile);
+    } else {
+      EmailRecord first = records.getFirst();
+      title = Common.nz(first.subject).isBlank() ? "Email" : first.subject;
+      description = buildDescription(first);
+    }
     XMPMetadata metadata = standardMetadata(records, profile, title, description);
     XMPSchema mail = metadata.createAndAddDefaultSchema("pdfmailmeta", MAIL);
     if (archive) {
@@ -98,13 +105,16 @@ final class PdfMetadataWriter {
         text(source, "Checksum", asset.checksumMd5);
         if ("Source".equals(asset.relationship)) text(source, "NumberMessages", "1");
       }
-    } else for (AssociatedFile file : first.associatedFiles) {
-      if (!assets.include(first, file)) continue;
-      AbstractStructuredType source = resource(sources);
-      text(source, "Filename", file.filename);
-      text(source, "SizeInBytes", Integer.toString(assets.size(first, file)));
-      text(source, "ContentType", assets.mime(file, file.filename));
-      text(source, "Checksum", file.checksumMd5);
+    } else {
+      EmailRecord first = records.getFirst();
+      for (AssociatedFile file : first.associatedFiles) {
+        if (!assets.include(first, file)) continue;
+        AbstractStructuredType source = resource(sources);
+        text(source, "Filename", file.filename);
+        text(source, "SizeInBytes", Integer.toString(assets.size(first, file)));
+        text(source, "ContentType", assets.mime(file, file.filename));
+        text(source, "Checksum", file.checksumMd5);
+      }
     }
     ArrayProperty attachments = array(mail, "attachments", Cardinality.Bag);
     for (EmailRecord record : records) for (AssociatedFile file : record.associatedFiles) {
@@ -150,7 +160,8 @@ final class PdfMetadataWriter {
     dc.setDescription(Common.normalizeBody(description));
     String tool = Common.productLabel(), now = Common.xmpDateNowUtc();
     var pdf = metadata.createAndAddAdobePDFSchema();
-    pdf.setProducer(tool + " via OpenHTMLtoPDF + Apache PDFBox");
+    pdf.setProducer(tool + (CONFIG.rendering.engine.equals("weasyprint")
+        ? " via WeasyPrint " + WeasyPrintRenderer.VERSION + " + Apache PDFBox" : " via OpenHTMLtoPDF + Apache PDFBox"));
     pdf.setKeywords("EA-PDF");
     var basic = metadata.createAndAddXMPBasicSchema();
     text(basic, "CreateDate", now);
@@ -177,7 +188,7 @@ final class PdfMetadataWriter {
     AbstractStructuredType declaration = resource(array(declarations, "declarations", Cardinality.Bag));
     text(declaration, "conformsTo", "https://pdfa.org/declarations#iso32005");
     AbstractStructuredType claim = resource(array(declaration, "claimData", Cardinality.Bag));
-    text(claim, "claimBy", tool); text(claim, "claimDate", LocalDate.now(ZoneOffset.UTC).toString());
+    text(claim, "claimBy", tool); text(claim, "claimDate", Common.exportInstant().atZone(ZoneOffset.UTC).toLocalDate().toString());
     var management = metadata.createAndAddXMPMediaManagementSchema();
     management.setDocumentID("uuid:" + UUID.randomUUID());
     management.setInstanceID("uuid:" + UUID.randomUUID());

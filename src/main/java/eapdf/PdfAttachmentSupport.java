@@ -77,7 +77,7 @@ final class PdfAttachmentSupport {
     PDEmbeddedFile ef = new PDEmbeddedFile(doc, input, COSName.FLATE_DECODE);
     ef.setSubtype(mime);
     ef.setSize(size);
-    Calendar now = Calendar.getInstance(TimeZone.getTimeZone("UTC"));
+    Calendar now = Common.exportCalendar();
     ef.setCreationDate(now);
     ef.setModDate(now);
     setEmbeddedChecksum(ef, checksum);

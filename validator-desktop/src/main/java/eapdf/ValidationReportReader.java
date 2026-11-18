@@ -17,7 +17,7 @@ final class ValidationReportReader {
         JsonObject pdfa = root.getAsJsonObject("pdfa");
         List<Finding> findings = new ArrayList<>();
         for (JsonElement value : root.getAsJsonArray("items")) findings.add(finding(value.getAsJsonObject()));
-        return checked(summary, pdfa, findings, json);
+        return checked(summary, pdfa, findings, json, root.getAsJsonObject("security"));
       } catch (RuntimeException error) {
         throw new IOException("The validator returned an unreadable report: " + error.getMessage(), error);
       }
@@ -27,12 +27,13 @@ final class ValidationReportReader {
       ReportFindings findings = new ReportFindings(report);
       try (var reader = new com.google.gson.stream.JsonReader(Files.newBufferedReader(report))) {
         reader.setStrictness(com.google.gson.Strictness.STRICT);
-        JsonObject summary = null, pdfa = null;
+        JsonObject summary = null, pdfa = null, security = null;
         boolean items = false;
         reader.beginObject();
         while (reader.hasNext()) switch (reader.nextName()) {
           case "summary" -> { if (summary != null) throw new IOException("Duplicate report summary"); summary = JsonParser.parseReader(reader).getAsJsonObject(); }
           case "pdfa" -> { if (pdfa != null) throw new IOException("Duplicate PDF/A result"); pdfa = JsonParser.parseReader(reader).getAsJsonObject(); }
+          case "security" -> { if (security != null) throw new IOException("Duplicate security result"); security = JsonParser.parseReader(reader).getAsJsonObject(); }
           case "items" -> {
             if (items) throw new IOException("Duplicate findings"); items = true;
             reader.beginArray();
@@ -43,7 +44,7 @@ final class ValidationReportReader {
         }
         reader.endObject();
         if (reader.peek() != com.google.gson.stream.JsonToken.END_DOCUMENT) throw new IOException("Trailing report data");
-        return checked(summary, pdfa, findings, "");
+        return checked(summary, pdfa, findings, "", security);
       } catch (IOException | RuntimeException error) {
         findings.close();
         throw new IOException("The validator returned an unreadable report: " + error.getMessage(), error);
@@ -58,7 +59,7 @@ final class ValidationReportReader {
           details == null || details.isJsonNull() ? "" : JavaValidation.JSON.toJson(details));
     }
 
-    private static Result checked(JsonObject summary, JsonObject pdfa, List<Finding> findings, String json) {
+    private static Result checked(JsonObject summary, JsonObject pdfa, List<Finding> findings, String json, JsonObject security) {
         String status = required(summary, "status");
         if (!Set.of("PASS", "FAIL", "INCOMPLETE").contains(status)) throw new IllegalArgumentException("Unknown validation status: " + status);
         String pdfaStatus = required(pdfa, "status");
@@ -73,7 +74,8 @@ final class ValidationReportReader {
           throw new IllegalArgumentException("The PASS result contradicts the report");
         }
         return new Result(status, pdfaStatus, optional(summary, "verification_spec"),
-            required(summary, "validation_scope"), findings, json);
+            required(summary, "validation_scope"), findings, json,
+            security == null ? "NOT_ASSESSED" : required(security, "status"), security == null ? "" : JavaValidation.JSON.toJson(security));
     }
 
     private static String required(JsonObject object, String key) {

@@ -13,8 +13,12 @@ public class EmailToPDFA {
   };
 
   public static void main(String[] args) throws Exception {
-    if (ConversionSupervisor.run(EmailToPDFA.class, args)) return;
-    try (Common.JobReport job = Common.beginJob()) {
+    Integer status = ConversionSupervisor.run(EmailToPDFA.class, args);
+    if (status != null) {
+      if (status != 0) System.exit(status);
+      return;
+    }
+    try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.JobReport job = Common.beginJob()) {
       Map<String,Object> opt = parseArgs(args);
       EapdfConfig.get().requireCreator();
       PdfSigning.preflight();
@@ -50,7 +54,8 @@ public class EmailToPDFA {
       }
       runParallel(inputs, outDir, fontPath, iccPath, globalId, archiveEmails, debug, debugDir, jobs, true, omitSource);
     } catch (Common.UserFacingException e) {
-      Common.exitWithError(e.getMessage());
+      Common.reportError(e.getMessage());
+      System.exit(2);
     }
   }
 
@@ -181,7 +186,7 @@ public class EmailToPDFA {
         }
       }
     }
-    boolean embedSource = "m".equals(archiveProfile);
+    boolean embedSource = Common.embedsSource(archiveProfile);
     for (EmailRecord r : all) r.embedSourceMessage = embedSource;
 
     Path out;
@@ -357,7 +362,7 @@ public class EmailToPDFA {
     Path out = Paths.get(outDir).resolve(fn);
     Path debugBase = Paths.get(debugDir, inputStem + "_" + String.format("%06d", globalIndex));
     if (debug) Files.createDirectories(debugBase);
-    PdfMailWriter.writeEaPdfA3(out, r, fontPath, iccPath, debug, debugBase, localIndex);
+    PdfMailWriter.writeEaPdf(out, r, fontPath, iccPath, debug, debugBase, localIndex);
     System.out.println("wrote: " + out);
   }
 
@@ -403,14 +408,7 @@ public class EmailToPDFA {
   }
 
   static void rethrowTaskFailure(ExecutionException e) throws Exception {
-    Throwable cause = e;
-    while ((cause instanceof ExecutionException || cause instanceof CompletionException) && cause.getCause() != null) {
-      cause = cause.getCause();
-    }
-    if (cause instanceof Common.UserFacingException u) throw u;
-    if (cause instanceof Exception ex) throw ex;
-    if (cause instanceof Error err) throw err;
-    throw new RuntimeException(cause);
+    Common.rethrowTaskFailure(e);
   }
 
   static String detectMsgInputKind(Path path) throws IOException {

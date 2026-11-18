@@ -1,6 +1,6 @@
 /** Pointer/touch and keyboard resizing; responsive drawers keep their existing layout. */
-export function setupPaneResizers(workspace:HTMLElement):void {
-  const widths={navigation:27,details:27};
+export function setupPaneResizers(workspace:HTMLElement,initial=27):void {
+  const widths={navigation:initial,details:initial};
   for(const pane of ['navigation','details'] as const){
     const bar=document.getElementById('resize-'+pane)!;let pointer:number|undefined;
     const bounds=()=>{

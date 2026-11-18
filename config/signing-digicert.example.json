@@ -1,0 +1,18 @@
+{
+  "configVersion": 1,
+  "signing": {
+    "enabled": true,
+    "pkcs12Path": "/tmp/eapdf-security/signer.p12",
+    "passphraseFile": "/tmp/eapdf-security/signer.passphrase",
+    "alias": "",
+    "reason": "Archive export",
+    "c2pa": true,
+    "protection": "PADES_B_LTA",
+    "policyPath": "/tmp/eapdf-security/policy.json",
+    "tsaUrl": "http://timestamp.digicert.com",
+    "tsaPolicyOid": ""
+  },
+  "accessibility": {
+    "addPdfUaFeatures": false
+  }
+}

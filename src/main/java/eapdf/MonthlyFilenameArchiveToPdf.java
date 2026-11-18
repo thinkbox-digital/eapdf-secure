@@ -19,8 +19,12 @@ public class MonthlyFilenameArchiveToPdf {
   static final String DEFAULT_INPUT_DIR = "/media/lepore/Work/temp/out/";
 
   public static void main(String[] args) throws Exception {
-    if (ConversionSupervisor.run(MonthlyFilenameArchiveToPdf.class, args)) return;
-    try (Common.JobReport job = Common.beginJob()) {
+    Integer status = ConversionSupervisor.run(MonthlyFilenameArchiveToPdf.class, args);
+    if (status != null) {
+      if (status != 0) System.exit(status);
+      return;
+    }
+    try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.JobReport job = Common.beginJob()) {
       Map<String, Object> opt = parseArgs(args);
       Path inputDir = Paths.get((String) opt.getOrDefault("in", DEFAULT_INPUT_DIR)).toAbsolutePath().normalize();
       if (!Files.isDirectory(inputDir)) throw Common.fail("input directory not found: " + inputDir);
@@ -56,7 +60,7 @@ public class MonthlyFilenameArchiveToPdf {
         List<String> inputs = entry.getValue();
         List<EmailRecord> records = flatten(EmailToPDFA.readManyForArchive(inputs, globalId, archiveEmails, debug));
         if (records.isEmpty()) continue;
-        for (EmailRecord record : records) record.embedSourceMessage = true;
+        for (EmailRecord record : records) record.embedSourceMessage = Common.embedsSource(ARCHIVE_PROFILE);
         records = PdfMailWriter.sortRecordsChronologically(records);
 
         boolean singleMessage = records.size() == 1;
@@ -67,7 +71,7 @@ public class MonthlyFilenameArchiveToPdf {
 
         System.out.println("month: " + month + " inputs: " + inputs.size() + " messages: " + records.size());
         if (singleMessage) {
-          PdfMailWriter.writeEaPdfA3(out, records.get(0), fontPath, iccPath, debug, monthDebugDir, 1);
+          PdfMailWriter.writeEaPdf(out, records.get(0), fontPath, iccPath, debug, monthDebugDir, 1);
           System.out.println("wrote single-message PDF: " + out);
           singleMessageCount++;
         } else {
@@ -81,7 +85,8 @@ public class MonthlyFilenameArchiveToPdf {
       System.out.println("done. monthly archives written: " + monthCount);
       System.out.println("single-message monthly PDFs written: " + singleMessageCount);
     } catch (Common.UserFacingException e) {
-      Common.exitWithError(e.getMessage());
+      Common.reportError(e.getMessage());
+      System.exit(2);
     }
   }
 

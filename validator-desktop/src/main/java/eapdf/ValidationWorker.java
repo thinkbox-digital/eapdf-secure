@@ -21,7 +21,7 @@ final class ValidationWorker {
                 "-Xmx" + heap + "m", "-XX:ActiveProcessorCount=4", "-XX:MaxDirectMemorySize=128m",
                 "-XX:MaxMetaspaceSize=256m", "-XX:ReservedCodeCacheSize=128m", "-Deapdf.validator.worker=true",
                 "-Djava.awt.headless=true", "-Djava.io.tmpdir=" + directory));
-            System.getProperties().stringPropertyNames().stream().filter(key -> key.startsWith("VALIDATOR_"))
+            System.getProperties().stringPropertyNames().stream().filter(key -> key.startsWith("VALIDATOR_") || key.startsWith("eapdf.security."))
                 .sorted().forEach(key -> command.add("-D" + key + "=" + System.getProperty(key)));
             command.addAll(List.of("-cp", System.getProperty("java.class.path"), JavaValidation.class.getName(), input.toString(), report.toString()));
             process = new ProcessBuilder(ValidationRuntime.boundedCommand(command, heap)).inheritIO().start();
