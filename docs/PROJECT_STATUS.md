@@ -1,5 +1,21 @@
 # Project status
 
+Code preservation and viewer build, 18 November (local only): this checkout is
+retained on `experiment/c2pa-pades`. Normal development continues in the separate
+`eapdf-main` clone from GitHub main. PRs #26–#33 are selected for that clone;
+other local additions require a separate selection. The experiment, generated
+builds, private correspondence, configuration and local signing dependencies have
+a verified private backup. Nothing was pushed or published.
+
+Full Chromium **1.22.0-beta.3** is named **EA-PDF Viewer Experimental** and has a
+dedicated public identity key. Its title, toolbar and context menu use that name.
+The permanent `browser-viewer/local-install/full/chromium` path is unchanged;
+load it once under the new identity, then use Reload for later builds. All viewer
+editions were rebuilt together; Lite identities remain separate. In an isolated
+Chromium profile, the published regular viewer and experimental viewer install
+together, render and navigate independently; reloading Experimental retains its
+ID and leaves the regular viewer open. All 208 Full unit tests pass.
+
 Bug fix and code improvement, 18 November (unreleased): dependency PRs #26–#33
 are applied locally. CI pins checkout 7.0.1, upload-artifact 7.0.2 and
 setup-python 7.1.0 by commit. The independent Python inspection environment uses

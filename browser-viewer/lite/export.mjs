@@ -61,6 +61,7 @@ try {
  await put('src/viewer.css',css,cssOrigin);
  inputs['lite/styles.mjs']=sha(await readFile(join(root,'lite/styles.mjs')));
  const extension=JSON.parse(await readFile(join(root,'src/extension/manifest.json'),'utf8'));extension.name=title;extension.action.default_title='Open '+title;
+ delete extension.key; // Each Lite install retains its own identity instead of inheriting Full's experimental key.
  if(minimal){extension.permissions=[];delete extension.optional_host_permissions;extension.content_security_policy.extension_pages=extension.content_security_policy.extension_pages.replace('connect-src \'self\' http: https:','connect-src \'self\'');}
  await put('src/extension/manifest.json',JSON.stringify(extension,null,2)+'\n','src/extension/manifest.json');
  const background='src/extension/background.ts';await put(background,(await readFile(join(stage,background),'utf8')).replaceAll('EA-PDF viewer',title),minimal?'even-more-lite/overrides/'+relative('src',background):background);

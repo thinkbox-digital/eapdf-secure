@@ -100,6 +100,13 @@ without retaining or bundling the selected source JSON filename.
 
 ## Export security boundary
 
+This integration is retained in the local `experiment/c2pa-pades` checkout.
+Normal development starts from GitHub main in a separate `eapdf-main` clone;
+experimental code is not merged there automatically. Full Chromium uses a
+dedicated manifest public key and the name **EA-PDF Viewer Experimental**, so
+both readers can be installed in one browser profile. Lite exports remove that
+key and retain their own identities. Existing install directories stay in place.
+
 `EaPdfSecurity` coordinates optional C2PA, timestamped CMS and PAdES B-LTA through
 `digital.thinkbox:pdf-security`. `PdfSigning` retains the existing default CMS
 workflow. Security runs after root repairs and indexing, inside the existing

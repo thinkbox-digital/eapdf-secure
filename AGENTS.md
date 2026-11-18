@@ -1,5 +1,10 @@
 Project: Email → EA-PDF generator
 
+Workspace separation, 18 November 2026:
+- This checkout is the retained `experiment/c2pa-pades` experiment. Change it only when the user explicitly requests experimental work.
+- Continue normal development in the separate `../eapdf-main` clone, based on GitHub `main`.
+- Do not merge or copy this experimental branch into that clone without the user's explicit request. The user selected PR fixes #26–#33 for main; other local dependency repairs and unrelated additions remain here until selected separately.
+
 Build:
 mvn package
 

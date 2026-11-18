@@ -186,6 +186,13 @@ C2PA-tool interoperability have not been exercised; test trust material is synth
 
 ## Browser security on open
 
+These checks belong to the retained experimental Full viewer, named
+**EA-PDF Viewer Experimental**. Its Chromium identity is separate from the regular
+published viewer. Install the experimental checkout's
+`browser-viewer/local-install/full/chromium` directory with **Load unpacked** once;
+later local builds keep that path and identity for **Reload**. The regular viewer
+can remain installed alongside it.
+
 The report begins with guidance to use the standalone EA-PDF Validator with an
 independently selected trust JSON for full verification, including revocation and
 trusted timestamps. Browser UNKNOWN for these checks does not establish that

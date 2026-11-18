@@ -40,12 +40,13 @@ try {
     await mkdir(join(directory, 'vendor/pdfjs'), { recursive: true });
     await cp(temporary, directory, { recursive: true });
     await cp(join(temporary, 'extension/background.js'), join(directory, 'background.js'));
+    await writeFile(join(directory,'background.js'),(await readFile(join(directory,'background.js'),'utf8')).replaceAll('EA-PDF viewer',base.name));
     await rm(join(directory, 'extension'), { recursive: true });
     await cp(join('src','icons'),join(directory,'icons'),{recursive:true});
     await mkdir(join(directory,'assets'),{recursive:true});
     await cp('../assets/thinkbox_logo.jpg',join(directory,'assets','thinkbox_logo.jpg'));
     for (const file of ['viewer.html', 'viewer.css']) await cp(join('src', file), join(directory, file));
-    await writeFile(join(directory,'viewer.html'),(await readFile('src/viewer.html','utf8')).replaceAll('__VIEWER_VERSION__',project.version));
+    await writeFile(join(directory,'viewer.html'),(await readFile('src/viewer.html','utf8')).replaceAll('__VIEWER_VERSION__',project.version).replaceAll('EA-PDF viewer',base.name));
     for (const file of ['pdf.mjs', 'pdf.worker.mjs']) {
       await cp(join('vendor/pdfjs-patched', file), join(directory, 'vendor/pdfjs', file));
     }
@@ -68,6 +69,7 @@ try {
       manifest.background = { service_worker: 'background.js', type: 'module' };
       manifest.minimum_chrome_version = '156';
     } else {
+      delete manifest.key;
       manifest.background = { scripts: ['background.js'], type: 'module' };
       manifest.browser_specific_settings = { gecko: {
         id: 'eapdf-m0-viewer@thinkbox.local', strict_min_version: '158.0',

@@ -1,6 +1,14 @@
 # EA-PDF readers
 
-**Local Full, Lite and Even More Lite builds: 1.15.0-beta.3.**
+This experimental checkout builds **EA-PDF Viewer Experimental**. Its Full Chromium
+extension has a dedicated public identity key, allowing installation alongside the
+regular viewer. Load `local-install/full/chromium` with **Load unpacked** once;
+future builds keep that folder and identity for **Reload**. The page title, toolbar
+name and context-menu label identify the experimental viewer. Normal development
+continues in the separate `eapdf-main` checkout. Lite editions retain their names
+and separate identities; C2PA checking belongs to Full.
+
+**Local Full, Lite and Even More Lite builds: 1.22.0-beta.3.**
 The published Full/Lite readers remain 1.2.0-beta.3, with creator/validator 2.2.0-beta.3.
 Read local PDFs, browse email folders and save attachments. Files stay on your
 computer. No Java, server or internet connection is needed by the extensions.

@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "EA-PDF viewer beta",
-  "description": "View local EA-PDF messages, collections and embedded files. Conformance is not evaluated.",
+  "name": "EA-PDF Viewer Experimental",
+  "description": "Experimental EA-PDF viewer with C2PA and PDF signature checks. Conformance is not evaluated.",
   "action": {
-    "default_title": "Open EA-PDF viewer",
+    "default_title": "Open EA-PDF Viewer Experimental",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",
@@ -27,5 +27,6 @@
     "32": "icons/icon-32.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
-  }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA4OvomRC37Qy8bMAJV3ASFbrV0r325j88NzqKLlo+LZXb8qre/VjRJE8cCsfIzP6D1y81Umv5TJLe4yB+SA3jPlrOqjNbcPLAL3/3JM/r/3NA+6cybWIofre94nQZXQShF4GNBtsZFEXknnDBaCtONawtdaDEEINzn7YzNcgbIyDFVMs/bAf4knBhqceIY3FjL8PcsFtv8anGkJ9uEpM/+5Dne3SBfKV9BDdgsHNX8fO3+RT+SDd0Z9eCGM912lqQFqqZvGkYcnC029Th2qxpzhvkIZJb01gwCLjNOk0+EeENrJdsYFe1L8A/zkRy3W23II3+a0XmfGbWw3TomKTTRwIDAQAB"
 }

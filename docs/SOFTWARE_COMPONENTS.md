@@ -12,9 +12,9 @@ This inventory describes the main parts of the Creator, Java Validator, diagnost
 | Java validator | 44 | 9,607 |
 | Validation rule descriptions and data | 6 | 61,911 |
 | Python diagnostic validator | 14 | 11,382 |
-| Browser viewer Full | 79 | 6,076 |
+| Browser viewer Full | 79 | 6,077 |
 | Browser viewer Lite | 63 | 4,984 |
-| Viewer Lite export and build tools | 14 | 791 |
+| Viewer Lite export and build tools | 14 | 792 |
 | Browser viewer Even More Lite | 32 | 1,935 |
 | Viewer local build and install tools | 4 | 137 |
 | Library patch recipes | 16 | 3,096 |
@@ -39,7 +39,7 @@ Creator Lite would remove embedded search indexes and optional output signing/pr
 
 The headless validator can remove 896 measured desktop/report-presentation lines, including specification-display helpers. A compact runtime rule catalog could retain rule identifiers, numbers and requirement strengths while leaving the full reference data in the repository. Removing export-security verification reduces resolved libraries from 81 to 37 and estimates about 18.9 MB less in the JAR, approximately 48 MB to 29 MB (40%); security would be reported as unchecked, with metadata recognition retained. The untagged-only edition could additionally remove logical-structure/ISO 32005 checks, but tagged inputs and collection children must produce unsupported/INCOMPLETE results. All six profiles, veraPDF, recursive collection validation, source comparisons, streamed reports, verdict/applicability tracking and resource safeguards remain in these estimates.
 
-Even More Lite is already implemented: its current **1,935 nonblank lines** are a measured reduction of **61.2%** from Lite (4,984) and **68.2%** from Full (6,076). For the dated 1.4.0-beta.3 package comparison, the web ZIP decreased from 5.71 MB to 5.44 MB (4.8%); application JS/CSS/HTML decreased from 336.2 kB to 61.6 kB (81.7%, including minification). These package measurements predate later reader changes; see the [edition measurements](../browser-viewer/even-more-lite/README.md#measured-size). Java JAR figures above are estimates for the source/dependencies audited on 17 November, not measurements of rebuilt Lite artifacts or comparisons with older distributables. No speed or memory improvement has been measured for these proposed editions.
+Even More Lite is already implemented: its current **1,935 nonblank lines** are a measured reduction of **61.2%** from Lite (4,984) and **68.2%** from Full (6,077). For the dated 1.4.0-beta.3 package comparison, the web ZIP decreased from 5.71 MB to 5.44 MB (4.8%); application JS/CSS/HTML decreased from 336.2 kB to 61.6 kB (81.7%, including minification). These package measurements predate later reader changes; see the [edition measurements](../browser-viewer/even-more-lite/README.md#measured-size). Java JAR figures above are estimates for the source/dependencies audited on 17 November, not measurements of rebuilt Lite artifacts or comparisons with older distributables. No speed or memory improvement has been measured for these proposed editions.
 
 ## Component totals
 
@@ -82,7 +82,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | Browser viewer Full | Full edition conversation processing | 3 | 76 |
 | Browser viewer Full | Full edition Portfolio controls | 6 | 417 |
 | Browser viewer Full | Full edition Portfolio contract | 1 | 21 |
-| Browser viewer Full | Browser extension integration | 2 | 45 |
+| Browser viewer Full | Browser extension integration | 2 | 46 |
 | Browser viewer Lite | Window layout and controls | 13 | 1,285 |
 | Browser viewer Lite | Document opening and navigation | 11 | 1,656 |
 | Browser viewer Lite | Email and archive interpretation | 16 | 952 |
@@ -93,7 +93,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | Browser viewer Lite | Collection view interface | 1 | 21 |
 | Browser viewer Lite | Browser extension integration | 2 | 45 |
 | Browser viewer Lite | Feature adapters | 6 | 58 |
-| Viewer Lite export and build tools | Export and build maintenance | 10 | 432 |
+| Viewer Lite export and build tools | Export and build maintenance | 10 | 433 |
 | Browser viewer Even More Lite | Window layout and controls | 6 | 63 |
 | Browser viewer Even More Lite | Document opening and navigation | 4 | 382 |
 | Browser viewer Even More Lite | Email and archive interpretation | 9 | 752 |
@@ -528,7 +528,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [browser-viewer/src/extension/background.ts](../browser-viewer/src/extension/background.ts) | 14 | Handles extension background events and reader opening. |
-| [browser-viewer/src/extension/manifest.json](../browser-viewer/src/extension/manifest.json) | 31 | Declares extension entry points, permissions and packaged resources. |
+| [browser-viewer/src/extension/manifest.json](../browser-viewer/src/extension/manifest.json) | 32 | Declares extension entry points, permissions and packaged resources. |
 
 
 ## Browser viewer Lite
@@ -655,7 +655,7 @@ Counts include the shared files selected by the maintained Lite exporter and the
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [browser-viewer/lite/export.mjs](../browser-viewer/lite/export.mjs) | 100 | Selects shared modules and produces the standalone Lite source export. |
+| [browser-viewer/lite/export.mjs](../browser-viewer/lite/export.mjs) | 101 | Selects shared modules and produces the standalone Lite source export. |
 | [browser-viewer/lite/build.mjs](../browser-viewer/lite/build.mjs) | 72 | Builds the exported Lite reader. |
 | [browser-viewer/lite/run.mjs](../browser-viewer/lite/run.mjs) | 41 | Coordinates the local Lite export and build. |
 | [browser-viewer/lite/package.mjs](../browser-viewer/lite/package.mjs) | 30 | Packages the Lite browser distributions. |
