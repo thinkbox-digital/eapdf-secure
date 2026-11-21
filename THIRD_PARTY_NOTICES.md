@@ -227,6 +227,10 @@ COSE-JAVA 1.1.0 under BSD-3-Clause, and PeterO CBOR and supporting libraries
 under their retained upstream terms. Library notices, license texts and DSS
 source JARs remain in `META-INF/pdf-security/` inside creator and Java validator packages.
 Retain those materials and the ability to rebuild/relink modified LGPL modules.
+The unmodified 0.1.0 library, generated test fixtures and their Maven metadata
+are vendored in `third_party/maven/digital/thinkbox/` with SHA-256 checksums.
+The fixtures generate keys at test time. The library JAR retains its original
+Apache license and attribution under `META-INF/pdf-security/`.
 EA-PDF enables these capabilities only through explicit export-security settings;
 see `docs/DIGITAL_SIGNATURES.md`. The companion source module includes the
 collection-preserving profile hook and its signing/renewal regression test.

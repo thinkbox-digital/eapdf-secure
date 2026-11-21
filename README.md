@@ -113,7 +113,8 @@ is in `browser-viewer/local-install/full/firefox`.
 
 ## Build and contribute
 
-Use Java 21 and Maven:
+Use Java 21 and Maven. The source checkout includes the pinned PDF security
+dependency and its Maven metadata for both Java builds.
 
 ```sh
 mvn -Deapdf.build.directory=/tmp/eapdf-build verify

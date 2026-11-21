@@ -31,3 +31,6 @@ features, disables optional PREMIS, and bounds processing to two jobs.
 On November 14, PyMuPDF 2.1 was checked against 1.25.5 using the same six
 baseline PDF pages. Every pixel matched, so the existing reference images and
 comparison threshold are unchanged. The renderer pin and supported import were updated.
+
+The creator uses OpenHTMLtoPDF for this gate to match the reviewed baseline
+renderings. The Secure build tests the WeasyPrint renderer separately.
