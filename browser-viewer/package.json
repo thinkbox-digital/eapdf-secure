@@ -71,7 +71,7 @@
     "@xmldom/xmldom": "0.9.12",
     "asn1js": "3.0.6",
     "pdfjs-dist": "6.5.438",
-    "pkijs": "3.4.0"
+    "pkijs": "4.0.1"
   },
   "devDependencies": {
     "acorn": "8.19.0",
