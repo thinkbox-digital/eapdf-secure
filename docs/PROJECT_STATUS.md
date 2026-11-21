@@ -1,8 +1,10 @@
 # Project status
 
-EA-PDF Secure 2.3.0 packages the creator and both standalone validators,
-plus Full reader 1.31.0 for Chromium and Firefox. See the
-[release notes](releases/2.3.0.md) and [downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0).
+EA-PDF Secure 2.3.1 packages the creator and both standalone validators,
+plus Full reader 1.32.0 for Chromium and Firefox. See the
+[release notes](releases/2.3.1.md) and [downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.1).
+
+The compact Full reader gives the header actions a full-width row below 600 pixels, leaving more vertical space for the PDF.
 
 Speed improvement and GUI update, 19 November 2026 (local secure creator and
 validators **2.3.0**, Full reader **1.31.0**, unpublished): Gmail individual-message

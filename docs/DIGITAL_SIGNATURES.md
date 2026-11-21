@@ -140,7 +140,7 @@ The **EA-PDF Validator** window checks conformance only. Start the separate
 **EA-PDF Security Validator Experimental** for C2PA and PAdES:
 
 ```sh
-java -jar /path/to/eapdf-security-validator-2.3.0.jar
+java -jar /path/to/eapdf-security-validator-2.3.1.jar
 ```
 
 Select the PDF and an independently chosen policy in **Trust JSON (optional)**,

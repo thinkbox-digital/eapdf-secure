@@ -13,7 +13,7 @@ This inventory describes the main parts of the Creator, Java Validator, diagnost
 | Java security validator | 3 | 292 |
 | Validation rule descriptions and data | 6 | 61,911 |
 | Python diagnostic validator | 14 | 11,382 |
-| Browser viewer Full | 80 | 6,362 |
+| Browser viewer Full | 80 | 6,364 |
 | Viewer local build and install tools | 4 | 142 |
 | Library patch recipes | 17 | 3,362 |
 
@@ -69,7 +69,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Python diagnostic validator | Executable rule families | 6 | 3,412 |
 | Python diagnostic validator | Reports and engine integration | 5 | 605 |
 | Python diagnostic validator | Worker isolation and decode limits | 2 | 285 |
-| Browser viewer Full | Window layout and controls | 13 | 1,019 |
+| Browser viewer Full | Window layout and controls | 13 | 1,021 |
 | Browser viewer Full | Document opening and navigation | 12 | 1,660 |
 | Browser viewer Full | Email and archive interpretation | 18 | 1,020 |
 | Browser viewer Full | Search and embedded indexes | 7 | 729 |
@@ -388,7 +388,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [browser-viewer/src/viewer.html](../browser-viewer/src/viewer.html) | 88 | Defines the reader window, toolbar and panel markup. |
-| [browser-viewer/src/viewer.css](../browser-viewer/src/viewer.css) | 421 | Defines the reader layout, colors and styles. |
+| [browser-viewer/src/viewer.css](../browser-viewer/src/viewer.css) | 423 | Defines the reader layout, colors and styles. |
 | [browser-viewer/src/viewer-elements.ts](../browser-viewer/src/viewer-elements.ts) | 5 | Collects typed references to window controls. |
 | [browser-viewer/src/viewer-icons.ts](../browser-viewer/src/viewer-icons.ts) | 7 | Supplies icons used by window controls. |
 | [browser-viewer/src/message-tree.ts](../browser-viewer/src/message-tree.ts) | 171 | Displays messages and folders with keyboard and virtual-list support. |

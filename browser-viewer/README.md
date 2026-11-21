@@ -6,7 +6,7 @@ regular viewer. Load `local-install/full/chromium` with **Load unpacked** once;
 future builds keep that folder and identity for **Reload**. The page title, toolbar
 name and context-menu label identify the experimental viewer. The Secure edition maintains the Full reader for Chromium and Firefox.
 
-**Full reader 1.31.0** ships with EA-PDF Secure 2.3.0.
+**Full reader 1.32.0** ships with EA-PDF Secure 2.3.1.
 Read local PDFs, browse email folders and save attachments. Files stay on your
 computer. No Java, server or internet connection is needed by the extensions.
 

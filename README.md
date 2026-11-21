@@ -7,10 +7,10 @@
 Turn saved emails and mailboxes into PDFs you can read, search and archive.
 Supports **EML, MSG, PST, MBOX and Gmail**.
 
-[User guide](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0)
+[User guide](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.1)
 
-**Secure 2.3.0** includes the creator, conformance validator, security validator
-and Full reader 1.31.0 for Chromium and Firefox.
+**Secure 2.3.1** includes the creator, conformance validator, security validator
+and Full reader 1.32.0 for Chromium and Firefox.
 Java applications need **Java 21 or later**. The readers run locally in your browser.
 
 The creator defaults to WeasyPrint 70.0 and
@@ -49,13 +49,13 @@ and trusted-timestamp checks.
 
 | Tool | What it does |
 | --- | --- |
-| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/emailtopdfa-2.3.0-gui.jar) | Convert email using a desktop window. |
-| [Command-line creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/emailtopdfa-2.3.0.jar) | Convert email from a terminal or script. |
-| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-validator-2.3.0.jar) | Check the finished PDFs and save a report. |
-| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-security-validator-2.3.0.jar) | Verify C2PA provenance, PDF signatures, timestamps and PAdES archival protection. |
-| Full reader: [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-viewer-1.31.0-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-viewer-1.31.0-firefox.zip) | Read messages, folders and attachments; includes Conversations, Portfolio view and larger-archive support. |
+| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/emailtopdfa-2.3.1-gui.jar) | Convert email using a desktop window. |
+| [Command-line creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/emailtopdfa-2.3.1.jar) | Convert email from a terminal or script. |
+| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-validator-2.3.1.jar) | Check the finished PDFs and save a report. |
+| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-security-validator-2.3.1.jar) | Verify C2PA provenance, PDF signatures, timestamps and PAdES archival protection. |
+| Full reader: [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-viewer-1.32.0-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-viewer-1.32.0-firefox.zip) | Read messages, folders and attachments; includes Conversations, Portfolio view and larger-archive support. |
 
-The [release page](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0)
+The [release page](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.1)
 also has the configuration ZIP, PDF manual and SHA-256 checksums.
 Browser extensions are unsigned; Firefox installation is temporary.
 
@@ -65,7 +65,7 @@ Browser extensions are unsigned; Firefox installation is temporary.
 2. Start the Creator:
 
    ```sh
-   java -jar emailtopdfa-2.3.0-gui.jar
+   java -jar emailtopdfa-2.3.1-gui.jar
    ```
 
 3. Choose your email files, output folder and format, then convert.
@@ -95,7 +95,7 @@ for details and [examples](examples/) for sample files.
 ## From the command line
 
 ```sh
-java -Xmx2g -jar emailtopdfa-2.3.0.jar --jobs 2 --out /tmp/eapdf-output message.eml
+java -Xmx2g -jar emailtopdfa-2.3.1.jar --jobs 2 --out /tmp/eapdf-output message.eml
 ```
 
 For a collection, add `--archive-profile c --archive-output /tmp/eapdf-output/archive_1c.pdf`.
