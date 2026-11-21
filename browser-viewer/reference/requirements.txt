@@ -1,6 +1,6 @@
 # Development oracle only; no Python is used or shipped by the extension.
 pikepdf==10.18.1
-jsonschema==4.24.0
+jsonschema==4.26.0
 # Tested with CPython 3.12; pikepdf supplies its bundled qpdf library.
 Pillow==13.0.0
 lxml==6.1.3
