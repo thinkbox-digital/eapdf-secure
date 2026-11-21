@@ -64,7 +64,7 @@
       </resource>
     </resources>
     <plugins>
-      <plugin><groupId>org.codehaus.mojo</groupId><artifactId>build-helper-maven-plugin</artifactId><version>3.6.1</version>
+      <plugin><groupId>org.codehaus.mojo</groupId><artifactId>build-helper-maven-plugin</artifactId><version>3.8.0</version>
         <executions><execution><id>shared-security</id><phase>generate-sources</phase><goals><goal>add-source</goal></goals>
           <configuration><sources><source>${project.basedir}/../src/main/java/eapdf/security</source></sources></configuration>
         </execution></executions>
