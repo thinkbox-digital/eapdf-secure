@@ -1,43 +1,23 @@
 # EA-PDF readers
 
-This experimental checkout builds **EA-PDF Viewer Experimental**. Its Full Chromium
+This edition builds **EA-PDF Viewer Experimental**. Its Full Chromium
 extension has a dedicated public identity key, allowing installation alongside the
 regular viewer. Load `local-install/full/chromium` with **Load unpacked** once;
 future builds keep that folder and identity for **Reload**. The page title, toolbar
-name and context-menu label identify the experimental viewer. Normal development
-continues in the separate `eapdf-main` checkout. Lite editions retain their names
-and separate identities; C2PA checking belongs to Full.
+name and context-menu label identify the experimental viewer. The Secure edition maintains the Full reader for Chromium and Firefox.
 
-**Local Full, Lite and Even More Lite builds: 1.22.0-beta.3.**
-The published Full/Lite readers remain 1.2.0-beta.3, with creator/validator 2.2.0-beta.3.
+**Full reader 1.31.0** ships with EA-PDF Secure 2.3.0.
 Read local PDFs, browse email folders and save attachments. Files stay on your
 computer. No Java, server or internet connection is needed by the extensions.
 
-[Download](https://github.com/thinkbox-digital/eapdf/releases/tag/v2.2.0-beta.3) ·
+[Download](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0) ·
 [User guide](../docs/manual/user-manual.html#viewer) · [Privacy](../docs/site/privacy.md)
 
-## Choose a reader
+## Full reader
 
-| | Full | Lite |
-| --- | --- | --- |
-| Message/folder navigation, attachments, CSV and XMP export | Yes | Yes |
-| PDF text search and message filtering | Yes | Yes |
-| Conversations and Portfolio view | Yes | No |
-| Embedded search indexes and large-archive optimizations | Yes | No |
-| Export signature and C2PA integrity checks, filename status and report | Yes | No |
-| PDF size/page limit | See [full-reader limits](docs/security.md) | 32 MiB / 2,048 pages per PDF |
-
-Lite uses the same reading layout. It still scans message metadata for filtering;
-this is separate from the embedded search indexes it leaves out.
-The two extensions can be installed together.
-
-**Even More Lite** has three adjustable panes: messages/folders, PDF pages and
-embedded assets. It supports asset downloads, attachment links, embedded PDF
-opening and known page/object locations. Its application stays under 2,000 physical
-source lines. Download/view icons, file categories, message labels and supported
-attachment previews use the Full viewer's shared code. Search, filtering controls
-and CSV/XMP export are omitted. Full and Lite retain their CSV export.
-See [Even More Lite](even-more-lite/README.md) for measured sizes and limits.
+The Full reader includes message/folder navigation, attachment downloads, CSV/XMP
+export, text search, filtering, Conversations, Portfolio view, embedded search
+indexes, large-archive support and export-security verification.
 
 ## Install
 
@@ -46,27 +26,17 @@ See [Even More Lite](even-more-lite/README.md) for measured sizes and limits.
 `manifest.json`. Click the extension icon to open the reader.
 
 For development, use the permanent unpacked folders under
-`browser-viewer/local-install/`: `full/chromium`, `lite/chromium` or
-`even-more-lite/chromium`. Load the desired folder once. After the next local
+`browser-viewer/local-install/full/chromium`. Load that folder once. After the next local
 build finishes, click **Reload** on that extension's card in `chrome://extensions`
 and reopen its viewer tab. If an older installation points to an extracted ZIP,
 replace it once with the permanent folder.
 
 **Firefox:** extract the Firefox ZIP. Open `about:debugging#/runtime/this-firefox`,
 choose **Load Temporary Add-on**, and select `manifest.json`. Repeat after restarting
-Firefox. These beta packages are unsigned.
+Firefox. These local packages are unsigned.
 
 The corresponding permanent Firefox folders end in `/firefox`. Select their
 `manifest.json` once, then use **Reload** in `about:debugging` after a local build.
-
-**Lite web page:** extract the web ZIP, then run:
-
-```sh
-python3 -m http.server 8765 --bind 127.0.0.1 --directory /tmp/eapdf-viewer-lite-web
-```
-
-Open `http://127.0.0.1:8765/viewer.html`. Use the directory where you extracted the
-ZIP. Double-clicking `viewer.html` is not supported.
 
 ## Use
 
@@ -86,10 +56,6 @@ embedded scripts do not run.
 
 ## Limits
 
-Lite limits decoded attachments to 16 MiB, metadata to 2 MiB, and open child PDFs
-to 32 at once and four levels deep. Closing a child returns its allowance, so a
-background scan can read more than 32 messages. Use the full reader for larger archives.
-
 See [security and limits](docs/security.md), [browser support](docs/compatibility.md),
 and the [PDF.js patch guide](docs/pdfjs-patch-maintenance.md) for technical details.
 
@@ -104,13 +70,12 @@ npm test
 npm run build:local
 ```
 
-Packages appear in `releases/`. Both smaller-edition commands also make standalone source ZIPs.
+Packages appear in `releases/` for Chromium and Firefox.
 `build:local` advances the viewer minor version, resets patch to zero, rebuilds
-all editions and refreshes the permanent unpacked directories in place. Each
-invocation creates a new minor version. Beta suffixes are retained. The install
+both Full browser packages and refreshes the permanent unpacked directories in place. Each
+invocation creates a new minor version. Future builds use three-part versions without a beta suffix. The install
 copies are verified and are separate from temporary builds and `dist/`.
-Shared fixes belong in this repository; regenerate Lite rather than editing an
-exported copy. See [Lite maintenance](lite/README.md) and [code layout](../docs/ARCHITECTURE.md#maintained-lite-viewer-export).
+See [code layout](../docs/ARCHITECTURE.md) for maintained components.
 
 ## Tests
 
@@ -139,6 +104,17 @@ yellow for unsigned or incomplete checking. Click the filename to open the large
 centred security report and download JSON evidence. The report opens only on user
 activation. Select public CA roots (.pem/.crt/.cer/.der) in the report for offline
 certificate-chain, CRL/OCSP and trusted-timestamp checks. The file must contain
-supported status evidence. Roots stay in the current session. Full archival policy
-and historical validation still require the Java validator with independent evidence. Lite editions omit these checks. See
+supported status evidence. Roots stay in the current session. The supported creator B-LTA workflow also receives historical revision and evidence checks. General PAdES profiles and archival policy still require the Java validator. See
 [supported checks and limits](../docs/DIGITAL_SIGNATURES.md#browser-security-on-open).
+
+The security report lists the independently selected trusted certificates, with
+subject, issuer, SHA-256 fingerprint and validity dates. The downloaded JSON keeps
+the same list. Verified labels are green; Not verified and Failed labels are red.
+
+Security checks are grouped as C2PA, PAdES, their shared archival checks, CMS when applicable, and Other checks. Downloaded JSON records the same categories. Only the filename receives the coloured highlight; the header row keeps its normal background. Adding or clearing trusted
+certificates updates the open report in place, preserving focus and expanded rows.
+
+For the authenticated creator B-LTA profile, the security report also verifies
+saved revisions, protected content, historical trust/evidence and credential
+renewals. Other producers skip those additional checks. Select your public CA
+certificates in the report; unsupported or missing evidence remains Not verified.

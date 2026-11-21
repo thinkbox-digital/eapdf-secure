@@ -37,11 +37,15 @@ opens the report automatically. Checking is cancelled
 on close/reopen and uses a 120-second deadline. Choose trusted public CA roots
 in the report for bounded X.509 paths, fresh signed CRL/OCSP checks and trusted
 timestamp checks using embedded evidence. Roots stay in memory for the session.
-Full historical/archival changes and PAdES B-LTA status still require Java. No
-document-selected certificate/TSA URLs are fetched. Lite editions omit this feature.
+Files with an authenticated supported EA-PDF creator profile also receive
+archival checks: saved revisions, unchanged protected content, signer-certificate
+bindings, trusted signing/renewal times, retained evidence and credential renewals.
+Other producers skip these additional checks. Missing trust, unsupported evidence
+or an unsupported creator layout cannot establish B-LTA protection. General PAdES
+profiles and cryptographic-obsolescence policy still require Java. No
+document-selected certificate/TSA URLs are fetched.
 See [supported security checks and limits](../../docs/DIGITAL_SIGNATURES.md#browser-security-on-open).
-The report starts with a reminder to use the standalone EA-PDF Validator and
-your trust JSON for full verification, including revocation and trusted timestamps.
+The report explains the creator-specific archival scope and when to use the standalone validator.
 Browser UNKNOWN does not mean that creation omitted CRLs or timestamp tokens.
 
 Every active PDF uses a dedicated terminable worker. At most three document

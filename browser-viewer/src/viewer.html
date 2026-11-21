@@ -9,7 +9,7 @@
   <header class="app-header">
     <a class="brand" href="viewer.html" aria-label="EA-PDF viewer home"><span class="brand-square" aria-hidden="true"></span>EA-PDF viewer</a>
     <div class="header-actions"><label class="open-file" title="Open PDF">Open PDF…<input id="file" disabled type="file" accept=".pdf,application/pdf" aria-label="Open PDF"></label></div>
-    <span id="header-filename" title=""></span>
+    <span class="header-file-slot"><span id="header-filename" title=""></span></span>
     <div class="global-actions"><button id="portfolio-toggle" hidden>Portfolio view</button><button id="portfolio-show" hidden>Show portfolio</button><button id="open-search" class="secondary" aria-controls="search-panel" aria-expanded="false">Search</button><button id="export-csv" class="secondary" disabled title="Export email metadata, folder paths and attachment lists">Export metadata…</button><button id="restart" class="quiet" hidden disabled title="Close cached documents and reopen the original PDF at the beginning">Reopen PDF</button><button id="close" class="quiet icon-button" disabled aria-label="Close viewer" title="Close viewer">Close viewer</button></div>
   </header>
   <section id="linked-file" hidden><span id="linked-label"></span><button id="open-linked">Open linked PDF</button></section>

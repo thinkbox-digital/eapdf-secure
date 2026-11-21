@@ -52,7 +52,7 @@ python3 -m venv /tmp/eapdf-runtime-builder
 python3 scripts/check_bundled_renderer.py --runtime dist/runtime/weasyprint/linux-x86_64 --output /tmp/eapdf-runtime-check
 # Build Java artifacts in a temporary directory, then embed before distribution.
 mvn -Deapdf.build.directory=/tmp/eapdf-java-build package
-python3 scripts/embed_weasyprint_runtime.py --runtime dist/runtime/weasyprint/linux-x86_64 /tmp/eapdf-java-build/emailtopdfa-2.2.0-beta.3.jar /tmp/eapdf-java-build/emailtopdfa-2.2.0-beta.3-gui.jar
+python3 scripts/embed_weasyprint_runtime.py --runtime dist/runtime/weasyprint/linux-x86_64 /tmp/eapdf-java-build/emailtopdfa-2.3.0.jar /tmp/eapdf-java-build/emailtopdfa-2.3.0-gui.jar
 ```
 
 The check uses a clean Ubuntu 24.04 container without Python or Pango installed,
@@ -148,7 +148,7 @@ configuration key.
 Save the configuration as `/tmp/eapdf-weasy-config.json`. For example:
 
 ```sh
-EAPDF_CONFIG=/tmp/eapdf-weasy-config.json java -Xmx1g -jar dist/emailtopdfa-2.2.0-beta.3.jar \
+EAPDF_CONFIG=/tmp/eapdf-weasy-config.json java -Xmx1g -jar dist/emailtopdfa-2.3.0.jar \
   --jobs 2 --out /tmp/eapdf-weasy-documents \
   --archive-profile c --archive-output /tmp/eapdf-weasy-documents/eml_archive_1c.pdf \
   /path/to/email.eml
@@ -224,6 +224,14 @@ Java CSS frontend still warns and omits unsupported stylesheet properties,
 including stylesheet `box-decoration-break`; an inline source declaration is
 retained. This setting does not replace that frontend or promise complete CSS
 support.
+
+Rendered images require nonblank alternative text because WeasyPrint emits Figure
+tags even when optional Accessibility is off. Before rendering, Java supplies
+“Image from the original email” for missing or blank descriptions on approved
+image resources and records a review warning. Authored nonblank descriptions,
+image bytes and source emails are preserved. This also handles explicit empty
+HTML `alt` attributes, which the pinned renderer otherwise rejects. A generic
+description needs human review and does not establish full accessibility.
 
 Unavailable images with nonblank alternative text use a small centered image
 pictogram on a transparent SVG canvas, rather than a full-size crossed box.

@@ -1,6 +1,6 @@
 // Exercise a real extension update at one fixed path using consecutive local packages.
 import {chromium} from 'playwright';
-import {readFile,mkdtemp,mkdir,rm,writeFile,lstat} from 'node:fs/promises';
+import {readFile,readdir,mkdtemp,mkdir,rm,writeFile,lstat} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {fileURLToPath} from 'node:url';
@@ -12,10 +12,16 @@ const root=fileURLToPath(new URL('../',import.meta.url));
 const {version}=JSON.parse(await readFile(join(root,'package.json'),'utf8'));
 const match=/^(\d+)\.(\d+)\.0(-beta\.\d+)?$/.exec(version);
 assert.ok(match&&Number(match[2])>0,'Reload check needs a previous local minor version.');
-const previous=`${match[1]}.${Number(match[2])-1}.0${match[3]??''}`;
+const prefix=`${match[1]}.${Number(match[2])-1}.0`;
+const candidates=(await readdir(join(root,'releases'))).flatMap(name=>{
+ const candidate=/^eapdf-viewer-(\d+\.\d+\.0(?:-beta\.\d+)?)-chromium\.zip$/.exec(name)?.[1];
+ return candidate&&(candidate===prefix||candidate.startsWith(prefix+'-beta.'))?[candidate]:[];
+});
+candidates.sort((a,b)=>{const left=extensionVersion(a).split('.').map(Number),right=extensionVersion(b).split('.').map(Number);for(let n=0;n<4;n++){const difference=(right[n]??0)-(left[n]??0);if(difference)return difference;}return 0;});
+const previous=candidates[0];assert.ok(previous,'Reload check needs the preceding minor-version package.');
 const temporary=await mkdtemp(join(tmpdir(),'eapdf-extension-reload-')),install=join(temporary,'installed');let context;
 try{
- for(const [name,value]of [['old',previous],['new',version]])execFileSync('python3',['-c','import sys,zipfile\nwith zipfile.ZipFile(sys.argv[1]) as archive: archive.extractall(sys.argv[2])',join(root,'releases',`eapdf-viewer-even-more-lite-${value}-chromium.zip`),join(temporary,name)]);
+ for(const [name,value]of [['old',previous],['new',version]])execFileSync('python3',['-c','import sys,zipfile\nfrom pathlib import Path\nwith zipfile.ZipFile(sys.argv[1]) as archive: archive.extractall(sys.argv[2])\nPath(sys.argv[2], "INSTALL.txt").unlink(missing_ok=True)',join(root,'releases',`eapdf-viewer-${value}-chromium.zip`),join(temporary,name)]);
  await installLocalBuild(join(temporary,'old'),install,previous);const inode=(await lstat(install)).ino;
  context=await chromium.launchPersistentContext(join(temporary,'profile'),{headless:true,executablePath:process.env.CHROMIUM_PATH??chromium.executablePath(),args:[`--disable-extensions-except=${install}`,`--load-extension=${install}`]});
  await context.setOffline(true);
@@ -41,6 +47,6 @@ try{
  await page.waitForFunction(()=>!document.querySelector('#page-surface').hidden&&document.querySelector('#viewport').getAttribute('aria-busy')==='false');
  await page.locator('#next').click();await page.waitForFunction(()=>document.querySelector('#page').value==='2'&&document.querySelector('#viewport').getAttribute('aria-busy')==='false');
  const report={status:'PASS',from:previous,to:version,extensionId:id,directoryPreserved:true,extensionIdPreserved:true,reloadedRendering:true,browser:context.browser()?.version()};
- const evidence=join(root,'../output/even-more-lite-reload-2026-11-17');await mkdir(evidence,{recursive:true});await writeFile(join(evidence,'reload-check.json'),JSON.stringify(report,null,2)+'\n');
+ const evidence=join(root,'../output/full-viewer-reload');await mkdir(evidence,{recursive:true});await writeFile(join(evidence,'reload-check.json'),JSON.stringify(report,null,2)+'\n');
  console.log(JSON.stringify(report));
 }finally{await context?.close();await rm(temporary,{recursive:true,force:true});}

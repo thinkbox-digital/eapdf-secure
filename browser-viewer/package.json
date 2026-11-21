@@ -1,6 +1,6 @@
 {
   "name": "eapdf-browser-viewer",
-  "version": "1.22.0-beta.3",
+  "version": "1.31.0",
   "private": true,
   "type": "module",
   "license": "Apache-2.0",
@@ -63,13 +63,8 @@
     "test:section8": "npm run check && npm run build && node scripts/section8-acceptance.mjs",
     "test:portfolio-opening": "node scripts/portfolio-opening-smoke.mjs",
     "test:thread-preview": "npm run check && npm run build && node --test tests/thread-graph.test.mjs && node scripts/thread-preview-smoke.mjs",
-    "build:lite": "node lite/run.mjs",
-    "export:lite": "node lite/export.mjs",
-    "build:lite:pdfjs": "node lite/rebuild-hooks.mjs",
     "test:security": "node scripts/viewer-security-smoke.mjs",
     "test:export-security": "node scripts/export-security-smoke.mjs",
-    "build:even-more-lite": "node lite/run.mjs --even-more-lite",
-    "export:even-more-lite": "node lite/export.mjs --profile even-more-lite",
     "build:local": "node scripts/build-local.mjs"
   },
   "dependencies": {

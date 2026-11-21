@@ -36,6 +36,19 @@ Current Gmail behavior from the code:
 
 ## Output filenames
 
+Individual-message exports overlap Gmail downloads with a bounded PDF conversion
+pool, including configured signing and verification. CPU, Java heap, actual source
+sizes and the job worker limit bound the work in flight; WeasyPrint retains its
+separate process and memory limits. Gmail requests and resume checkpoint updates
+remain serialized. Archive preparation retains the selected message order.
+The same actual-source memory budget also enables bounded rendering for 1m/1mi
+and 1c/1ci. Those profiles download and stage the complete selection first, then
+render message parts or collection children concurrently. Final assembly and
+outer-PDF signing/verification remain separate stages. The GUI retains the
+completed/total counter across these stages and omits CPU time from its display.
+The GUI's **Folder / label** field is case sensitive; use the exact Gmail label
+name or ID. Leave it blank for all mail.
+
 New individual PDFs use a readable subject followed by `_gmail-` and the message ID. Different messages with the same subject keep separate files when the selection or ordering changes. Long subject portions are shortened to fit the filesystem; full subjects remain in the PDFs. Existing completed resume entries continue using their recorded filenames. Original emails follow the selected preservation profile.
 
 Automatically named archive and collection PDFs gain `_2`, `_3`, and so on if the filename is already taken, preserving earlier exports. A path supplied with `--archive-output` is treated as the requested replacement destination.
@@ -46,7 +59,7 @@ Set `EAPDF_GMAIL_RESUME_DIR` to a private directory before running the same Gmai
 
 ```bash
 export EAPDF_GMAIL_RESUME_DIR="$HOME/.local/share/emailtopdfa/gmail-resume"
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf --folder INBOX --out-pdf /tmp/eapdf-gmail
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf --folder INBOX --out-pdf /tmp/eapdf-gmail
 ```
 
 The existing credential discovery and OAuth settings still apply. `-Deapdf.gmailResumeDir=/private/path` is the equivalent JVM setting.
@@ -146,7 +159,7 @@ Relevant code:
 ### One PDF Per Message
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --folder INBOX \
   --out-pdf out
 ```
@@ -154,7 +167,7 @@ java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
 ### Archive Output (`1m`, `1mi`, `1c`, `1ci`)
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --folder INBOX \
   --archive-profile m \
   --archive-output /tmp/eapdf-gmail-inbox_1m.pdf
@@ -163,7 +176,7 @@ java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
 ### Use An Explicit Credentials File
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --credentials config/credentials.json \
   --folder ALL_MAIL
 ```
@@ -171,7 +184,7 @@ java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
 ### Use A Custom Token Directory
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --credentials config/credentials.json \
   --token-dir .gmail_token_store_local \
   --folder ALL_MAIL
@@ -180,7 +193,7 @@ java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
 ### Only Unread Messages
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --folder INBOX \
   --unread-only
 ```
@@ -188,7 +201,7 @@ java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
 ### Limit The Number Of Downloaded Messages
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --folder INBOX \
   --limit 100
 ```
@@ -266,7 +279,7 @@ Default:
 Use a fresh token directory:
 
 ```bash
-java -cp dist/emailtopdfa-2.2.0-beta.3.jar eapdf.GmailDownloadToPdf \
+java -cp dist/emailtopdfa-2.3.0.jar eapdf.GmailDownloadToPdf \
   --credentials config/credentials.json \
   --token-dir .gmail_token_store_test \
   --folder INBOX

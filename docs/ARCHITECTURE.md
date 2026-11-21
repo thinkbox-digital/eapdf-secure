@@ -2,6 +2,9 @@
 
 The project has three parts: create PDFs, check PDFs, and read PDFs.
 The browser reader runs without Java or a server.
+Local distribution uses versioned standalone JARs with checksums. The Linux
+creator runtime is embedded in its JARs; the separate Linux application ZIP and
+its packaging script were removed on 19 November 2026.
 
 [Architecture diagram (PDF)](EA-PDF_Software_Architecture.pdf) ·
 [Component descriptions and line counts](SOFTWARE_COMPONENTS.md)
@@ -19,6 +22,7 @@ The browser reader runs without Java or a server.
 | Creator window | `EapdfGui`, `GuiConversionProcess`, `GuiRunConfiguration` |
 | Java validation | `validator-desktop/src/main/java/eapdf/`: `JavaValidation`, `ValidationSession`, check classes |
 | Validator window and reports | `ValidatorGui`, `ValidationReportReader`, `ReportFindings` |
+| Separate security window | `SecurityValidatorGui`, `SecurityValidatorEngine`, `SecurityValidation` |
 | Python validation | `validate_eapdf.py`, `eapdf_validation/` |
 | Validation workers | `validation_worker.py`, `pdf_stream_limits.py` |
 | Browser reader | `browser-viewer/src/`: `viewer.ts`, `browser-session.ts`, `domain/` |
@@ -27,6 +31,11 @@ The browser reader runs without Java or a server.
 
 ## Ownership rules
 
+- The conformance window runs `JavaValidation` with security verification disabled.
+  The separate security window runs `SecurityValidation` in a bounded disposable JVM
+  without EA-PDF/PDF/A checks. Command-line validation keeps its existing combined
+  reports for regeneration. Both apps share public trust-policy/security code;
+  security results do not change the conformance window's verdict.
 - `PdfMailWriter` keeps control of the final PDF, document parts and logical structure.
   Rendering and metadata helpers do not publish files or own the final document.
 - Worker imports enter `JobReport` through its synchronized diagnostic method,
@@ -43,6 +52,9 @@ The browser reader runs without Java or a server.
   Mail_Field roles and marked-content ownership. No engine error falls back to a
   different renderer. Job-shared file locks bound Python concurrency across JVMs;
   Python address-space/RSS allowances are separate from Java heap allowances.
+- Java supplies a generic, review-required Alt for approved rendered images whose
+  descriptions are blank. WeasyPrint requires this for its Figure tags even with
+  optional Accessibility disabled; source image and email bytes stay unchanged.
 - Source CSS scoping retains dynamic pseudo-classes on their original selector
   compounds. The pinned worker corrects inline-style specificity job-locally;
   installed packages are not modified. Missing images with source alternative
@@ -61,6 +73,12 @@ The browser reader runs without Java or a server.
   conversion; the creator never installs Python packages automatically.
 - Collection helpers call the writer to create child PDFs. They share its rules
   for attachments and source preservation.
+- `SemanticStructure` preserves inline linked images through transparent renderer
+  wrappers without adding paragraph children to non-grouping links. Genuine block
+  paragraphs in grouping links retain their roles and ownership.
+- `ValidationReportReader` selects child summaries and relevant failing or
+  incomplete checks for the validator details pane, recursively through nested
+  collections. Original JSON evidence remains intact in saved reports.
 - Command entry points own scoped console capture, the PDFBox compression default
   and process exit status. Library PDF writing does not replace global streams.
   `Common` shares the validated profile-to-source rule and worker-failure unwrapping.
@@ -78,6 +96,17 @@ The browser reader runs without Java or a server.
   Separate modules hold report formatting, engine adapters and rule families.
 
 ## Packaged renderer boundary
+
+Gmail individual-message exports use bounded PDF worker threads inside the
+supervised conversion JVM. The caller serializes Gmail downloads and resume
+checkpoint writes, reserves conversion memory from actual source sizes, and
+drains successful workers before recording completion. Failure or cancellation
+stops outstanding workers. Archive preparation preserves selected message order;
+its largest actual source size supplies the existing combined-archive and
+collection renderer's memory bound. These profiles stage the full selection
+before bounded parallel rendering and final outer-PDF assembly/security checks.
+This performance fix remains in the secure experimental checkout; no experimental
+changes have been transferred to the separate main clone.
 
 The Linux creator JAR embeds a frozen `eapdf-weasyprint-worker`, Python,
 WeasyPrint, native font libraries and standard font-family styles. The creator
@@ -101,11 +130,19 @@ without retaining or bundling the selected source JSON filename.
 ## Export security boundary
 
 This integration is retained in the local `experiment/c2pa-pades` checkout.
+Its regeneration launcher is `eapdf-regenerate-experimental`; `eapdf-regenerate`
+is reserved for the main clone. The experimental runner uses the current ignored
+local signing configuration, requires C2PA and PAdES B-LTA, and checks credentials
+before clearing outputs. A per-run Java helper verifies every outer PDF before
+publication; standalone Java conformance validation uses the same trust policy.
+Credentials remain at their configured locations. This workflow is confined to
+the experiment and is not copied to main.
 Normal development starts from GitHub main in a separate `eapdf-main` clone;
 experimental code is not merged there automatically. Full Chromium uses a
 dedicated manifest public key and the name **EA-PDF Viewer Experimental**, so
-both readers can be installed in one browser profile. Lite exports remove that
-key and retain their own identities. Existing install directories stay in place.
+the experimental and main readers can be installed in one browser profile.
+The experiment maintains only Full for Chromium and Firefox; both Lite editions
+were removed on 19 November 2026. The Full install directories stay in place.
 
 `EaPdfSecurity` coordinates optional C2PA, timestamped CMS and PAdES B-LTA through
 `digital.thinkbox:pdf-security`. `PdfSigning` retains the existing default CMS
@@ -134,11 +171,15 @@ requested protection level gives CLI exit 2 without changing conformance finding
 Full browser security-on-open uses a separate, cancellable cryptography worker.
 PDF.js exposes bounded active signature dictionaries; the application verifies CMS,
 timestamp imprints and supported C2PA bindings and presents a filename state and
-downloadable modal report opened only through filename activation. Background
+downloadable modal report opened only through filename activation. Checks carry
+C2PA, PAdES, shared archival, CMS or other categories in both the UI and JSON.
+The inline filename badge is separate from its flexible header layout slot. Background
 validation never opens the report. It never takes trust anchors from a PDF. Green reports
 covered-content integrity; the filename separately qualifies selected-root
 certificate checks. Bounded offline trust, revocation and TSA checks are available;
-full archival policy remains with Java. Lite uses an empty security-controller adapter and omits these libraries.
+authenticated creator profiles additionally enable historical revision inspection
+and archival validation. Foreign profiles skip the extra inspection. Java remains
+the general PAdES and policy validator.
 See [browser security scope](DIGITAL_SIGNATURES.md#browser-security-on-open).
 
 The independent Python inspection oracle lives in `browser-viewer/reference`.
@@ -147,91 +188,18 @@ the shipped browser libraries. Updating those pins requires an explicit provenan
 refresh and review of extracted-record differences; tests never accept new
 expectations automatically.
 
-## Maintained Lite viewer export
+## Experimental Full viewer builds
 
-Both editions share the message-download scope decision. Original-byte message
-downloads require a declared standalone profile, complete relevant inspection,
-one recognized message and ownership of every page. Otherwise only proven body
-pages can be exported. An opt-in page-only PDF.js extraction mode drops inherited
-files, metadata, annotations, structure and DPart back-references. Its distinct
-worker action fails closed against older workers. Default upstream extraction and
-the explicit Portfolio whole-file action retain their behavior.
-Both patch recipes include upstream PDF.js PR #22521 as patch 0010 for RTL glyph
-ordering; this correction does not introduce the Full reader's archive optimizations.
+This checkout maintains the Full reader for Chromium and Firefox. Lite and Even
+More Lite source exports, packaging, CI and permanent installs were removed at
+the user's request. The main clone is unchanged. Generic PDF.js library regression
+fixtures remain separate from the reader editions.
 
-The full reader is the source for shared fixes. `npm run build:lite` selects its
-shared modules and substitutes small adapters for features Lite omits. Do not edit
-generated exports by hand.
-
-The exporter asks the TypeScript compiler's command-line interface for the module
-graph after applying Lite overrides, including type-only imports. Acorn selects
-the shared JavaScript tests. Type-contract tests also use the compiler interface.
-These tools are used during development and are not bundled into either reader.
-
-Lite keeps the reading layout, message/folder navigation, attachments, CSV/XMP
-export and normal PDF text search. It omits Conversations, Portfolio presentation,
-embedded search indexes and large-archive optimizations. Its collection metadata
-scan still supports filtering.
-
-The generic PDF.js hooks expose document parts, metadata, associated files and
-collection membership. They do not depend on the EA-PDF user interface. Lite keeps
-upstream cross-reference storage and parsed-object caching. Its limits are in the
-[reader guide](../browser-viewer/README.md).
-
-Each export records source and file hashes. Changed hook inputs require reviewed
-adaptations and a reproduced bundle. This is a local extension, not PDF.js approval.
-The [archive comparison](PDFJS_LARGE_ARCHIVE_COMPARISON.md) records earlier tests;
-it does not establish normal-viewer speed gains or upstream acceptance.
-
-## Even More Lite reader
-
-The local 1.15.0-beta.3 builds include a small reading-only edition under
-`browser-viewer/even-more-lite/`. It uses the maintained Lite exporter and build
-pipeline with a second override layer. The compiler selects only the modules
-needed by its smaller entry point. Search, filtering controls, metadata exports,
-metadata dialogs and background collection-subject scans are absent.
-Full and Lite keep their independent CSV export.
-
-The edition shares generic PDF.js hooks, EA-PDF interpretation, page ownership,
-bounded scrolling, password entry, embedded navigation and accessible structure.
-Its smaller document session retains the active ancestor chain and releases a
-child when returning to its parent. It has no export caches or background workers
-beyond PDF.js loading/rendering. A compact asset panel displays containing PDF/
-proven owners and actual attachment-page locations. Known subjects appear directly
-under filenames. It shares bounded byte extraction between downloads and child PDF
-opening. Annotation links resolve PDF.js reference IDs; embedded document links
-can also download non-PDF targets. Unknown page locations are never inferred from
-message body ranges. Shared resizer/download helpers provide adjustable panes
-and browser downloads without the larger FilesPanel dependency graph. Shared
-icons, file categories, subject/sender/date labels and AttachmentViewer provide
-the Full reader's action presentation and supported image/text previews. Preview
-CSS is selected from the maintained Full stylesheet during export. Collection
-metadata without an outer-PDF body page is not duplicated as an unavailable tree
-row; collection members remain directly navigable.
-The Full and minimal readers share the page-ownership map builder. Scrolling
-updates selection without navigating back to the first body page. The minimal
-reader keeps the immediate collection tree while reading children and uses the
-shared folder-membership rules for next/previous email continuation at page edges.
-Extension identities are separate, with no site or context-menu permissions.
-
-Builds and inventory checks enforce fewer than 2,000 physical application-source
-lines, including shared files, declarations, HTML, CSS and the extension manifest.
-Tests, build tools and bundled dependencies are counted separately.
-
-The application and PDF.js bundles are minified during packaging; pinned hook
-inputs remain byte-for-byte unchanged and verified before that transformation.
-All offline rendering assets and required license sources remain. Source exports,
-package hashes and component totals cover this edition independently. See the
-[edition guide and measured sizes](../browser-viewer/even-more-lite/README.md).
-
-`scripts/build-local.mjs` advances the minor version and resets patch to zero
-before producing each new installable local build. Full, Lite and Even More Lite
-share that version. `scripts/local-install.mjs` verifies build hashes and manifest
-versions before refreshing permanent directories under `browser-viewer/local-install/`.
-It keeps each directory in place and removes only obsolete files from its prior
-build inventory. Browser Reload therefore uses the same extension path across
-versions. These install copies survive temporary-build cleanup and Full's `dist/`
-rebuilds; they are ignored generated files, separate from maintained source.
+`npm --prefix browser-viewer run build:local` advances the minor version and resets
+patch to zero for every new local build, using three-part versions without a beta
+suffix. It rebuilds
+both browser packages and verifies the permanent `local-install/full/chromium`
+and `local-install/full/firefox` directories in place for the browser Reload button.
 
 ## Library patches
 
@@ -292,5 +260,14 @@ revocation evidence. Delegated OCSP responders require issuer authorization and
 OCSP signing usage. TSA trust additionally requires exclusive critical timestamp
 usage; only a verified timestamp can supply trusted signing time. Root fingerprints
 are recorded in JSON reports. Embedded certificates never become trust anchors.
-No network lookups occur. Full historical evidence and archival revision semantics
-remain the Java validator's responsibility. Lite editions omit this module.
+No network lookups occur. After authenticated creator recognition, the security
+worker requests independent bounded PDF.js snapshots of all saved revisions.
+Prefix-bounded streams and object fetches prevent later objects from influencing
+earlier snapshots. Canonical protected graphs retain pages, attachments, metadata,
+Info and ordinary annotations; only validated invisible timestamps, retained DSS
+and authenticated credential payloads receive allowances. Duplicate dictionaries,
+repaired cross-references and unsupported layouts cannot pass. The worker checks
+historical signer/TSA trust, signed ESS certificate bindings, evidence retention,
+time order and C2PA replacements for their respective PDF prefixes. Snapshot facts
+are cached per document across certificate selection, without caching trust
+verdicts. General PAdES profiles and algorithm-obsolescence policy stay with Java.

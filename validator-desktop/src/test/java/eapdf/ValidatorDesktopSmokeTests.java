@@ -67,6 +67,8 @@ class ValidatorDesktopSmokeTests {
       SwingUtilities.invokeAndWait(() -> {
         assertTrue(status.getText().startsWith("Result: PASS"));
         assertTrue(status.getText().contains("PDF/A: PASS"));
+        assertFalse(status.getText().contains("Security:"));
+        assertTrue(fieldUnchecked(gui, "result", ValidatorGui.Result.class).securityJson().isBlank());
         assertTrue(table.getRowCount() >= JavaValidation.RULES.size());
         assertEquals(4, table.getColumnCount());
         assertTrue(frame.getWidth() <= java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds().width);

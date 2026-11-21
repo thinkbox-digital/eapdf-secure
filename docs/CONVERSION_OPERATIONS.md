@@ -186,6 +186,11 @@ file, logs and validator reports with the PDFs; a later job can replace progress
 | RENDERING_REDUCED | The displayed representation has a limitation. |
 | REVIEW_REQUIRED | Another existing warning needs review; read its details. |
 
+An ISO-8859-1 EML body containing Windows-1252 punctuation is recovered using
+Windows-1252 only when all bytes decode successfully. This produces a
+`TEXT_RECOVERED` warning; original source bytes remain unchanged. Undefined
+Windows bytes and explicitly UTF-8 controls do not trigger this charset recovery.
+
 The entries do not certify that all content survived. Native PST/MBOX containers
 are not embedded; reconstructed message derivatives are checked instead.
 The creation receipt identifies published bytes and records creator checks.
@@ -216,13 +221,15 @@ history, not the temporary allocation for an individual exceptionally long line.
 ## Regenerating local outputs
 
 
-The installed `eapdf-regenerate` launcher prints basic instructions without arguments:
+The experimental checkout uses `eapdf-regenerate-experimental`; the main clone
+keeps `eapdf-regenerate`. The experimental launcher prints basic instructions
+without arguments:
 
 ```bash
-eapdf-regenerate sample
-eapdf-regenerate everything
-eapdf-regenerate everything --dry-run
-eapdf-regenerate everything --workers 4 --jobs 2
+eapdf-regenerate-experimental sample
+eapdf-regenerate-experimental everything
+eapdf-regenerate-experimental everything --dry-run
+eapdf-regenerate-experimental everything --workers 4 --jobs 2
 ```
 
 Running either generation mode clears this checkout’s `out/` directory. `--dry-run`
@@ -232,7 +239,7 @@ and memory, with two creator threads per process by default. `sample` selects th
 two smallest eligible sources of each type. `everything` covers every eligible
 supported source in appropriate profiles. Both modes skip PSTs larger than
 250 MB (250,000,000 bytes), printing each skip and recording its size and reason
-in the run’s `sources.json`. Each PST/MBOX source produces whole-source `1m`, `1mi`,
+in the run’s temporary `sources.json`. Each PST/MBOX source produces whole-source `1m`, `1mi`,
 `1c` and `1ci` archives only; neither mode extracts individual emails into standalone
 PDFs. EML/MSG inputs retain standalone `1s`/`1si` outputs and are also randomly
 grouped by type into archives of up to 20 messages, using all four archive profiles.
@@ -240,23 +247,27 @@ Jobs stay together by type: EML groups and standalone PDFs, then MSG groups and
 standalone PDFs, then MBOX/PST archives. Every selected source is covered; groups
 are balanced to avoid singleton remainders.
 A one-message source cannot produce 1m/1mi and is reported as not applicable.
-The run’s `plan.json` records the exact random group membership; a dry run makes
+The run’s temporary `plan.json` records the exact random group membership; a dry run makes
 an independent preview plan.
 
-Each creator job publishes its completed PDFs immediately and prints their paths,
-before validation starts. Validation results follow separately; a single archive
+Each creator job verifies C2PA signatures, current-file bindings and PAdES B-LTA
+before publishing its completed outer PDFs and printing their paths. EA-PDF/PDF/A
+validation follows. A failed security check publishes no PDFs from that job. Validation results follow separately; a single archive
 PDF must finish converting before it can appear. Other jobs continue concurrently.
 
 Final PDFs go directly into `out/eml/`, `out/msg/`, `out/mbox/`, and `out/pst/`.
-Each run snapshots its versioned creator and validator JARs so later upgrades
-do not interrupt it. Source hashes, logs, progress and standalone Java validation reports go into the
-run’s evidence directory under `output/`. Each process has isolated temporary
-staging. Accessibility and both indexes are enabled; signing is disabled. Original
+Each run snapshots its versioned creator and validator JARs for the duration of
+the run. Source hashes, logs, progress and standalone Java validation reports
+are kept in the temporary workspace. Accessibility and both indexes are
+enabled. Optional PREMIS is disabled.
+C2PA and PAdES B-LTA are required on every outer output PDF, including warning
+replacements. Embedded source files retain their original bytes. Original
 inputs are preserved. Failed or incomplete conversions are reported with a nonzero
 exit status. Existing conversions using `out/` must finish before regeneration.
-Conversion staging and Java scratch use private directories under
+Conversion staging, Java scratch and run evidence use a private workspace under
 `.generator_web_tmp/` on the project disk, including when `/tmp` is memory-backed.
-Each job remains isolated; temporary files are removed after success or failure.
+Each job has isolated staging. Regeneration removes the workspace after success
+or handled failure and leaves `output/` empty.
 
 Regeneration divides half the currently available output-disk space among its
 concurrent jobs for scratch, with half each job's share available to one work
@@ -264,16 +275,33 @@ file or report. There is no fixed MiB/GiB report ceiling. Explicit
 `VALIDATOR_MAX_WORK_FILE_BYTES` and `VALIDATOR_MAX_SCRATCH_BYTES` settings take
 precedence; each document's result records its budgets.
 
-If validation returns FAIL or INCOMPLETE, or is unavailable, regeneration retains the initial
-reports under `initial-validation/`, regenerates once with a visible
+If validation returns FAIL or INCOMPLETE, or is unavailable, regeneration keeps the initial
+reports under `initial-validation/` during the run, regenerates once with a visible
 **WARNING — Validation requires review** banner, then validates the replacement.
 The banner discloses failed or unfinished checks; it does not turn the result into PASS.
 Source-data warnings remain separate. A failed replacement keeps the original PDF
 and reports the failure. This requires the updated creator JAR.
 
-At completion, the terminal lists FAIL and INCOMPLETE jobs, affected output files
-(or sources that produced no PDF), and their conversion logs and validation reports.
-Counts distinguish passed, failed, incomplete and not-applicable jobs. The same
-report is saved as `summary.txt` beside the detailed `summary.json` in the run
-evidence directory.
-The maintained sources are `scripts/eapdf-regenerate` and `scripts/regenerate_out.py`.
+At completion, the terminal lists FAIL and INCOMPLETE jobs, affected PDFs
+or sources, and relevant excerpts from the conversion and validation logs.
+Counts distinguish passed, failed, incomplete and not-applicable jobs.
+The default configuration is the ignored `config/signing-digicert.local.json`.
+Its current PKCS#12, passphrase, trust-policy and revocation-evidence locations are
+used directly; private credentials are never copied into run evidence. A custom
+`EAPDF_CONFIG` retains its settings and overrides corresponding local signing
+fields. Relative paths resolve beside their configuration or policy JSON.
+Signing, C2PA and `PADES_B_LTA` are always enabled. `EAPDF_SIGNING_PASSWORD`
+overrides the passphrase file. The configured RFC 3161 service is contacted during
+signing; a blank timestamp URL defaults to DigiCert.
+
+Generation requires a Java JDK with `java` and `javac`. A small security helper is
+compiled once in `/tmp` against the snapshotted creator JAR. Credential, signer
+trust and revocation checks run before clearing `out/`. A failed preflight preserves
+the existing outputs and prints diagnostic details. Missing files and unsupported JARs
+stop the run. Java conformance validation also requires `PADES_B_LTA` with the
+same independently selected trust policy. C2PA ecosystem trust/time may remain
+UNKNOWN even when the C2PA signature/binding and requested B-LTA checks pass.
+`--dry-run` previews the plan without opening credentials or contacting the TSA.
+
+The maintained sources are `scripts/eapdf-regenerate-experimental`,
+`scripts/regenerate_out.py` and `scripts/RegenerationSecurity.java`.

@@ -67,5 +67,13 @@ export async function verifyC2pa(blob:Blob,encoded:Uint8Array,policy:Uint8Array|
   }
   parts.push(blob.slice(position));requireSecurity(await sha256Blob(new Blob(parts),check)===hex(cborBytes(binding.get('hash'))),'C2PA current PDF content hash mismatch');
   report.checks.push({name:'C2PA file binding',status:'PASS',detail:'Current PDF bytes, including embedded sources, match the signed hash. Only this manifest and the final signature value are excluded. Application inventory assertions are signed but are not separately reconciled here.'});
-  return {signer:cert,certificates:chain.map(value=>certificate(cborBytes(value)))};
+  // This identity is inside the authenticated claim. A PDF Producer string alone
+  // must never enable the creator-specific revision allowances.
+  const generators=claim.get('claim_generator_info');
+  const generator=generators instanceof Map?generators:undefined;
+  const creatorProfile=generator?.get('name')==='EA-PDF'&&typeof generator.get('version')==='string'&&/^[0-9]+(?:\.[0-9]+)*(?:-[A-Za-z0-9.]+)?$/.test(generator.get('version') as string)
+    &&['CONFIGURED_CERTIFICATE','LOCAL_EPHEMERAL_UNTRUSTED'].includes(String(assertion.get('identity')))
+    &&assertion.get('metadataSha256') instanceof Uint8Array&&(assertion.get('metadataSha256') as Uint8Array).length===32
+    &&assertion.get('inventorySha256') instanceof Uint8Array&&(assertion.get('inventorySha256') as Uint8Array).length===32;
+  return {signer:cert,certificates:chain.map(value=>certificate(cborBytes(value))),creatorProfile};
 }

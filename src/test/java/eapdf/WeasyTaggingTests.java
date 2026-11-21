@@ -17,6 +17,8 @@ import org.apache.pdfbox.pdmodel.font.PDType1Font;
 import org.apache.pdfbox.pdmodel.font.Standard14Fonts;
 import org.apache.pdfbox.pdmodel.interactive.annotation.PDAnnotationLink;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WeasyTaggingTests {
@@ -133,23 +135,70 @@ class WeasyTaggingTests {
     }
   }
 
-  @Test void transparentNonStructInsideLinksRemainsInline() throws Exception {
+  @ParameterizedTest @CsvSource({"NonStruct, Span", "Div, Span", "NonStruct, Figure", "Div, Figure"})
+  void transparentWrapperInsideLinksRemainsInline(String wrapperRole, String contentRole) throws Exception {
     try (PDDocument document = new PDDocument()) {
       PDPage page = new PDPage(); document.addPage(page);
       COSDictionary original = tree(), renderedDocument = PdfMailWriter.structElem("Document", original, null);
       COSDictionary link = PdfMailWriter.structElem("Link", renderedDocument, page);
-      COSDictionary wrapper = PdfMailWriter.structElem("NonStruct", link, page);
-      COSDictionary span = PdfMailWriter.structElem("Span", wrapper, page); span.setInt(COSName.K, 0);
-      wrapper.setItem(COSName.K, array(span)); link.setItem(COSName.K, array(wrapper));
+      COSDictionary wrapper = PdfMailWriter.structElem(wrapperRole, link, page);
+      COSDictionary inner = PdfMailWriter.structElem("Div", wrapper, page);
+      COSDictionary span = PdfMailWriter.structElem(contentRole, inner, page); span.setInt(COSName.K, 0);
+      span.setString(COSName.ALT, "Linked content");
+      PDAnnotationLink annotation = new PDAnnotationLink(); annotation.setContents("Nested link text");
+      annotation.getCOSObject().setInt(COSName.STRUCT_PARENT, 1); page.getAnnotations().add(annotation);
+      COSDictionary reference = new COSDictionary(); reference.setName(COSName.TYPE, "OBJR");
+      reference.setItem(COSName.OBJ, annotation); reference.setItem(COSName.PG, page);
+      PDAnnotationLink imageLink = new PDAnnotationLink(); imageLink.setContents("Linked content");
+      imageLink.getCOSObject().setInt(COSName.STRUCT_PARENT, 2); page.getAnnotations().add(imageLink);
+      COSDictionary imageReference = new COSDictionary(); imageReference.setName(COSName.TYPE, "OBJR");
+      imageReference.setItem(COSName.OBJ, imageLink); imageReference.setItem(COSName.PG, page);
+      inner.setItem(COSName.K, array(imageReference, span)); wrapper.setItem(COSName.K, array(inner));
+      link.setItem(COSName.K, array(reference, wrapper));
       renderedDocument.setItem(COSName.K, array(link)); original.setItem(COSName.K, array(renderedDocument));
       parentTree(original, 0, array(span)); page.getCOSObject().setInt(COSName.STRUCT_PARENTS, 0);
+      COSArray originalParents = (COSArray) ((COSDictionary) original.getDictionaryObject(COSName.getPDFName("ParentTree"))).getDictionaryObject(COSName.NUMS);
+      originalParents.add(COSInteger.ONE); originalParents.add(link);
+      originalParents.add(COSInteger.get(2)); originalParents.add(inner);
       markedText(document, page, "Span", 0, "Nested link text");
       COSDictionary output = tree(), contentSet = PdfMailWriter.structElem("Mail_ContentSet", output, page);
       SemanticStructure.attach(document, output, contentSet, original, 0, 0);
       assertEquals("Span", wrapper.getNameAsString(COSName.S));
-      assertSame(wrapper, ((COSArray) link.getDictionaryObject(COSName.K)).getObject(0));
-      assertSame(span, ((COSArray) wrapper.getDictionaryObject(COSName.K)).getObject(0));
+      assertEquals("Span", inner.getNameAsString(COSName.S));
+      assertSame(reference, ((COSArray) link.getDictionaryObject(COSName.K)).getObject(0));
+      assertSame(wrapper, ((COSArray) link.getDictionaryObject(COSName.K)).getObject(1));
+      assertSame(inner, ((COSArray) wrapper.getDictionaryObject(COSName.K)).getObject(0));
+      assertSame(imageReference, ((COSArray) inner.getDictionaryObject(COSName.K)).getObject(0));
+      assertSame(span, ((COSArray) inner.getDictionaryObject(COSName.K)).getObject(1));
       assertEquals(0, span.getInt(COSName.K));
+      assertEquals(contentRole, span.getNameAsString(COSName.S));
+      assertEquals("Linked content", span.getString(COSName.ALT));
+      COSArray numbers = (COSArray) ((COSDictionary) output.getDictionaryObject(COSName.getPDFName("ParentTree"))).getDictionaryObject(COSName.NUMS);
+      assertSame(span, ((COSArray) numbers.getObject(1)).getObject(0));
+      assertSame(link, numbers.getObject(3));
+      assertSame(inner, numbers.getObject(5));
+      assertSame(annotation.getCOSObject(), reference.getDictionaryObject(COSName.OBJ));
+      assertSame(imageLink.getCOSObject(), imageReference.getDictionaryObject(COSName.OBJ));
+      assertSame(link, wrapper.getDictionaryObject(COSName.P));
+      assertTrue(new org.apache.pdfbox.text.PDFTextStripper().getText(document).contains("Nested link text"));
+    }
+  }
+
+  @Test void groupingLinkRetainsRealBlockParagraphs() throws Exception {
+    try (PDDocument document = new PDDocument()) {
+      PDPage page = new PDPage(); document.addPage(page);
+      COSDictionary original = tree(), renderedDocument = PdfMailWriter.structElem("Document", original, null);
+      COSDictionary link = PdfMailWriter.structElem("Link", renderedDocument, page);
+      COSDictionary wrapper = PdfMailWriter.structElem("Div", link, page);
+      COSDictionary paragraph = PdfMailWriter.structElem("P", wrapper, page); paragraph.setInt(COSName.K, 0);
+      wrapper.setItem(COSName.K, array(paragraph)); link.setItem(COSName.K, array(wrapper));
+      renderedDocument.setItem(COSName.K, array(link)); original.setItem(COSName.K, array(renderedDocument));
+      parentTree(original, 0, array(paragraph)); page.getCOSObject().setInt(COSName.STRUCT_PARENTS, 0);
+      markedText(document, page, "P", 0, "Block link content");
+      COSDictionary output = tree(), contentSet = PdfMailWriter.structElem("Mail_ContentSet", output, page);
+      SemanticStructure.attach(document, output, contentSet, original, 0, 0);
+      assertEquals("Div", wrapper.getNameAsString(COSName.S));
+      assertEquals("P", paragraph.getNameAsString(COSName.S));
     }
   }
 

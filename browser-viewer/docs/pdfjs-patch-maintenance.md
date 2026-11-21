@@ -236,3 +236,22 @@ folder thumbnail. Neither changes the default inspection schema. Thumbnail dimen
 mask depth and encoded sizes are checked before decoding; the existing worker allocation
 and time bounds remain active. Source tests cover exact nested target serialization,
 cycles, external-root rejection, lazy RGBA decoding, unknown locators and pixel limits.
+
+## Creator archival inspection
+
+Patch `0013-creator-archival.patch` adds an opt-in security-only historical
+inspection request. It is requested only after the application worker verifies
+the signed EA-PDF creator profile; ordinary inspection and foreign files do not
+traverse saved revisions. Each snapshot has its own bounded source prefix and
+cross-reference cache. Historical references cannot fetch bytes from later saves.
+Duplicate dictionaries, repaired/incomplete cross-reference sections, non-invisible
+timestamp widgets and unsupported creator layouts cannot establish archival
+protection. Protected graph fingerprints retain attachment/stream dictionaries,
+Info and ordinary annotations. Protected stream offsets must stay unchanged;
+only the authenticated credential payload is excluded. DSS evidence is bounded
+and returned per snapshot; cryptographic and trust decisions stay in the
+application security worker.
+
+The source suite includes unsigned edits, edits reverted by a later save, changed
+Info/content streams, visible timestamp fields, duplicate keys and broken history.
+The manifest pins the additional parser source and patch/test hashes.

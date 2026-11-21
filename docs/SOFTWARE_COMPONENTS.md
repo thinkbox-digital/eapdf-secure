@@ -1,25 +1,23 @@
 # Software components and line counts
 
-This inventory describes the main parts of the Creator, Java Validator, diagnostic Python validator, and Full, Lite and Even More Lite browser viewers. Each file has a plain-English description and measured line counts.
+This inventory describes the main parts of the Creator, Java Validator, diagnostic Python validator, and the experimental Full browser viewer. Each file has a plain-English description and measured line counts.
 
 ## Totals by program and source category
 
 | Program or category | Files | Nonblank |
 | --- | ---: | ---: |
-| Creator | 63 | 17,326 |
-| Creator distribution | 4 | 367 |
+| Creator | 63 | 17,432 |
+| Creator distribution | 3 | 278 |
 | Creator and Java validator | 3 | 244 |
-| Java validator | 44 | 9,607 |
+| Java validator | 44 | 9,597 |
+| Java security validator | 3 | 292 |
 | Validation rule descriptions and data | 6 | 61,911 |
 | Python diagnostic validator | 14 | 11,382 |
-| Browser viewer Full | 79 | 6,077 |
-| Browser viewer Lite | 63 | 4,984 |
-| Viewer Lite export and build tools | 14 | 792 |
-| Browser viewer Even More Lite | 32 | 1,935 |
-| Viewer local build and install tools | 4 | 137 |
-| Library patch recipes | 16 | 3,096 |
+| Browser viewer Full | 80 | 6,362 |
+| Viewer local build and install tools | 4 | 142 |
+| Library patch recipes | 17 | 3,362 |
 
-Full, Lite and Even More Lite are independent program totals: shared source is counted in each edition that uses it. Lite export/build tools, rule data and library patches are listed separately.
+The experimental checkout maintains the Full browser viewer for Chromium and Firefox. Rule data and library patches are listed separately.
 
 ## Lite size estimates
 
@@ -39,29 +37,28 @@ Creator Lite would remove embedded search indexes and optional output signing/pr
 
 The headless validator can remove 896 measured desktop/report-presentation lines, including specification-display helpers. A compact runtime rule catalog could retain rule identifiers, numbers and requirement strengths while leaving the full reference data in the repository. Removing export-security verification reduces resolved libraries from 81 to 37 and estimates about 18.9 MB less in the JAR, approximately 48 MB to 29 MB (40%); security would be reported as unchecked, with metadata recognition retained. The untagged-only edition could additionally remove logical-structure/ISO 32005 checks, but tagged inputs and collection children must produce unsupported/INCOMPLETE results. All six profiles, veraPDF, recursive collection validation, source comparisons, streamed reports, verdict/applicability tracking and resource safeguards remain in these estimates.
 
-Even More Lite is already implemented: its current **1,935 nonblank lines** are a measured reduction of **61.2%** from Lite (4,984) and **68.2%** from Full (6,077). For the dated 1.4.0-beta.3 package comparison, the web ZIP decreased from 5.71 MB to 5.44 MB (4.8%); application JS/CSS/HTML decreased from 336.2 kB to 61.6 kB (81.7%, including minification). These package measurements predate later reader changes; see the [edition measurements](../browser-viewer/even-more-lite/README.md#measured-size). Java JAR figures above are estimates for the source/dependencies audited on 17 November, not measurements of rebuilt Lite artifacts or comparisons with older distributables. No speed or memory improvement has been measured for these proposed editions.
-
 ## Component totals
 
 | Program | Component | Files | Nonblank |
 | --- | --- | ---: | ---: |
-| Creator | Window and user controls | 4 | 986 |
+| Creator | Window and user controls | 4 | 1,003 |
 | Creator | Commands and conversion processes | 9 | 1,562 |
-| Creator | Email readers and source reconstruction | 9 | 2,617 |
-| Creator | PDF assembly and email appearance | 8 | 3,847 |
+| Creator | Email readers and source reconstruction | 9 | 2,682 |
+| Creator | PDF assembly and email appearance | 8 | 3,863 |
 | Creator | Default page renderer worker | 1 | 479 |
-| Creator distribution | Bundled renderer packaging and verification | 4 | 367 |
-| Creator | Accessibility and fonts | 4 | 1,207 |
+| Creator distribution | Bundled renderer packaging and verification | 3 | 278 |
+| Creator | Accessibility and fonts | 4 | 1,214 |
 | Creator | Accessibility font integration | 1 | 11 |
 | Creator | Metadata and document organization | 4 | 1,501 |
 | Creator | Embedded search indexing | 2 | 448 |
 | Creator | Signing and output integrity | 6 | 1,657 |
 | Creator | Memory limits and PDF storage | 9 | 839 |
-| Creator | Shared settings and models | 3 | 1,682 |
+| Creator | Shared settings and models | 3 | 1,683 |
 | Creator | PST library integration | 3 | 490 |
 | Creator and Java validator | Export security policy and verification | 3 | 244 |
-| Java validator | Window and report presentation | 2 | 667 |
-| Java validator | Processes and execution | 6 | 1,066 |
+| Java validator | Window and report presentation | 2 | 663 |
+| Java validator | Processes and execution | 6 | 1,060 |
+| Java security validator | Separate window and security worker | 3 | 292 |
 | Java validator | Executable validation rules | 8 | 4,511 |
 | Java validator | Rule references and finding records | 2 | 139 |
 | Java validator | Source and content evidence | 10 | 965 |
@@ -72,39 +69,19 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | Python diagnostic validator | Executable rule families | 6 | 3,412 |
 | Python diagnostic validator | Reports and engine integration | 5 | 605 |
 | Python diagnostic validator | Worker isolation and decode limits | 2 | 285 |
-| Browser viewer Full | Window layout and controls | 13 | 974 |
+| Browser viewer Full | Window layout and controls | 13 | 1,019 |
 | Browser viewer Full | Document opening and navigation | 12 | 1,660 |
-| Browser viewer Full | Email and archive interpretation | 18 | 1,019 |
+| Browser viewer Full | Email and archive interpretation | 18 | 1,020 |
 | Browser viewer Full | Search and embedded indexes | 7 | 729 |
 | Browser viewer Full | Exports and attachment handling | 7 | 491 |
 | Browser viewer Full | Full edition conversation controls | 2 | 122 |
-| Browser viewer Full | Export security validation and reporting | 8 | 522 |
+| Browser viewer Full | Export security validation and reporting | 9 | 761 |
 | Browser viewer Full | Full edition conversation processing | 3 | 76 |
 | Browser viewer Full | Full edition Portfolio controls | 6 | 417 |
 | Browser viewer Full | Full edition Portfolio contract | 1 | 21 |
 | Browser viewer Full | Browser extension integration | 2 | 46 |
-| Browser viewer Lite | Window layout and controls | 13 | 1,285 |
-| Browser viewer Lite | Document opening and navigation | 11 | 1,656 |
-| Browser viewer Lite | Email and archive interpretation | 16 | 952 |
-| Browser viewer Lite | Search | 5 | 465 |
-| Browser viewer Lite | Exports and attachment handling | 7 | 491 |
-| Browser viewer Lite | Export security validation and reporting | 1 | 7 |
-| Browser viewer Lite | Conversation interface | 1 | 4 |
-| Browser viewer Lite | Collection view interface | 1 | 21 |
-| Browser viewer Lite | Browser extension integration | 2 | 45 |
-| Browser viewer Lite | Feature adapters | 6 | 58 |
-| Viewer Lite export and build tools | Export and build maintenance | 10 | 433 |
-| Browser viewer Even More Lite | Window layout and controls | 6 | 63 |
-| Browser viewer Even More Lite | Document opening and navigation | 4 | 382 |
-| Browser viewer Even More Lite | Email and archive interpretation | 9 | 752 |
-| Browser viewer Even More Lite | Exports and attachment handling | 2 | 194 |
-| Browser viewer Even More Lite | Export security validation and reporting | 1 | 7 |
-| Browser viewer Even More Lite | Browser extension integration | 1 | 24 |
-| Browser viewer Even More Lite | Feature adapters | 1 | 4 |
-| Browser viewer Even More Lite | Minimal reading controls and session | 8 | 509 |
-| Viewer Lite export and build tools | Minimal edition verification | 4 | 359 |
-| Viewer local build and install tools | Versioned builds and permanent unpacked installs | 4 | 137 |
-| Library patch recipes | PDF.js patches for reader APIs and behavior | 12 | 2,529 |
+| Viewer local build and install tools | Versioned builds and permanent unpacked installs | 4 | 142 |
+| Library patch recipes | PDF.js patches for reader APIs and behavior | 13 | 2,795 |
 | Library patch recipes | HTML renderer patches for PDF output | 4 | 567 |
 
 ## Creator
@@ -113,7 +90,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/EapdfGui.java](../src/main/java/eapdf/EapdfGui.java) | 858 | Shows input, output and conversion settings and controls a conversion run. |
+| [src/main/java/eapdf/EapdfGui.java](../src/main/java/eapdf/EapdfGui.java) | 875 | Shows input, output and conversion settings and controls a conversion run. |
 | [src/main/java/eapdf/SigningSettings.java](../src/main/java/eapdf/SigningSettings.java) | 69 | Imports operator-selected signing settings and resolves local evidence paths without retaining the settings filename. |
 | [src/main/java/eapdf/GuiRunConfiguration.java](../src/main/java/eapdf/GuiRunConfiguration.java) | 25 | Translates window selections into a checked run configuration. |
 | [src/main/java/eapdf/GuiLog.java](../src/main/java/eapdf/GuiLog.java) | 34 | Collects and displays conversion messages in the window. |
@@ -136,13 +113,13 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/EmlReader.java](../src/main/java/eapdf/EmlReader.java) | 643 | Reads MIME email files, their headers, bodies and attachments. |
+| [src/main/java/eapdf/EmlReader.java](../src/main/java/eapdf/EmlReader.java) | 655 | Reads MIME email files, their headers, bodies and attachments. |
 | [src/main/java/eapdf/MsgReader.java](../src/main/java/eapdf/MsgReader.java) | 577 | Reads Outlook message files and preserves native message details. |
 | [src/main/java/eapdf/PstReader.java](../src/main/java/eapdf/PstReader.java) | 423 | Reads Outlook mailbox folders, messages and attachments. |
 | [src/main/java/eapdf/MboxReader.java](../src/main/java/eapdf/MboxReader.java) | 86 | Converts messages from an MBOX mailbox. |
 | [src/main/java/eapdf/MboxParser.java](../src/main/java/eapdf/MboxParser.java) | 173 | Locates and parses individual messages inside an MBOX file. |
 | [src/main/java/eapdf/MboxReadInventory.java](../src/main/java/eapdf/MboxReadInventory.java) | 53 | Tracks which MBOX records were read and retained. |
-| [src/main/java/eapdf/GmailDownloadToPdf.java](../src/main/java/eapdf/GmailDownloadToPdf.java) | 347 | Connects to Gmail and converts selected messages and labels. |
+| [src/main/java/eapdf/GmailDownloadToPdf.java](../src/main/java/eapdf/GmailDownloadToPdf.java) | 400 | Connects to Gmail and converts selected messages and labels. |
 | [src/main/java/eapdf/GmailResumeStore.java](../src/main/java/eapdf/GmailResumeStore.java) | 168 | Saves Gmail download progress so interrupted work can resume. |
 | [src/main/java/eapdf/MimeMessageWriter.java](../src/main/java/eapdf/MimeMessageWriter.java) | 147 | Reconstructs MIME email while retaining original identifiers and attachment bytes. |
 
@@ -150,10 +127,10 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/PdfMailWriter.java](../src/main/java/eapdf/PdfMailWriter.java) | 2,047 | Owns final PDF assembly, page and message boundaries, structure and profile decisions. |
+| [src/main/java/eapdf/PdfMailWriter.java](../src/main/java/eapdf/PdfMailWriter.java) | 2,053 | Owns final PDF assembly, page and message boundaries, structure and profile decisions. |
 | [src/main/java/eapdf/MailHtmlRenderer.java](../src/main/java/eapdf/MailHtmlRenderer.java) | 701 | Prepares email HTML, resolves inline content and renders it into PDF pages. |
 | [src/main/java/eapdf/MailRenderPolicy.java](../src/main/java/eapdf/MailRenderPolicy.java) | 293 | Applies rendering resource and content policies. |
-| [src/main/java/eapdf/WeasyPrintRenderer.java](../src/main/java/eapdf/WeasyPrintRenderer.java) | 258 | Stages trusted resources and runs the default sandboxed WeasyPrint page renderer. |
+| [src/main/java/eapdf/WeasyPrintRenderer.java](../src/main/java/eapdf/WeasyPrintRenderer.java) | 268 | Stages trusted resources and runs the default sandboxed WeasyPrint page renderer. |
 | [src/main/java/eapdf/EmbeddedWeasyPrintRuntime.java](../src/main/java/eapdf/EmbeddedWeasyPrintRuntime.java) | 142 | Verifies and installs the bundled renderer into a private cache before execution. |
 | [src/main/java/eapdf/WeasyFontFaces.java](../src/main/java/eapdf/WeasyFontFaces.java) | 111 | Finds and verifies matching font-family style faces for the WeasyPrint renderer. |
 | [src/main/java/eapdf/EmailStyles.java](../src/main/java/eapdf/EmailStyles.java) | 243 | Scopes source email CSS while preserving selector states and presentation. |
@@ -169,7 +146,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/SemanticStructure.java](../src/main/java/eapdf/SemanticStructure.java) | 771 | Repairs semantic tags, header fields, tables and reading structure for accessible PDFs. |
+| [src/main/java/eapdf/SemanticStructure.java](../src/main/java/eapdf/SemanticStructure.java) | 778 | Repairs semantic tags, header fields, tables and reading structure for accessible PDFs. |
 | [src/main/java/eapdf/FontSupport.java](../src/main/java/eapdf/FontSupport.java) | 323 | Selects fonts and handles character coverage for email rendering. |
 | [src/main/java/eapdf/PdfFontMetadata.java](../src/main/java/eapdf/PdfFontMetadata.java) | 42 | Adds and repairs PDF font metadata. |
 | [src/main/java/eapdf/ArchiveFontSubsets.java](../src/main/java/eapdf/ArchiveFontSubsets.java) | 71 | Manages font subsets across archive documents. |
@@ -226,7 +203,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [src/main/java/eapdf/EapdfConfig.java](../src/main/java/eapdf/EapdfConfig.java) | 162 | Loads and checks conversion configuration. |
-| [src/main/java/eapdf/Common.java](../src/main/java/eapdf/Common.java) | 1,378 | Provides shared email, filename, metadata and conversion helpers. |
+| [src/main/java/eapdf/Common.java](../src/main/java/eapdf/Common.java) | 1,379 | Provides shared email, filename, metadata and conversion helpers. |
 | [src/main/java/eapdf/Models.java](../src/main/java/eapdf/Models.java) | 142 | Defines the message and attachment values passed between readers and writers. |
 
 ### PST library integration
@@ -247,7 +224,6 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | [scripts/package_weasyprint.py](../scripts/package_weasyprint.py) | 147 | Freezes Python, WeasyPrint, native font libraries and matching fonts into a relocatable Linux runtime. |
 | [scripts/embed_weasyprint_runtime.py](../scripts/embed_weasyprint_runtime.py) | 72 | Embeds the matching renderer archive and per-file checksums in versioned creator JARs. |
 | [scripts/check_bundled_renderer.py](../scripts/check_bundled_renderer.py) | 59 | Verifies offline rendering in a clean container without installed Python or Pango, with kernel guards active. |
-| [scripts/package_creator_bundle.py](../scripts/package_creator_bundle.py) | 89 | Packages verified self-contained Java tools with public configuration and a launcher; excludes private settings. |
 
 
 ## Creator and Java validator
@@ -267,19 +243,19 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validator-desktop/src/main/java/eapdf/ValidatorGui.java](../validator-desktop/src/main/java/eapdf/ValidatorGui.java) | 582 | Shows file selection, validation progress, findings and result details. |
-| [validator-desktop/src/main/java/eapdf/ValidationReportReader.java](../validator-desktop/src/main/java/eapdf/ValidationReportReader.java) | 85 | Reads completed reports for display in the window. |
+| [validator-desktop/src/main/java/eapdf/ValidatorGui.java](../validator-desktop/src/main/java/eapdf/ValidatorGui.java) | 549 | Shows EA-PDF/PDF/A conformance progress and findings without running security verification. |
+| [validator-desktop/src/main/java/eapdf/ValidationReportReader.java](../validator-desktop/src/main/java/eapdf/ValidationReportReader.java) | 114 | Reads completed reports for display in the window. |
 
 ### Processes and execution
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java](../validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java) | 110 | Runs validation in a separate JVM and handles progress, timeout and cancellation. |
+| [validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java](../validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java) | 103 | Runs validation in a separate JVM and handles progress, timeout and cancellation. |
 | [validator-desktop/src/main/java/eapdf/ValidationWorker.java](../validator-desktop/src/main/java/eapdf/ValidationWorker.java) | 68 | Launches the bounded command-line validation worker. |
 | [validator-desktop/src/main/java/eapdf/ValidationRuntime.java](../validator-desktop/src/main/java/eapdf/ValidationRuntime.java) | 140 | Chooses runtime budgets, process commands and temporary storage. |
 | [validator-desktop/src/main/java/eapdf/ValidationSession.java](../validator-desktop/src/main/java/eapdf/ValidationSession.java) | 159 | Tracks work files, completion and failed or interrupted runs. |
 | [validator-desktop/src/main/java/eapdf/CollectionValidationPool.java](../validator-desktop/src/main/java/eapdf/CollectionValidationPool.java) | 177 | Schedules bounded validation of collection children. |
-| [validator-desktop/src/main/java/eapdf/JavaValidation.java](../validator-desktop/src/main/java/eapdf/JavaValidation.java) | 412 | Coordinates inspection, veraPDF checks, rule dispatch, child documents and final results. |
+| [validator-desktop/src/main/java/eapdf/JavaValidation.java](../validator-desktop/src/main/java/eapdf/JavaValidation.java) | 413 | Coordinates inspection, veraPDF checks, rule dispatch, child documents and final results. |
 
 ### Executable validation rules
 
@@ -343,6 +319,17 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | [validator-desktop/src/main/java/org/verapdf/pd/structure/StructureElementAccessObject.java](../validator-desktop/src/main/java/org/verapdf/pd/structure/StructureElementAccessObject.java) | 69 | Adapts veraPDF access to logical structure elements. |
 
 
+## Java security validator
+
+### Separate window and security worker
+
+| Source file | Nonblank | Function |
+| --- | ---: | --- |
+| [validator-desktop/src/main/java/eapdf/SecurityValidatorGui.java](../validator-desktop/src/main/java/eapdf/SecurityValidatorGui.java) | 159 | Shows independent C2PA and PAdES verification, trust policy, protection level and downloadable reports. |
+| [validator-desktop/src/main/java/eapdf/SecurityValidatorEngine.java](../validator-desktop/src/main/java/eapdf/SecurityValidatorEngine.java) | 79 | Runs a bounded disposable security JVM with timeout, cancellation and scratch cleanup. |
+| [validator-desktop/src/main/java/eapdf/SecurityValidation.java](../validator-desktop/src/main/java/eapdf/SecurityValidation.java) | 54 | Verifies export security without conformance checks and records file hashes and check categories. |
+
+
 ## Validation rule descriptions and data
 
 ### Shared rule catalog and specification profiles
@@ -401,7 +388,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [browser-viewer/src/viewer.html](../browser-viewer/src/viewer.html) | 88 | Defines the reader window, toolbar and panel markup. |
-| [browser-viewer/src/viewer.css](../browser-viewer/src/viewer.css) | 376 | Defines the reader layout, colors and styles. |
+| [browser-viewer/src/viewer.css](../browser-viewer/src/viewer.css) | 421 | Defines the reader layout, colors and styles. |
 | [browser-viewer/src/viewer-elements.ts](../browser-viewer/src/viewer-elements.ts) | 5 | Collects typed references to window controls. |
 | [browser-viewer/src/viewer-icons.ts](../browser-viewer/src/viewer-icons.ts) | 7 | Supplies icons used by window controls. |
 | [browser-viewer/src/message-tree.ts](../browser-viewer/src/message-tree.ts) | 171 | Displays messages and folders with keyboard and virtual-list support. |
@@ -451,7 +438,7 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | [browser-viewer/src/source-email.ts](../browser-viewer/src/source-email.ts) | 17 | Locates preserved original email sources. |
 | [browser-viewer/src/supplement-links.ts](../browser-viewer/src/supplement-links.ts) | 27 | Identifies and follows supplementary document links. |
 | [browser-viewer/src/attachment-types.ts](../browser-viewer/src/attachment-types.ts) | 5 | Defines attachment data and relationships. |
-| [browser-viewer/src/pdfjs-assets.d.ts](../browser-viewer/src/pdfjs-assets.d.ts) | 30 | Declares the PDF.js asset API used by the reader. |
+| [browser-viewer/src/pdfjs-assets.d.ts](../browser-viewer/src/pdfjs-assets.d.ts) | 31 | Declares the PDF.js asset API used by the reader. |
 | [browser-viewer/src/pdfjs-document-parts.d.ts](../browser-viewer/src/pdfjs-document-parts.d.ts) | 38 | Declares the document-part API added to PDF.js. |
 
 ### Search and embedded indexes
@@ -489,14 +476,15 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [browser-viewer/src/security-controller.ts](../browser-viewer/src/security-controller.ts) | 113 | Starts cancellable offline validation on open and displays filename states and a downloadable modal report opened through filename activation. |
-| [browser-viewer/src/security-worker.ts](../browser-viewer/src/security-worker.ts) | 4 | Runs cryptographic checks away from the reading interface. |
-| [browser-viewer/src/security-validation.ts](../browser-viewer/src/security-validation.ts) | 77 | Checks PDF signature ranges, CMS digests, timestamp imprints and aggregate integrity results. |
+| [browser-viewer/src/security-controller.ts](../browser-viewer/src/security-controller.ts) | 179 | Starts cancellable offline validation on open and displays filename states and a downloadable modal report opened through filename activation. |
+| [browser-viewer/src/security-worker.ts](../browser-viewer/src/security-worker.ts) | 11 | Runs cryptographic checks away from the reading interface. |
+| [browser-viewer/src/security-validation.ts](../browser-viewer/src/security-validation.ts) | 108 | Checks signatures, timestamps, C2PA and authenticated creator archival eligibility; foreign files skip additional revision checks. |
+| [browser-viewer/src/security-archival.ts](../browser-viewer/src/security-archival.ts) | 112 | Verifies creator revision continuity, protected content, ESS signer binding, historical trust/evidence and credential renewals. |
 | [browser-viewer/src/security-cms.ts](../browser-viewer/src/security-cms.ts) | 58 | Verifies bounded CMS signatures with included certificates, keeping certificate trust separate. |
-| [browser-viewer/src/security-trust.ts](../browser-viewer/src/security-trust.ts) | 158 | Checks bounded offline certificate paths, CRL and OCSP evidence against explicitly selected CA roots. |
-| [browser-viewer/src/security-c2pa.ts](../browser-viewer/src/security-c2pa.ts) | 71 | Verifies supported EA-PDF COSE claims, assertion digests and safe current-file bindings. |
+| [browser-viewer/src/security-trust.ts](../browser-viewer/src/security-trust.ts) | 167 | Checks bounded offline certificate paths, CRL and OCSP evidence against explicitly selected CA roots. |
+| [browser-viewer/src/security-c2pa.ts](../browser-viewer/src/security-c2pa.ts) | 79 | Verifies supported EA-PDF COSE claims, assertion digests and safe current-file bindings. |
 | [browser-viewer/src/security-cbor.ts](../browser-viewer/src/security-cbor.ts) | 34 | Reads the bounded CBOR subset used by the supported C2PA export profile. |
-| [browser-viewer/src/security-types.ts](../browser-viewer/src/security-types.ts) | 7 | Defines security facts, individual checks and report states. |
+| [browser-viewer/src/security-types.ts](../browser-viewer/src/security-types.ts) | 13 | Defines security facts, individual checks and report states. |
 
 ### Full edition conversation processing
 
@@ -531,239 +519,15 @@ Even More Lite is already implemented: its current **1,935 nonblank lines** are 
 | [browser-viewer/src/extension/manifest.json](../browser-viewer/src/extension/manifest.json) | 32 | Declares extension entry points, permissions and packaged resources. |
 
 
-## Browser viewer Lite
-
-Counts include the shared files selected by the maintained Lite exporter and the edition feature adapters. Counts use exported content, including the reduced HTML and CSS; links point to their maintained source files. Tests, bundled libraries and export/build tools are excluded from this program total.
-
-### Window layout and controls
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/viewer.html](../browser-viewer/src/viewer.html) | 87 | Defines the reader window, toolbar and panel markup. |
-| [browser-viewer/src/viewer.css](../browser-viewer/src/viewer.css) | 688 | Defines the reader layout, colors and styles. |
-| [browser-viewer/src/viewer-elements.ts](../browser-viewer/src/viewer-elements.ts) | 5 | Collects typed references to window controls. |
-| [browser-viewer/src/viewer-icons.ts](../browser-viewer/src/viewer-icons.ts) | 7 | Supplies icons used by window controls. |
-| [browser-viewer/src/message-tree.ts](../browser-viewer/src/message-tree.ts) | 171 | Displays messages and folders with keyboard and virtual-list support. |
-| [browser-viewer/src/files-panel.ts](../browser-viewer/src/files-panel.ts) | 125 | Displays files and message-linked attachments. |
-| [browser-viewer/src/file-category.ts](../browser-viewer/src/file-category.ts) | 9 | Assigns shared labels to email sources, attachments and supporting files. |
-| [browser-viewer/src/message-label.ts](../browser-viewer/src/message-label.ts) | 7 | Builds the shared subject, sender and date labels for message rows. |
-| [browser-viewer/src/metadata-dialog.ts](../browser-viewer/src/metadata-dialog.ts) | 88 | Displays document and message metadata. |
-| [browser-viewer/src/pane-resizer.ts](../browser-viewer/src/pane-resizer.ts) | 23 | Lets users resize reader panels. |
-| [browser-viewer/src/password-prompt.ts](../browser-viewer/src/password-prompt.ts) | 12 | Asks for passwords when opening protected PDFs. |
-| [browser-viewer/src/virtual-list.ts](../browser-viewer/src/virtual-list.ts) | 48 | Shows only visible rows in long lists. |
-| [browser-viewer/src/row-heights.ts](../browser-viewer/src/row-heights.ts) | 15 | Tracks row sizes for virtual scrolling. |
-
-### Document opening and navigation
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/viewer.ts](../browser-viewer/src/viewer.ts) | 705 | Coordinates the active document, selection, window events and navigation. |
-| [browser-viewer/src/browser-session.ts](../browser-viewer/src/browser-session.ts) | 386 | Owns PDF workers, open documents, caches and extracted-file lifetimes. |
-| [browser-viewer/src/inspection-session.ts](../browser-viewer/src/inspection-session.ts) | 82 | Tracks inspection state and cancellation. |
-| [browser-viewer/src/pdfjs-adapter.ts](../browser-viewer/src/pdfjs-adapter.ts) | 72 | Connects the reader to public PDF.js loading and document APIs. |
-| [browser-viewer/src/navigation.ts](../browser-viewer/src/navigation.ts) | 51 | Resolves document and message navigation requests and maps pages to proven message owners. |
-| [browser-viewer/src/embedded-navigation.ts](../browser-viewer/src/embedded-navigation.ts) | 32 | Navigates into embedded PDF documents. |
-| [browser-viewer/src/linked-opening.ts](../browser-viewer/src/linked-opening.ts) | 32 | Handles linked document opening requests. |
-| [browser-viewer/src/opening-destination.ts](../browser-viewer/src/opening-destination.ts) | 28 | Resolves the requested initial page or destination. |
-| [browser-viewer/src/scrolling-pages.ts](../browser-viewer/src/scrolling-pages.ts) | 247 | Manages page rendering and scrolling through the active PDF. |
-| [browser-viewer/src/structure-tree.ts](../browser-viewer/src/structure-tree.ts) | 12 | Checks structure-tree size and cycles before accessible DOM presentation. |
-| [browser-viewer/src/document-kind.ts](../browser-viewer/src/document-kind.ts) | 9 | Classifies the opened document for reader behavior. |
-
-### Email and archive interpretation
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/domain/inspection.d.ts](../browser-viewer/src/domain/inspection.d.ts) | 281 | Defines the inspection data contract. |
-| [browser-viewer/src/domain/observations.ts](../browser-viewer/src/domain/observations.ts) | 13 | Defines observed PDF facts used by interpretation. |
-| [browser-viewer/src/domain/interpret.ts](../browser-viewer/src/domain/interpret.ts) | 185 | Interprets PDF observations as EA-PDF messages and relationships. |
-| [browser-viewer/src/domain/xmp.ts](../browser-viewer/src/domain/xmp.ts) | 140 | Reads XMP metadata into interpretation values. |
-| [browser-viewer/src/domain/hashes.ts](../browser-viewer/src/domain/hashes.ts) | 54 | Provides hashes used to identify interpreted content. |
-| [browser-viewer/src/message-index.ts](../browser-viewer/src/message-index.ts) | 65 | Builds the navigable message index. |
-| [browser-viewer/src/collection-data.ts](../browser-viewer/src/collection-data.ts) | 6 | Reads collection members and folder information. |
-| [browser-viewer/src/collection-names.ts](../browser-viewer/src/collection-names.ts) | 12 | Chooses readable collection and member names. |
-| [browser-viewer/src/files-message-order.ts](../browser-viewer/src/files-message-order.ts) | 39 | Orders files according to their message relationships. |
-| [browser-viewer/src/archive-stats.ts](../browser-viewer/src/archive-stats.ts) | 24 | Summarizes archive contents and counts. |
-| [browser-viewer/src/retained-size.ts](../browser-viewer/src/retained-size.ts) | 16 | Estimates retained data for resource budgeting. |
-| [browser-viewer/src/source-email.ts](../browser-viewer/src/source-email.ts) | 17 | Locates preserved original email sources. |
-| [browser-viewer/src/supplement-links.ts](../browser-viewer/src/supplement-links.ts) | 27 | Identifies and follows supplementary document links. |
-| [browser-viewer/src/attachment-types.ts](../browser-viewer/src/attachment-types.ts) | 5 | Defines attachment data and relationships. |
-| [browser-viewer/src/pdfjs-assets.d.ts](../browser-viewer/src/pdfjs-assets.d.ts) | 30 | Declares the PDF.js asset API used by the reader. |
-| [browser-viewer/src/pdfjs-document-parts.d.ts](../browser-viewer/src/pdfjs-document-parts.d.ts) | 38 | Declares the document-part API added to PDF.js. |
-
-### Search
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/search-controller.ts](../browser-viewer/src/search-controller.ts) | 257 | Coordinates search controls, workers, filters and result lists. |
-| [browser-viewer/src/document-search.ts](../browser-viewer/src/document-search.ts) | 93 | Searches text within the active document. |
-| [browser-viewer/src/collection-search.ts](../browser-viewer/src/collection-search.ts) | 53 | Searches messages across collection members. |
-| [browser-viewer/src/metadata-search.ts](../browser-viewer/src/metadata-search.ts) | 2 | Matches message metadata against user searches. |
-| [browser-viewer/src/page-text.ts](../browser-viewer/src/page-text.ts) | 60 | Extracts and prepares page text for searching. |
-
-### Exports and attachment handling
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/attachment-viewer.ts](../browser-viewer/src/attachment-viewer.ts) | 176 | Opens supported attachments in a dedicated viewing window. |
-| [browser-viewer/src/downloads.ts](../browser-viewer/src/downloads.ts) | 18 | Coordinates browser downloads. |
-| [browser-viewer/src/bounded-download.ts](../browser-viewer/src/bounded-download.ts) | 31 | Limits data retained while preparing downloads. |
-| [browser-viewer/src/blob-hash.ts](../browser-viewer/src/blob-hash.ts) | 41 | Hashes browser file data without retaining a second full copy. |
-| [browser-viewer/src/message-download.ts](../browser-viewer/src/message-download.ts) | 31 | Chooses proven message scope and prepares source or body-page exports. |
-| [browser-viewer/src/metadata-csv.ts](../browser-viewer/src/metadata-csv.ts) | 135 | Converts message metadata into independent CSV output. |
-| [browser-viewer/src/metadata-export.ts](../browser-viewer/src/metadata-export.ts) | 59 | Prepares downloadable metadata, including CSV and XMP. |
-
-### Export security validation and reporting
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/security-types.ts](../browser-viewer/src/security-types.ts) | 7 | Defines security facts, individual checks and report states. |
-
-### Conversation interface
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/conversation-contract.ts](../browser-viewer/src/conversation-contract.ts) | 4 | Defines the conversation feature boundary used by the window. |
-
-### Collection view interface
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/collection-view-contract.ts](../browser-viewer/src/collection-view-contract.ts) | 21 | Defines the optional collection-view interface for the main reader. |
-
-### Browser extension integration
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/extension/background.ts](../browser-viewer/src/extension/background.ts) | 14 | Handles extension background events and reader opening. |
-| [browser-viewer/src/extension/manifest.json](../browser-viewer/src/extension/manifest.json) | 31 | Declares extension entry points, permissions and packaged resources. |
-
-### Feature adapters
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/lite/overrides/viewer-profile.ts](../browser-viewer/lite/overrides/viewer-profile.ts) | 4 | Selects Lite capabilities and resource limits. |
-| [browser-viewer/lite/overrides/collection-view.ts](../browser-viewer/lite/overrides/collection-view.ts) | 22 | Supplies the adapter for the omitted Portfolio presentation. |
-| [browser-viewer/lite/overrides/conversations.ts](../browser-viewer/lite/overrides/conversations.ts) | 11 | Supplies the adapter for the omitted Conversations feature. |
-| [browser-viewer/lite/overrides/security-controller.ts](../browser-viewer/lite/overrides/security-controller.ts) | 6 | Supplies the adapter for omitted Full security validation and reporting. |
-| [browser-viewer/lite/overrides/embedded-index.ts](../browser-viewer/lite/overrides/embedded-index.ts) | 6 | Supplies the adapter for omitted embedded-index loading. |
-| [browser-viewer/lite/overrides/fulltext-index.ts](../browser-viewer/lite/overrides/fulltext-index.ts) | 9 | Supplies the adapter for omitted embedded full-text search. |
-
-
-## Viewer Lite export and build tools
-
-### Export and build maintenance
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/lite/export.mjs](../browser-viewer/lite/export.mjs) | 101 | Selects shared modules and produces the standalone Lite source export. |
-| [browser-viewer/lite/build.mjs](../browser-viewer/lite/build.mjs) | 72 | Builds the exported Lite reader. |
-| [browser-viewer/lite/run.mjs](../browser-viewer/lite/run.mjs) | 41 | Coordinates the local Lite export and build. |
-| [browser-viewer/lite/package.mjs](../browser-viewer/lite/package.mjs) | 30 | Packages the Lite browser distributions. |
-| [browser-viewer/lite/styles.mjs](../browser-viewer/lite/styles.mjs) | 30 | Selects styles needed by Lite controls. |
-| [browser-viewer/lite/prepare-hooks.mjs](../browser-viewer/lite/prepare-hooks.mjs) | 68 | Prepares generic PDF.js hooks for Lite. |
-| [browser-viewer/lite/rebuild-hooks.mjs](../browser-viewer/lite/rebuild-hooks.mjs) | 44 | Rebuilds Lite PDF.js worker and display bundles. |
-| [browser-viewer/lite/refresh-hook-inputs.mjs](../browser-viewer/lite/refresh-hook-inputs.mjs) | 15 | Refreshes recorded hook source inputs. |
-| [browser-viewer/lite/verify-hooks.mjs](../browser-viewer/lite/verify-hooks.mjs) | 18 | Checks reproduced hooks against recorded hashes. |
-| [browser-viewer/lite/select-hook-tests.mjs](../browser-viewer/lite/select-hook-tests.mjs) | 14 | Selects the shared generic-hook regression tests for Lite. |
-
-### Minimal edition verification
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/even-more-lite/minimal.test.mjs](../browser-viewer/even-more-lite/minimal.test.mjs) | 62 | Checks omitted features, standalone provenance and packaged payload hashes. |
-| [browser-viewer/even-more-lite/browser-smoke.mjs](../browser-viewer/even-more-lite/browser-smoke.mjs) | 183 | Exercises packaged offline reading, all EA-PDF profiles and error recovery. |
-| [browser-viewer/even-more-lite/firefox-smoke.mjs](../browser-viewer/even-more-lite/firefox-smoke.mjs) | 80 | Installs and checks the minimal Firefox extension offline. |
-| [browser-viewer/even-more-lite/asset-fixture.mjs](../browser-viewer/even-more-lite/asset-fixture.mjs) | 34 | Creates original edge controls for attachment links and exact asset downloads. |
-
-
-## Browser viewer Even More Lite
-
-Counts include the shared files selected by the maintained Lite exporter and the edition feature adapters. Counts use exported content, including the reduced HTML and CSS; links point to their maintained source files. Tests, bundled libraries and export/build tools are excluded from this program total.
-
-Application source totals **1,982 physical lines**, including blank lines, shared modules, declarations, HTML, CSS and the extension manifest. Builds and inventory checks enforce a strict limit of fewer than 2,000 physical lines.
-
-### Window layout and controls
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/viewer-elements.ts](../browser-viewer/src/viewer-elements.ts) | 5 | Collects typed references to window controls. |
-| [browser-viewer/src/viewer-icons.ts](../browser-viewer/src/viewer-icons.ts) | 7 | Supplies icons used by window controls. |
-| [browser-viewer/src/file-category.ts](../browser-viewer/src/file-category.ts) | 9 | Assigns shared labels to email sources, attachments and supporting files. |
-| [browser-viewer/src/message-label.ts](../browser-viewer/src/message-label.ts) | 7 | Builds the shared subject, sender and date labels for message rows. |
-| [browser-viewer/src/pane-resizer.ts](../browser-viewer/src/pane-resizer.ts) | 23 | Lets users resize reader panels. |
-| [browser-viewer/src/password-prompt.ts](../browser-viewer/src/password-prompt.ts) | 12 | Asks for passwords when opening protected PDFs. |
-
-### Document opening and navigation
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/pdfjs-adapter.ts](../browser-viewer/src/pdfjs-adapter.ts) | 72 | Connects the reader to public PDF.js loading and document APIs. |
-| [browser-viewer/src/navigation.ts](../browser-viewer/src/navigation.ts) | 51 | Resolves document and message navigation requests and maps pages to proven message owners. |
-| [browser-viewer/src/scrolling-pages.ts](../browser-viewer/src/scrolling-pages.ts) | 247 | Manages page rendering and scrolling through the active PDF. |
-| [browser-viewer/src/structure-tree.ts](../browser-viewer/src/structure-tree.ts) | 12 | Checks structure-tree size and cycles before accessible DOM presentation. |
-
-### Email and archive interpretation
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/domain/inspection.d.ts](../browser-viewer/src/domain/inspection.d.ts) | 281 | Defines the inspection data contract. |
-| [browser-viewer/src/domain/observations.ts](../browser-viewer/src/domain/observations.ts) | 13 | Defines observed PDF facts used by interpretation. |
-| [browser-viewer/src/domain/interpret.ts](../browser-viewer/src/domain/interpret.ts) | 185 | Interprets PDF observations as EA-PDF messages and relationships. |
-| [browser-viewer/src/domain/xmp.ts](../browser-viewer/src/domain/xmp.ts) | 140 | Reads XMP metadata into interpretation values. |
-| [browser-viewer/src/domain/hashes.ts](../browser-viewer/src/domain/hashes.ts) | 54 | Provides hashes used to identify interpreted content. |
-| [browser-viewer/src/collection-data.ts](../browser-viewer/src/collection-data.ts) | 6 | Reads collection members and folder information. |
-| [browser-viewer/src/attachment-types.ts](../browser-viewer/src/attachment-types.ts) | 5 | Defines attachment data and relationships. |
-| [browser-viewer/src/pdfjs-assets.d.ts](../browser-viewer/src/pdfjs-assets.d.ts) | 30 | Declares the PDF.js asset API used by the reader. |
-| [browser-viewer/src/pdfjs-document-parts.d.ts](../browser-viewer/src/pdfjs-document-parts.d.ts) | 38 | Declares the document-part API added to PDF.js. |
-
-### Exports and attachment handling
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/attachment-viewer.ts](../browser-viewer/src/attachment-viewer.ts) | 176 | Opens supported attachments in a dedicated viewing window. |
-| [browser-viewer/src/downloads.ts](../browser-viewer/src/downloads.ts) | 18 | Coordinates browser downloads. |
-
-### Export security validation and reporting
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/security-types.ts](../browser-viewer/src/security-types.ts) | 7 | Defines security facts, individual checks and report states. |
-
-### Browser extension integration
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/src/extension/manifest.json](../browser-viewer/src/extension/manifest.json) | 24 | Declares extension entry points, permissions and packaged resources. |
-
-### Feature adapters
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/lite/overrides/viewer-profile.ts](../browser-viewer/lite/overrides/viewer-profile.ts) | 4 | Selects Lite capabilities and resource limits. |
-
-### Minimal reading controls and session
-
-| Source file | Nonblank | Function |
-| --- | ---: | --- |
-| [browser-viewer/even-more-lite/overrides/viewer.ts](../browser-viewer/even-more-lite/overrides/viewer.ts) | 209 | Coordinates reading, pane controls, asset downloads and attachment links. |
-| [browser-viewer/even-more-lite/overrides/viewer.html](../browser-viewer/even-more-lite/overrides/viewer.html) | 33 | Defines three reading panes without search, filtering or metadata exports. |
-| [browser-viewer/even-more-lite/overrides/viewer.css](../browser-viewer/even-more-lite/overrides/viewer.css) | 47 | Styles adjustable reading panes, embedded assets, text selection and links. |
-| [browser-viewer/even-more-lite/overrides/browser-session.ts](../browser-viewer/even-more-lite/overrides/browser-session.ts) | 75 | Opens bounded PDFs, extracts assets and keeps the active ancestor chain. |
-| [browser-viewer/even-more-lite/overrides/asset-panel.ts](../browser-viewer/even-more-lite/overrides/asset-panel.ts) | 73 | Lists files with shared view/download controls, owning subjects and attachment-page actions. |
-| [browser-viewer/even-more-lite/overrides/embedded-navigation.ts](../browser-viewer/even-more-lite/overrides/embedded-navigation.ts) | 40 | Follows embedded PDF links and resolves non-PDF targets for downloading. |
-| [browser-viewer/even-more-lite/overrides/page-text.ts](../browser-viewer/even-more-lite/overrides/page-text.ts) | 30 | Displays selectable text and accessible structure without search highlighting. |
-| [browser-viewer/even-more-lite/overrides/extension/background.ts](../browser-viewer/even-more-lite/overrides/extension/background.ts) | 2 | Opens the local reader when its extension icon is clicked. |
-
-
 ## Viewer local build and install tools
 
 ### Versioned builds and permanent unpacked installs
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [browser-viewer/scripts/build-local.mjs](../browser-viewer/scripts/build-local.mjs) | 21 | Advances the viewer minor version and rebuilds all locally installable editions. |
+| [browser-viewer/scripts/build-local.mjs](../browser-viewer/scripts/build-local.mjs) | 20 | Advances the viewer minor version and rebuilds the locally installable Full browser packages. |
 | [browser-viewer/scripts/local-install.mjs](../browser-viewer/scripts/local-install.mjs) | 55 | Verifies build bytes and updates permanent unpacked reader directories in place. |
-| [browser-viewer/scripts/local-reload-smoke.mjs](../browser-viewer/scripts/local-reload-smoke.mjs) | 46 | Checks an actual extension reload across two versions at one fixed install path. |
+| [browser-viewer/scripts/local-reload-smoke.mjs](../browser-viewer/scripts/local-reload-smoke.mjs) | 52 | Checks an actual extension reload across two versions at one fixed install path. |
 | [browser-viewer/scripts/extension-version.mjs](../browser-viewer/scripts/extension-version.mjs) | 15 | Maps package versions to browser versions and advances minor versions. |
 
 
@@ -785,6 +549,7 @@ Application source totals **1,982 physical lines**, including blank lines, share
 | [browser-viewer/vendor/pdfjs-patches/0010-rtl-ligatures.patch](../browser-viewer/vendor/pdfjs-patches/0010-rtl-ligatures.patch) | 164 | Backports corrected extraction order for right-to-left ligatures. |
 | [browser-viewer/vendor/pdfjs-patches/0011-page-only-extraction.patch](../browser-viewer/vendor/pdfjs-patches/0011-page-only-extraction.patch) | 107 | Adds isolated page-only extraction for scoped message downloads. |
 | [browser-viewer/vendor/pdfjs-patches/0012-security-facts.patch](../browser-viewer/vendor/pdfjs-patches/0012-security-facts.patch) | 70 | Exposes bounded signature dictionaries and decoded DSS certificates/CRLs/OCSP without applying application trust policy. |
+| [browser-viewer/vendor/pdfjs-patches/0013-creator-archival.patch](../browser-viewer/vendor/pdfjs-patches/0013-creator-archival.patch) | 266 | Exposes prefix-bounded historical creator revisions and protected-object graphs; rejects ambiguous structures and visible timestamp changes. |
 
 ### HTML renderer patches for PDF output
 
@@ -797,7 +562,7 @@ Application source totals **1,982 physical lines**, including blank lines, share
 
 ## Keeping this inventory current
 
-With Node.js and the viewer dependencies installed (`npm --prefix browser-viewer ci --ignore-scripts`), the generator makes temporary Lite and Even More Lite exports to measure its selected files and removes it after counting. Before every GitHub push, run `python3 scripts/build_component_inventory.py` and include the refreshed file in the changes being pushed. When responsibilities change, update the descriptions and group assignments in that script. New Java, viewer or Python package source files must be described before regeneration succeeds.
+The generator measures maintained source files directly. Before every GitHub push, run `python3 scripts/build_component_inventory.py` and include the refreshed file in the changes being pushed. When responsibilities change, update the descriptions and group assignments in that script. New Java, viewer or Python package source files must be described before regeneration succeeds.
 
 Run `python3 scripts/build_component_inventory.py --check` to verify coverage and reject stale counts. GitHub conversion-quality checks run this command on pull requests and pushes to main. The output is deterministic: unchanged source and descriptions produce the same document.
 

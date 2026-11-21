@@ -1,0 +1,268 @@
+--- a/src/core/document_assets.js
++++ b/src/core/document_assets.js
+@@ -1,3 +1,4 @@
++import { inspectCreatorArchival } from "./eapdf_archival.js";
+ import { folderThumbnail } from "./collection_navigation.js";
+ import { yieldInspection } from "./inspection_yield.js";
+ /* Copyright 2026 PDF.js contributors
+@@ -186,6 +187,8 @@
+   }
+ 
+   async inspect(options = {}) {
++    if (options.securityOnly === true && options.creatorArchival !== undefined)
++      return inspectCreatorArchival(this.catalog.xref, options.creatorArchival, (xref, root) => new DocumentAssets({xref}, root).inspectSecurity());
+     if (options.securityOnly === true) return this.inspectSecurity();
+     if (options.presentationOnly === true) {
+       this.collectionThumbnails = new Map();
+--- a/src/core/xref.js
++++ b/src/core/xref.js
+@@ -207,6 +207,8 @@
+     }
+     this.#persistentRefsCache = null;
+   }
++
++  get archivalStructureValid() { return !this.#parsedWithRecovery && this.#xrefSectionsComplete; }
+ 
+   setStartXRef(startXRef) {
+     // Store the starting positions of xref tables as we process them
+--- a/src/core/parser.js
++++ b/src/core/parser.js
+@@ -153,6 +153,7 @@
+             if (this.buf1 === EOF) {
+               break;
+             }
++            if (dict.has(key)) dict.eapdfHasDuplicateKeys = true;
+             dict.set(key, this.getObj(cipherTransform));
+           }
+           if (this.buf1 === EOF) {
+--- /dev/null
++++ b/src/core/eapdf_archival.js
+@@ -0,0 +1,228 @@
++/* Copyright 2026 EA-PDF contributors
++ * Licensed under the Apache License, Version 2.0.
++ * http://www.apache.org/licenses/LICENSE-2.0
++ */
++import { BaseStream } from './base_stream.js';
++import { Dict, Name, Ref } from './primitives.js';
++import { MissingDataException } from './core_utils.js';
++import { Stream } from './stream.js';
++import { XRef } from './xref.js';
++import { yieldInspection } from './inspection_yield.js';
++
++class InvalidArchive extends Error {}
++class UnsupportedArchive extends Error {}
++const invalid = (condition, message) => { if (!condition) throw new InvalidArchive(message); };
++const supported = (condition, message) => { if (!condition) throw new UnsupportedArchive(message); };
++const refId = value => value instanceof Ref ? `${value.num}:${value.gen}` : '';
++const name = value => value instanceof Name ? value.name : '';
++const hex = bytes => Array.from(bytes, byte => byte.toString(16).padStart(2, '0')).join('');
++const hash = async bytes => hex(new Uint8Array(await crypto.subtle.digest('SHA-256', bytes)));
++const stringBytes = value => Uint8Array.from(value, character => character.charCodeAt(0));
++
++// Keep every fetch inside the revision, including substreams made by Parser.
++class RevisionStream extends Stream {
++  constructor(source, start, end, dict = null) {
++    super(new Uint8Array()); this.source = source; this.start = this.pos = start; this.end = end; this.dict = dict;
++    this.cached = new Uint8Array(); this.cachedStart = -1;
++  }
++  getByte() {
++    if (this.pos >= this.end) return -1;
++    if (this.pos < this.cachedStart || this.pos >= this.cachedStart + this.cached.length) {
++      this.cachedStart = this.pos;
++      this.cached = this.source.getByteRange(this.pos, Math.min(this.end, this.pos + 4096));
++    }
++    return this.cached[this.pos++ - this.cachedStart];
++  }
++  getBytes(length) {
++    const end = length ? Math.min(this.pos + length, this.end) : this.end;
++    const bytes = this.source.getByteRange(this.pos, end); this.pos = end; return bytes;
++  }
++  getByteRange(begin, end) { return this.source.getByteRange(Math.max(this.start, begin), Math.min(this.end, end)); }
++  makeSubStream(start, length, dict = null) {
++    const end = length === undefined ? this.end : start + length;
++    invalid(Number.isSafeInteger(start) && start >= this.start && end >= start && end <= this.end, 'A PDF object reaches outside its saved revision.');
++    return new RevisionStream(this.source, start, end, dict);
++  }
++  clone() { return new RevisionStream(this.source, this.start, this.end, this.dict); }
++}
++class RevisionXRef extends XRef {
++  fetch(ref, suppressEncryption = false) {
++    const entry = this.getEntry(ref.num);
++    invalid(!!entry, 'A saved revision contains an unresolved object reference.');
++    const physical = entry.uncompressed ? entry : this.getEntry(entry.offset);
++    invalid(physical?.uncompressed && Number.isSafeInteger(physical.offset) && physical.offset >= 0 && physical.offset < this.stream.end, 'An object reference points beyond its saved revision.');
++    return super.fetch(ref, suppressEncryption);
++  }
++}
++
++/** Facts only: trust and cryptographic decisions stay in the security worker. */
++export async function inspectCreatorArchival(current, signatureEnds, inspectSecurity) {
++  const started = Date.now(), source = current.stream, manager = current.pdfManager;
++  let visits = 0, payloadBytes = 0;
++  const step = async () => {
++    supported(++visits <= 1000000 && Date.now() - started < 45000, 'Creator archive inspection exceeded its work allowance.');
++    if (visits % 128 === 0) await yieldInspection();
++  };
++  const read = async operation => {
++    while (true) {
++      await step();
++      try { return await operation(); }
++      catch (error) {
++        if (!(error instanceof MissingDataException)) throw error;
++        invalid(error.begin >= 0 && error.end <= source.end, 'Revision data is outside this file.');
++        await manager.requestRange(error.begin, error.end);
++      }
++    }
++  };
++  const fetch = async (xref, value) => value instanceof Ref ? read(() => xref.fetch(value)) : value;
++  const bytes = async (stream, limit) => {
++    invalid(stream instanceof BaseStream, 'Expected an embedded archival stream.');
++    const result = await read(() => { stream.reset(); return stream.getBytes(limit + 1); });
++    supported(result.length <= limit, 'Embedded archival stream exceeds its byte allowance.');
++    return result.slice();
++  };
++  const footer = async end => {
++    const tail = await read(() => source.getByteRange(Math.max(0, end - 4096), end));
++    const match = /startxref\s+(\d+)\s+%%EOF[\t\r\n ]*$/.exec(String.fromCharCode(...tail));
++    invalid(!!match, 'Saved revision has no unambiguous PDF footer.');
++    const offset = Number(match[1]); invalid(Number.isSafeInteger(offset) && offset >= 0 && offset < end, 'Invalid saved cross-reference offset.');
++    return offset;
++  };
++  const revisionEnd = async (offset, ceiling) => {
++    const length = Math.min(262144, ceiling - offset);
++    supported(length > 0, 'Unsupported archival cross-reference ordering.');
++    const data = await read(() => source.getByteRange(offset, offset + length));
++    const text = new TextDecoder('latin1').decode(data), pattern = /startxref\s+(\d+)\s+%%EOF(?:\r\n|\r|\n)?/g;
++    let match, found;
++    while ((match = pattern.exec(text))) if (Number(match[1]) === offset) {
++      invalid(found === undefined, 'Ambiguous saved revision footer.'); found = offset + match.index + match[0].length;
++    }
++    supported(found !== undefined, 'Archival cross-reference section is too large or unsupported.'); return found;
++  };
++  try {
++    supported(source.start === 0 && Array.isArray(signatureEnds) && signatureEnds.length >= 2 && signatureEnds.length <= 64, 'Unsupported creator archive signature layout.');
++    invalid(signatureEnds.every((end, index) => Number.isSafeInteger(end) && end > (signatureEnds[index - 1] ?? 0) && end <= source.end) && signatureEnds.at(-1) === source.end, 'Invalid signed revision boundaries.');
++    const firstOffset = await footer(signatureEnds[0]), signedOffsets = new Map();
++    for (const end of signatureEnds) signedOffsets.set(await footer(end), end);
++    const reverse = [], seen = new Set(); let end = source.end, offset = await footer(end);
++    while (true) {
++      await step(); invalid(!seen.has(offset), 'Cyclic revision history.'); seen.add(offset);
++      supported(reverse.length < 128, 'Too many saved archival revisions.');
++      const xref = new RevisionXRef(new RevisionStream(source, 0, end), manager); xref.setStartXRef(offset); await read(() => xref.parse(false));
++      invalid(xref.archivalStructureValid === true && !xref.encrypt && !xref.trailer.eapdfHasDuplicateKeys, 'Saved cross-reference sections are incomplete, repaired or encrypted.');
++      const root = await read(() => xref.trailer.get('Root')), previous = xref.trailer.getRaw('Prev');
++      invalid(root instanceof Dict && !root.eapdfHasDuplicateKeys, 'Missing or ambiguous saved document catalog.');
++      const security = await read(() => inspectSecurity(xref, root));
++      payloadBytes += 32768 + security.signatures.reduce((total, signature) => total + signature.contents.length, 0) + ['certificates', 'crls', 'ocsps'].reduce((total, kind) => total + security.evidence[kind].reduce((n, bytes) => n + bytes.length, 0), 0);
++      supported(payloadBytes <= 33554432, 'Saved security facts exceed their total byte allowance.');
++      invalid(!xref.trailer.eapdfHasDuplicateKeys, 'Ambiguous saved trailer dictionary.');
++      reverse.push({xref, root, end, offset, previous, security});
++      if (offset === firstOffset) break;
++      invalid(Number.isSafeInteger(previous) && previous >= firstOffset && previous < offset, 'Saved revisions do not lead back to the export signature.');
++      end = signedOffsets.get(previous) ?? await revisionEnd(previous, offset); offset = previous;
++    }
++    const revisions = [];
++    for (const revision of reverse.reverse()) {
++      const {xref, root, security} = revision; await step();
++      const form = await read(() => root.get('AcroForm'));
++      supported(form instanceof Dict && !form.eapdfHasDuplicateKeys && [...form.getKeys()].every(key => ['Fields', 'SigFlags'].includes(key)) && form.get('SigFlags') === 3, 'Unsupported creator signature form.');
++      const fields = await read(() => form.get('Fields'));
++      invalid(Array.isArray(fields) && fields.length === security.signatures.length && fields.length <= 64, 'Signature field inventory is inconsistent.');
++      const timestampFields = new Set(), fieldNames = [], signatureRefs = [], orderedSignatures = [], widgetUses = new Map();
++      let firstPage;
++      for (const [index, raw] of fields.entries()) {
++        invalid(raw instanceof Ref, 'Signature field is not an indirect object.');
++        const field = await fetch(xref, raw); invalid(field instanceof Dict && !field.eapdfHasDuplicateKeys, 'Invalid signature field.');
++        const value = await read(() => field.get('V')); invalid(value instanceof Dict && !value.eapdfHasDuplicateKeys && field.getRaw('V') instanceof Ref, 'Invalid signature dictionary.');
++        const type=name(value.get('Type')), subFilter=name(value.get('SubFilter')), contents=value.get('Contents'), range=value.getArray('ByteRange');
++        invalid(type===(index===0?'Sig':'DocTimeStamp') && subFilter===(index===0?'ETSI.CAdES.detached':'ETSI.RFC3161') && name(value.get('Filter'))==='Adobe.PPKLite', 'Unexpected creator signature type.');
++        supported([...value.getKeys()].every(key=>(index===0?['Type','Filter','SubFilter','Contents','ByteRange','M','Reason','Name','Location','ContactInfo']:['Type','Filter','SubFilter','Contents','ByteRange']).includes(key)), 'Unsupported signature dictionary setting.');
++        invalid(typeof contents==='string' && contents.length<=1048576 && Array.isArray(range) && range.length===4 && range.every(Number.isSafeInteger), 'Invalid signature payload.');
++        orderedSignatures.push({type,subFilter,contents:stringBytes(contents),byteRange:range});
++        const signatureRef=refId(field.getRaw('V'));invalid(!signatureRefs.includes(signatureRef),'Duplicate signature dictionary.');signatureRefs.push(signatureRef);fieldNames.push(field.get('TU')??'');
++        if(index>0)timestampFields.add(refId(raw));
++        supported(field instanceof Dict && [...field.getKeys()].every(key => ['Type', 'Subtype', 'FT', 'Rect', 'P', 'AP', 'F', 'T', 'TU', 'V'].includes(key)), 'Unsupported signature field settings.');
++        invalid(name(field.get('Type')) === 'Annot' && name(field.get('Subtype')) === 'Widget' && name(field.get('FT')) === 'Sig' && field.get('F') === 132 && field.get('T') === `Signature${index + 1}`, 'Unexpected creator signature field.');
++        const rectangle = field.getArray('Rect'); invalid(Array.isArray(rectangle) && rectangle.length === 4 && rectangle.every(v => v === 0), 'A timestamp field has a visible rectangle.');
++        const page = refId(field.getRaw('P')); invalid(!!page && (!firstPage || firstPage === page), 'Signature widget is attached to an unexpected page.'); firstPage ??= page;
++        widgetUses.set(refId(raw),0);
++        const appearance = await read(() => field.get('AP'));
++        supported(appearance instanceof Dict && !appearance.eapdfHasDuplicateKeys && [...appearance.getKeys()].length === 1 && appearance.has('N'), 'Unsupported signature appearance.');
++        const normal = await read(() => appearance.get('N')); invalid((await bytes(normal, 0)).length === 0 && !normal.dict.eapdfHasDuplicateKeys && name(normal.dict.get('Type')) === 'XObject' && name(normal.dict.get('Subtype')) === 'Form', 'Signature appearance changes visible content.');
++        const box = normal.dict.getArray('BBox'); invalid(Array.isArray(box) && box.length === 4 && box.every(v => v === 0), 'Signature appearance has visible bounds.');
++        supported([...normal.dict.getKeys()].every(key => ['Type', 'Subtype', 'BBox', 'Length'].includes(key)), 'Unsupported signature appearance settings.');
++        invalid(index!==0||field.get('TU')==='Archive export signature', 'Unsupported export signature field label.');
++      }
++      const associated = await read(() => root.get('AF'));
++      supported(Array.isArray(associated) && associated.length <= 16384, 'Unsupported associated-file inventory.');
++      let manifest, policy, manifestStreamRef;
++      for (const raw of associated) {
++        const spec = await fetch(xref, raw); invalid(spec instanceof Dict && !spec.eapdfHasDuplicateKeys, 'Invalid associated file.');
++        const filename = spec.get('UF') ?? spec.get('F');
++        if (!['eapdf-content-credentials.c2pa', 'eapdf-c2pa-policy.json'].includes(filename)) continue;
++        invalid(raw instanceof Ref && name(spec.get('Type')) === 'Filespec' && spec.get('F') === filename, 'Invalid creator security file.');
++        const ef = await read(() => spec.get('EF'));
++        invalid(ef instanceof Dict && !ef.eapdfHasDuplicateKeys, 'Ambiguous security file stream dictionary.');
++        const stream = ef instanceof Dict ? await read(() => ef.get('F')) : null;
++        if (filename.endsWith('.c2pa')) { invalid(!manifest && name(spec.get('AFRelationship')) === 'C2PA_Manifest', 'Ambiguous creator credentials.'); manifest = await bytes(stream, 32768); manifestStreamRef = refId(ef.getRaw('F')); invalid(!!manifestStreamRef && refId(ef.getRaw('UF')) === manifestStreamRef, 'Creator credential stream aliases differ.'); }
++        else { invalid(!policy && name(spec.get('AFRelationship')) === 'Supplement', 'Ambiguous creator policy.'); policy = await bytes(stream, 1024); }
++      }
++      invalid(manifest?.length === 32768 && !!policy, 'Creator security files are missing or incomplete.');
++      const dss = await read(() => root.get('DSS'));
++      supported(dss === undefined || dss instanceof Dict && !dss.eapdfHasDuplicateKeys && [...dss.getKeys()].every(key => ['Type', 'Certs', 'CRLs', 'OCSPs'].includes(key)), 'Unsupported validation-evidence dictionary.');
++      const records = new Map(), contexts = new Map(), queue = []; let encodedBytes = 0;
++      const encode = async (value, depth = 0, context = '') => {
++        await step(); supported(depth <= 64, 'Protected document nesting limit.');
++        if (value instanceof Ref) {
++          const key = refId(value); if (!records.has(key)) { records.set(key, null); queue.push(value); supported(records.size <= 200000, 'Protected document object limit.'); }
++          if (context) contexts.set(key, context); return ['ref', key];
++        }
++        if (value instanceof BaseStream) {
++          supported(context !== 'stream-dictionary', 'Unsupported nested stream.');
++          const id = value.dict.objId, match = /^(\d+)R(\d+)?$/.exec(id ?? '');
++          // Streams must stay at their signed physical offsets; their bytes are
++          // protected by the verified prefix signature, without decoding images.
++          supported(!!match, 'Protected stream lacks an indirect object identity.');
++          const entry = xref.getEntry(Number(match[1])); invalid(entry?.uncompressed, 'Invalid protected stream location.');
++          const descriptor = await encode(value.dict, depth + 1, 'stream-dictionary');
++          return refId(Ref.get(Number(match[1]), Number(match[2] ?? 0))) === manifestStreamRef ? ['authenticated-creator-manifest', descriptor] : ['stream-at', entry.offset, descriptor];
++        }
++        if (value instanceof Dict) {
++          invalid(!value.eapdfHasDuplicateKeys, 'Duplicate dictionary keys make the saved revision ambiguous.');
++          const result = [];
++          for (const key of [...value.getKeys()].sort()) {
++            if (context === 'root' && key === 'DSS') continue;
++            let child = value.getRaw(key);
++            if (context === 'form' && key === 'Fields') child = fields.filter(raw => !timestampFields.has(refId(raw)));
++            if (name(value.get('Type')) === 'Page' && key === 'Annots') {
++              const annotations = await fetch(xref, child); invalid(Array.isArray(annotations), 'Invalid page annotations.');
++              for (const raw of annotations) if (widgetUses.has(refId(raw))) widgetUses.set(refId(raw), widgetUses.get(refId(raw)) + 1);
++              child = annotations.filter(raw => !timestampFields.has(refId(raw)));
++            }
++            result.push([key, await encode(child, depth + 1, context === 'root' && key === 'AcroForm' ? 'form' : '')]);
++          }
++          return ['dict', result];
++        }
++        if (Array.isArray(value)) { const array = []; for (const child of value) array.push(await encode(child, depth + 1)); return ['array', array]; }
++        if (value instanceof Name) return ['name', value.name];
++        if (typeof value === 'string') { supported(value.length <= 1048576, 'Protected string byte limit.'); return ['string', hex(stringBytes(value))]; }
++        if (value === null || typeof value === 'boolean' || typeof value === 'number' && Number.isFinite(value)) return value;
++        throw new UnsupportedArchive('Unsupported protected PDF value.');
++      };
++      const rootRef = xref.trailer.getRaw('Root'); invalid(rootRef instanceof Ref, 'Catalog must be an indirect object.');
++      const heads = [await encode(rootRef, 0, 'root')];
++      if (xref.trailer.has('Info')) heads.push(await encode(xref.trailer.getRaw('Info')));
++      for (let index = 0; index < queue.length; index++) {
++        const ref = queue[index], value = await fetch(xref, ref), canonical = await encode(value, 0, contexts.get(refId(ref)) ?? '');
++        const text = JSON.stringify(canonical); encodedBytes += text.length; supported(encodedBytes <= 33554432, 'Protected document description byte limit.'); records.set(refId(ref), canonical);
++      }
++      invalid([...widgetUses.values()].every(count => count === 1), 'A signature widget is missing from its page or appears more than once.');
++      const canonical = JSON.stringify([heads, [...records].sort((a,b) => a[0].localeCompare(b[0], 'en'))]);
++      revisions.push({end:revision.end,startXRef:revision.offset,previousXRef:revision.previous,protectedSha256:await hash(new TextEncoder().encode(canonical)),signatures:orderedSignatures,signatureRefs,fieldNames,manifest,policy,evidence:security.evidence});
++    }
++    return {files:[],schemaVersion:1,status:'COMPLETE',revisions};
++  } catch (error) {
++    if (error instanceof MissingDataException) throw error;
++    return {files:[],schemaVersion:1,status:error instanceof InvalidArchive?'INVALID':'UNAVAILABLE',detail:error.message || 'Creator archive inspection could not complete.'};
++  }
++}

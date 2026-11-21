@@ -13,6 +13,9 @@ from unittest.mock import patch
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
 import regenerate_out as runner
 
+VERIFIED_SECURITY={'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                   'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}
+
 class RegenerationTests(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory(prefix='eapdf-regeneration-test-', dir='/tmp')
@@ -27,6 +30,158 @@ class RegenerationTests(unittest.TestCase):
         path=self.root/'in'/name
         path.write_text('source '+name)
         return path
+
+    def local_security_config(self):
+        folder=self.root/'config';folder.mkdir(exist_ok=True)
+        for name in ('signer.p12','signer.passphrase','root.pem','root.crl'):
+            (folder/name).write_text('test-only '+name)
+        (folder/'policy.json').write_text(json.dumps({'trustCertificates':['root.pem'],'crls':['root.crl']}))
+        config={'signing':{'enabled':False,'c2pa':False,'protection':'CMS_AND_PDF',
+                          'pkcs12Path':'signer.p12','passphraseFile':'signer.passphrase',
+                          'policyPath':'policy.json','tsaUrl':'http://timestamp.example.invalid'}}
+        path=folder/'signing-digicert.local.json';path.write_text(json.dumps(config))
+        return path
+
+    def test_local_security_paths_and_full_protection_are_required(self):
+        self.local_security_config()
+        with patch.dict(runner.os.environ,{},clear=True): config,policy=runner.regeneration_config()
+        signing=config['signing']
+        self.assertTrue(signing['enabled']);self.assertTrue(signing['c2pa'])
+        self.assertEqual('PADES_B_LTA',signing['protection'])
+        self.assertEqual(str(self.root/'config/signer.p12'),signing['pkcs12Path'])
+        self.assertEqual(str(self.root/'config/signer.passphrase'),signing['passphraseFile'])
+        self.assertEqual([str(self.root/'config/root.pem')],policy['trustCertificates'])
+        self.assertEqual([str(self.root/'config/root.crl')],policy['crls'])
+        self.assertEqual('http://timestamp.example.invalid',signing['tsaUrl'])
+
+    def test_custom_config_inherits_locations_and_cannot_disable_security(self):
+        self.local_security_config()
+        folder=self.root/'custom';folder.mkdir();(folder/'custom.p12').write_text('custom credential')
+        path=folder/'settings.json';path.write_text(json.dumps({'creator':'Custom creator','signing':{
+            'enabled':False,'c2pa':False,'protection':'CMS_AND_PDF','pkcs12Path':'custom.p12','tsaUrl':''}}))
+        with patch.dict(runner.os.environ,{'EAPDF_CONFIG':str(path)},clear=True): config,policy=runner.regeneration_config()
+        self.assertEqual('Custom creator',config['creator'])
+        self.assertEqual(str(folder/'custom.p12'),config['signing']['pkcs12Path'])
+        self.assertEqual(str(self.root/'config/signer.passphrase'),config['signing']['passphraseFile'])
+        self.assertTrue(config['signing']['enabled']);self.assertTrue(config['signing']['c2pa'])
+        self.assertEqual('PADES_B_LTA',config['signing']['protection'])
+        self.assertEqual('http://timestamp.digicert.com',config['signing']['tsaUrl'])
+
+    def test_missing_security_files_stop_generation_before_clearing_output(self):
+        self.local_security_config();(self.root/'config/signer.p12').unlink()
+        self.source('one.eml');(self.root/'VERSION').write_text('2.0.0-beta.1')
+        (self.root/'out').mkdir();existing=self.root/'out/keep.pdf';existing.write_bytes(b'preserve')
+        with patch.dict(runner.os.environ,{},clear=True),patch.object(sys,'argv',['regenerate','sample','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),patch.object(runner,'clear_output') as clear,redirect_stdout(io.StringIO()),patch.object(sys,'stderr',io.StringIO()):
+            with self.assertRaises(SystemExit):runner.main()
+        clear.assert_not_called();self.assertEqual(b'preserve',existing.read_bytes())
+
+    def test_environment_password_overrides_missing_passphrase_file(self):
+        self.local_security_config();(self.root/'config/signer.passphrase').unlink()
+        with patch.dict(runner.os.environ,{'EAPDF_SIGNING_PASSWORD':''},clear=True):
+            config,_=runner.regeneration_config()
+        self.assertNotIn('password',json.dumps(config).lower())
+        with patch.dict(runner.os.environ,{},clear=True):
+            with self.assertRaisesRegex(ValueError,'passphraseFile'):runner.regeneration_config()
+
+    def test_missing_revocation_evidence_is_rejected(self):
+        self.local_security_config();(self.root/'config/root.crl').unlink()
+        with patch.dict(runner.os.environ,{},clear=True):
+            with self.assertRaisesRegex(ValueError,'crls'):runner.regeneration_config()
+
+    def test_failed_signing_preflight_preserves_existing_output(self):
+        self.local_security_config();self.source('one.eml');(self.root/'VERSION').write_text('2.0.0-beta.1')
+        dist=self.root/'dist';dist.mkdir()
+        (dist/'emailtopdfa-2.0.0-beta.1.jar').write_bytes(b'creator')
+        (dist/'eapdf-validator-2.0.0-beta.1.jar').write_bytes(b'validator')
+        (self.root/'out').mkdir();existing=self.root/'out/keep.pdf';existing.write_bytes(b'preserve')
+        def execute(command,log,timeout,env):
+            log.write_text('rejected' if command[-1]=='preflight' else 'compiled')
+            return {'exit_code':1 if command[-1]=='preflight' else 0,'timeout':False,'seconds':0.1}
+        stderr = io.StringIO()
+        with patch.dict(runner.os.environ,{},clear=True),patch.object(sys,'argv',['regenerate','sample','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),patch.object(runner.shutil,'which',return_value='/usr/bin/java'),patch.object(runner,'execute',execute),patch.object(runner,'clear_output') as clear,redirect_stdout(io.StringIO()),patch.object(sys,'stderr',stderr):
+            with self.assertRaises(SystemExit):runner.main()
+        clear.assert_not_called();self.assertEqual(b'preserve',existing.read_bytes())
+        self.assertIn('rejected', stderr.getvalue())
+        self.assertFalse((self.root/'output').exists())
+        self.assertEqual([], list((self.root/'.generator_web_tmp').iterdir()))
+
+    def test_completed_regeneration_removes_temporary_evidence(self):
+        self.local_security_config()
+        self.source('one.eml')
+        (self.root/'VERSION').write_text('test')
+        dist = self.root/'dist'
+        dist.mkdir()
+        (dist/'emailtopdfa-test.jar').write_bytes(b'creator')
+        (dist/'eapdf-validator-test.jar').write_bytes(b'validator')
+        (self.root/'output').mkdir()
+
+        def run_task(task, args, evidence, workspace, config, hashes, heap):
+            self.assertEqual(workspace.parent, evidence.parent)
+            self.assertEqual(self.root/'.generator_web_tmp', evidence.parent.parent)
+            self.assertTrue((evidence/'runtime-jars.json').is_file())
+            return {'id': task['id'], 'status': 'PASS'}
+
+        with (
+            patch.dict(runner.os.environ, {}, clear=True),
+            patch.object(sys, 'argv', ['regenerate', 'sample', '--workers', '1']),
+            patch.object(runner, 'available_memory', return_value=8*1024**3),
+            patch.object(runner.shutil, 'which', return_value='/usr/bin/java'),
+            patch.object(runner, 'execute', return_value={'exit_code': 0}),
+            patch.object(runner, 'run_task', side_effect=run_task) as tasks,
+            redirect_stdout(io.StringIO()),
+        ):
+            self.assertEqual(0, runner.main())
+        self.assertGreater(tasks.call_count, 0)
+        self.assertEqual([], list((self.root/'output').iterdir()))
+        self.assertEqual([], list((self.root/'.generator_web_tmp').iterdir()))
+
+    def test_failed_security_check_publishes_no_pdfs_from_job(self):
+        source=self.source('source.eml');runner.clear_output(self.root)
+        evidence=self.root/'evidence';evidence.mkdir();workspace=self.root/'workspace';workspace.mkdir()
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        calls=[]
+        def execute(command,log,timeout,env):
+            calls.append(command);log.write_text('test')
+            if '-jar' in command:
+                out=Path(command[command.index('--out')+1])
+                for name in ('first.pdf','second.pdf'): (out/name).write_bytes(b'%PDF-test')
+                code=0
+            else:
+                # The second document fails after the first has verified.
+                code=1 if Path(command[-2]).name=='second.pdf' else 0
+                Path(command[-1]).write_text('{}')
+            return {'exit_code':code,'timeout':False,'seconds':0.1}
+        _,tasks=runner.tasks_for([source],'everything')
+        with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
+            result=runner.run_task(tasks[0],args,evidence,workspace,config,{str(source):runner.digest(source)},2*1024**3)
+        self.assertEqual('FAIL',result['status']);self.assertEqual([],result['documents'])
+        self.assertIn('C2PA/PAdES B-LTA',result['reason']);self.assertEqual(3,len(calls))
+        self.assertFalse(list((self.root/'out').rglob('*.pdf')))
+
+    def test_java_security_failure_cannot_be_hidden_by_conformance_pass(self):
+        source=self.source('source.eml');runner.clear_output(self.root)
+        evidence=self.root/'evidence';evidence.mkdir();workspace=self.root/'workspace';workspace.mkdir()
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        def execute(command,log,timeout,env):
+            log.write_text('test')
+            if '-jar' in command:
+                (Path(command[command.index('--out')+1])/'one.pdf').write_bytes(b'%PDF-test')
+                code=0
+            elif 'eapdf.RegenerationSecurity' in command:
+                Path(command[-1]).write_text(json.dumps(VERIFIED_SECURITY));code=0
+            else:
+                Path(command[-1]).write_text(json.dumps({'summary':{'status':'PASS'},
+                    'security':{'status':'FAIL','requestedProtectionMet':False}}));code=2
+            return {'exit_code':code,'timeout':False,'seconds':0.1}
+        _,tasks=runner.tasks_for([source],'everything')
+        with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
+            result=runner.run_task(tasks[0],args,evidence,workspace,config,{str(source):runner.digest(source)},2*1024**3)
+        self.assertEqual('FAIL',result['status'])
+        self.assertEqual('PASS',result['documents'][0]['validation'])
+        self.assertEqual('FAIL',result['documents'][0]['security']['status'])
+        self.assertIn('did not confirm',result['reason'])
     def test_every_source_covered_by_every_applicable_profile(self):
         paths=[self.source(f'{i}.{kind}') for kind in runner.KINDS for i in range(3)]
         selected,tasks=runner.tasks_for(paths,'everything')
@@ -91,7 +246,7 @@ class RegenerationTests(unittest.TestCase):
         with large.open('r+b') as stream: stream.truncate(runner.MAX_PST_BYTES+1)
         (self.root/'VERSION').write_text('2.0.0-beta.1')
         (self.root/'out').mkdir();existing=self.root/'out/keep.pdf';existing.write_bytes(b'preserve')
-        with patch.object(sys,'argv',['eapdf-regenerate','everything','--dry-run','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),redirect_stdout(io.StringIO()) as output:
+        with patch.object(sys,'argv',['eapdf-regenerate-experimental','everything','--dry-run','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),redirect_stdout(io.StringIO()) as output:
             self.assertEqual(0,runner.main())
         self.assertIn('SKIP in/large.PST: PST exceeds 250 MB',output.getvalue())
         self.assertIn('1 sources, 6 profile jobs',output.getvalue())
@@ -101,17 +256,22 @@ class RegenerationTests(unittest.TestCase):
         source=self.source('mixed.eml');runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        config=self.root/'config.json';config.write_text('{}')
-        args=SimpleNamespace(jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
         statuses=iter(['FAIL','INCOMPLETE'])
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             log.write_text('ok')
             if '-jar' in command:
                 out=Path(command[command.index('--out')+1])
                 for name in ('a.pdf','b.pdf'): (out/name).write_bytes(b'%PDF-test')
                 code=0
             else:
-                Path(command[-1]).write_text(json.dumps({'summary':{'status':next(statuses)}}));code=2
+                Path(command[-1]).write_text(json.dumps({'summary':{'status':next(statuses)},'security':VERIFIED_SECURITY}));code=2
             return {'exit_code':code,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything')
         with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
@@ -123,10 +283,15 @@ class RegenerationTests(unittest.TestCase):
         source=self.source('nested.msg');runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        config=self.root/'config.json';config.write_text('{}')
-        args=SimpleNamespace(jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
         attempts=[];validated=[]
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             if '-jar' in command:
                 cfg=json.loads(Path(env['EAPDF_CONFIG']).read_text());attempts.append(cfg)
                 payload=b'%PDF-warning' if cfg.get('validationWarning') else b'%PDF-original'
@@ -134,13 +299,15 @@ class RegenerationTests(unittest.TestCase):
                 log.write_text('warning conversion; VALIDATION WARNING BANNER: displayed' if cfg.get('validationWarning') else 'initial conversion')
                 return {'exit_code':0,'timeout':False,'seconds':0.1}
             payload=Path(command[-2]).read_bytes();validated.append(payload)
-            report={'summary':{'status':'INCOMPLETE'},'marker':payload.decode()}
+            report={'summary':{'status':'INCOMPLETE'},'security':VERIFIED_SECURITY,'marker':payload.decode()}
             Path(command[-1]).write_text(json.dumps(report));log.write_text(payload.decode())
             return {'exit_code':2,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything');task=tasks[0]
         with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
             result=runner.run_task(task,args,evidence,workspace,config,{str(source):runner.digest(source)},2*1024**3)
         self.assertEqual(2,len(attempts));self.assertNotIn('validationWarning',attempts[0])
+        self.assertEqual(attempts[0]['signing'],attempts[1]['signing'])
+        self.assertEqual('PADES_B_LTA',attempts[1]['signing']['protection'])
         self.assertIn('could not be completed',attempts[1]['validationWarning'])
         self.assertEqual([b'%PDF-original',b'%PDF-warning'],validated)
         self.assertEqual('INCOMPLETE',result['status']);self.assertTrue(result['validation_warning'])
@@ -156,10 +323,15 @@ class RegenerationTests(unittest.TestCase):
         source=self.source('nested.msg');runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        config=self.root/'config.json';config.write_text('{}')
-        args=SimpleNamespace(jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
         attempts=[];validated=[]
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             if '-jar' in command:
                 cfg=json.loads(Path(env['EAPDF_CONFIG']).read_text());attempts.append(cfg)
                 payload=b'%PDF-warning' if cfg.get('validationWarning') else b'%PDF-original'
@@ -167,13 +339,15 @@ class RegenerationTests(unittest.TestCase):
                 log.write_text('warning conversion; VALIDATION WARNING BANNER: displayed' if cfg.get('validationWarning') else 'initial conversion')
                 return {'exit_code':0,'timeout':False,'seconds':0.1}
             payload=Path(command[-2]).read_bytes();validated.append(payload)
-            report={'summary':{'status':'FAIL'},'marker':payload.decode()}
+            report={'summary':{'status':'FAIL'},'security':VERIFIED_SECURITY,'marker':payload.decode()}
             Path(command[-1]).write_text(json.dumps(report));log.write_text(payload.decode())
             return {'exit_code':2,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything');task=tasks[0]
         with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
             result=runner.run_task(task,args,evidence,workspace,config,{str(source):runner.digest(source)},2*1024**3)
         self.assertEqual(2,len(attempts));self.assertNotIn('validationWarning',attempts[0])
+        self.assertEqual(attempts[0]['signing'],attempts[1]['signing'])
+        self.assertEqual('PADES_B_LTA',attempts[1]['signing']['protection'])
         self.assertIn('checks failed',attempts[1]['validationWarning'])
         self.assertEqual([b'%PDF-original',b'%PDF-warning'],validated)
         self.assertEqual('FAIL',result['status']);self.assertTrue(result['validation_warning'])
@@ -189,10 +363,15 @@ class RegenerationTests(unittest.TestCase):
         source=self.source('nested.msg');runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        config=self.root/'config.json';config.write_text('{}')
-        args=SimpleNamespace(jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
         warning=False
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             nonlocal warning
             log.write_text('diagnostic')
             if '-jar' in command:
@@ -202,7 +381,7 @@ class RegenerationTests(unittest.TestCase):
             elif warning:
                 return {'exit_code':3,'timeout':False,'seconds':0.1}
             else:
-                report=Path(command[-1]);report.write_text(json.dumps({'summary':{'status':'INCOMPLETE'}}))
+                report=Path(command[-1]);report.write_text(json.dumps({'summary':{'status':'INCOMPLETE'},'security':VERIFIED_SECURITY}))
                 Path(str(report)+'.summary.json').write_text(report.read_text())
             return {'exit_code':0,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything')
@@ -216,9 +395,14 @@ class RegenerationTests(unittest.TestCase):
         source=self.source('nested.msg');runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        config=self.root/'config.json';config.write_text('{}')
-        args=SimpleNamespace(jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             log.write_text('Creator succeeded but ignored the unknown warning configuration.')
             (Path(command[command.index('--out')+1])/'one.pdf').write_bytes(b'%PDF-no-banner')
             return {'exit_code':0,'timeout':False,'seconds':0.1}
@@ -233,15 +417,20 @@ class RegenerationTests(unittest.TestCase):
         source=self.source('nested.msg');runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        config=self.root/'config.json';config.write_text('{}')
-        args=SimpleNamespace(jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             log.write_text('diagnostic')
             if '-jar' in command:
                 if json.loads(Path(env['EAPDF_CONFIG']).read_text()).get('validationWarning'):
                     return {'exit_code':1,'timeout':False,'seconds':0.1}
                 (Path(command[command.index('--out')+1])/'one.pdf').write_bytes(b'%PDF-original')
-            else:Path(command[-1]).write_text(json.dumps({'summary':{'status':'INCOMPLETE'}}))
+            else:Path(command[-1]).write_text(json.dumps({'summary':{'status':'INCOMPLETE'},'security':VERIFIED_SECURITY}))
             return {'exit_code':0,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything')
         with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
@@ -273,7 +462,10 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual(text,(evidence/'summary.txt').read_text())
         self.assertIn('1 PASS; 2 FAIL; 2 INCOMPLETE; 1 NOT_APPLICABLE',text)
         self.assertIn('No PDF produced.',text);self.assertIn('in/bad.msg',text)
-        self.assertIn(str(report),text);self.assertIn(str(log),text)
+        self.assertIn('Validation log:', text)
+        self.assertIn('unavailable', text)
+        self.assertNotIn(str(report), text)
+        self.assertNotIn(str(log), text)
         self.assertIn('out/eml/partial_1s.pdf (validation: PASS)',text)
         self.assertIn('out/eml/bad_1s.pdf',text);self.assertNotIn('out/eml/good_1s.pdf',text)
         self.assertNotIn('in/pass.eml',text);self.assertNotIn('in/one.mbox',text)
@@ -308,7 +500,7 @@ class RegenerationTests(unittest.TestCase):
     def test_validation_status_uses_small_sidecar_without_loading_full_report(self):
         report=self.root/'large.validation.json'
         report.write_bytes(b'Full report deliberately not parsed')
-        Path(str(report)+'.summary.json').write_text(json.dumps({'summary':{'status':'INCOMPLETE'}}))
+        Path(str(report)+'.summary.json').write_text(json.dumps({'summary':{'status':'INCOMPLETE'},'security':VERIFIED_SECURITY}))
         self.assertEqual('INCOMPLETE',runner.validation_status(report))
 
     def test_report_allowances_share_available_disk_and_preserve_explicit_limits(self):
@@ -352,10 +544,15 @@ class RegenerationTests(unittest.TestCase):
         runner.clear_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
-        args=SimpleNamespace(jobs=2,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
-        config=self.root/'config.json';config.write_text('{}')
+        args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=2,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
+        config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
         calls=[]
         def execute(command,log,timeout,env):
+            if 'eapdf.RegenerationSecurity' in command:
+                log.write_text('security verified')
+                Path(command[-1]).write_text(json.dumps({'status':'UNKNOWN','requestedProtectionMet':True,'padesBLta':True,
+                    'checks':{'c2pa.signature':{'status':'PASS'},'c2pa.binding':{'status':'PASS'}}}))
+                return {'exit_code':0,'timeout':False,'seconds':0.1}
             calls.append((command,env))
             log.write_text('ok')
             if '-jar' in command:
@@ -370,7 +567,7 @@ class RegenerationTests(unittest.TestCase):
                 self.assertEqual('VALIDATING',progress['status'])
                 self.assertEqual(2,len(progress['documents']))
                 self.assertEqual(2,len(list((self.root/'out/eml').iterdir())), 'no incomplete publication files remain')
-                Path(command[-1]).write_text(json.dumps({'summary':{'status':'PASS'}}))
+                Path(command[-1]).write_text(json.dumps({'summary':{'status':'PASS'},'security':VERIFIED_SECURITY}))
             return {'exit_code':0,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything')
         with patch.object(runner,'execute',execute):
@@ -382,6 +579,8 @@ class RegenerationTests(unittest.TestCase):
         self.assertTrue(list(evidence.rglob('progress.json')))
         self.assertTrue(list(evidence.rglob('*.validation.json')))
         self.assertEqual('1',calls[0][1]['VALIDATOR_CHILD_PROCESSES'])
+        self.assertEqual('policy.json',calls[-1][1]['EAPDF_SECURITY_POLICY'])
+        self.assertEqual('PADES_B_LTA',calls[-1][1]['EAPDF_SECURITY_REQUIRED_PROTECTION'])
         self.assertEqual(str(2*1024**3),calls[0][1]['EAPDF_WORKER_HEAP_BYTES'])
         self.assertEqual('source space name.eml',source.read_text())
 

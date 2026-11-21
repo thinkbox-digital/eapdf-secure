@@ -1,57 +1,71 @@
-# Email to EA-PDF
+# EA-PDF Secure
 
-**Your email—complete, authentic, accessible, structured.**
+**Your email—complete, authentic, accessible, structured, secure.**
 
 [EA-PDF](docs/reference/EA-PDF-v1.pdf) is a specification for archiving email in PDF/A. It supports individual messages, combined archives and collections, with attachments, email metadata and optional original source messages.
 
 Turn saved emails and mailboxes into PDFs you can read, search and archive.
 Supports **EML, MSG, PST, MBOX and Gmail**.
 
-[User guide](https://thinkbox-digital.github.io/eapdf/) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Downloads](https://github.com/thinkbox-digital/eapdf/releases/tag/v2.2.0-beta.3)
+[User guide](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0)
 
-**Beta:** creator and validator 2.2.0-beta.3; full and Lite readers 1.2.0-beta.3.
+**Secure 2.3.0** includes the creator, conformance validator, security validator
+and Full reader 1.31.0 for Chromium and Firefox.
 Java applications need **Java 21 or later**. The readers run locally in your browser.
 
-**Unreleased source change:** the creator now defaults to WeasyPrint 70.0 and
+The creator defaults to WeasyPrint 70.0 and
 embeds its pinned Python runtime, native font libraries and standard fonts in
 the Linux creator JARs. First use verifies and extracts the renderer into a private
 versioned cache; later conversions reuse it. Users need Java, with no Python or
 WeasyPrint installation. Supported Linux sandbox facilities are required.
+Local distribution uses the versioned standalone JARs and checksums; a separate
+Linux application ZIP is no longer produced.
 See [renderer setup](docs/WEASYPRINT.md). OpenHTMLtoPDF remains available by
 explicitly setting `rendering.engine` to `openhtmltopdf`, including on Windows
-and macOS. Existing published release assets are unchanged.
+and macOS.
 
 Accessibility and embedded searchable indexes are off by default. They can be enabled explicitly;
 ordinary viewer search remains available.
+Gmail exports use bounded parallel conversion/rendering across all six profiles.
+The creator keeps completed/total message counts visible through conversion,
+signing and saving. Gmail label names and IDs are case sensitive.
 
-**Unreleased security integration:** optional C2PA export provenance, timestamped
+Optional C2PA export provenance, timestamped
 signing and PAdES B-LTA protect the generated outer EA-PDF while preserving embedded
-sources. The Java validator reports security separately from conformance. See
+sources. The conformance validator window checks EA-PDF/PDF/A only. A separate
+local Security Validator app checks C2PA and PAdES; see [running the apps](validator-desktop/README.md#run).
+Command-line Java validation retains separate security results. See
 [settings, signing order and renewal](docs/DIGITAL_SIGNATURES.md). Browser checks
 on file open are available in Full, with explicit-root offline trust, revocation
-and trusted-timestamp checks. Lite editions omit these checks.
+and trusted-timestamp checks.
+
+## Editions
+
+- [EA-PDF Main](https://github.com/thinkbox-digital/eapdf) — The full creator, validator and browser readers.
+- [EA-PDF Lite](https://github.com/thinkbox-digital/eapdf-lite) — An EML command-line creator, Java validation and the Even More Lite reader.
+- **EA-PDF Secure** — The experimental C2PA provenance and PAdES signing and verification edition.
 
 ## Download
 
 | Tool | What it does |
 | --- | --- |
-| [Creator](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/emailtopdfa-2.2.0-beta.3-gui.jar) | Convert email using a desktop window. |
-| [Command-line creator](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/emailtopdfa-2.2.0-beta.3.jar) | Convert email from a terminal or script. |
-| [Validator](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/eapdf-validator-2.2.0-beta.3.jar) | Check the finished PDFs and save a report. |
-| Full reader: [Chromium](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/eapdf-viewer-1.2.0-beta.3-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/eapdf-viewer-1.2.0-beta.3-firefox.zip) | Read messages, folders and attachments; includes Conversations, Portfolio view and larger-archive support. |
-| Lite reader: [Chromium](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/eapdf-viewer-lite-1.2.0-beta.3-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf/releases/download/v2.2.0-beta.3/eapdf-viewer-lite-1.2.0-beta.3-firefox.zip) | The same reading layout with fewer features. PDFs up to 32 MiB and 2,048 pages. |
+| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/emailtopdfa-2.3.0-gui.jar) | Convert email using a desktop window. |
+| [Command-line creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/emailtopdfa-2.3.0.jar) | Convert email from a terminal or script. |
+| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-validator-2.3.0.jar) | Check the finished PDFs and save a report. |
+| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-security-validator-2.3.0.jar) | Verify C2PA provenance, PDF signatures, timestamps and PAdES archival protection. |
+| Full reader: [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-viewer-1.31.0-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.0/eapdf-viewer-1.31.0-firefox.zip) | Read messages, folders and attachments; includes Conversations, Portfolio view and larger-archive support. |
 
-The [release page](https://github.com/thinkbox-digital/eapdf/releases/tag/v2.2.0-beta.3)
-also has configuration, examples, the manual, Lite web/source packages and checksums.
+The [release page](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0)
+also has the configuration ZIP, PDF manual and SHA-256 checksums.
 Browser extensions are unsigned; Firefox installation is temporary.
 
 ## Get started
 
-1. Download the Creator and configuration ZIP, and extract them into one folder.
+1. Download the Creator JAR and extract the configuration ZIP beside it.
 2. Start the Creator:
 
    ```sh
-   java -jar emailtopdfa-2.2.0-beta.3-gui.jar
+   java -jar emailtopdfa-2.3.0-gui.jar
    ```
 
 3. Choose your email files, output folder and format, then convert.
@@ -81,13 +95,21 @@ for details and [examples](examples/) for sample files.
 ## From the command line
 
 ```sh
-java -Xmx2g -jar emailtopdfa-2.2.0-beta.3.jar --jobs 2 --out /tmp/eapdf-output message.eml
+java -Xmx2g -jar emailtopdfa-2.3.0.jar --jobs 2 --out /tmp/eapdf-output message.eml
 ```
 
 For a collection, add `--archive-profile c --archive-output /tmp/eapdf-output/archive_1c.pdf`.
 Use `m`, `mi` or `ci` for the other archive formats. See
 [conversion instructions](docs/CONVERSION_OPERATIONS.md), [Gmail setup](docs/GMAIL.md)
 and [configuration](config/README.md).
+
+## Reload the local reader
+
+In Chromium, choose **Load unpacked** once for
+`browser-viewer/local-install/full/chromium` at the new checkout location.
+From `browser-viewer`, `npm run build:local` refreshes that same folder. Use
+**Reload** on the extension card and reopen the viewer tab. The Firefox build
+is in `browser-viewer/local-install/full/firefox`.
 
 ## Build and contribute
 
@@ -99,14 +121,16 @@ mvn -Deapdf.build.directory=/tmp/eapdf-build verify
 
 Reader builds need Node.js; see the [reader guide](browser-viewer/README.md#build).
 
-[Tests](https://github.com/thinkbox-digital/eapdf/actions/workflows/quality.yml) ·
+[Tests](https://github.com/thinkbox-digital/eapdf-secure/actions/workflows/quality.yml) ·
 [Contribute](CONTRIBUTING.md) · [Project status](docs/PROJECT_STATUS.md) ·
 [Code layout](docs/ARCHITECTURE.md) · [Architecture diagram (PDF)](docs/EA-PDF_Software_Architecture.pdf) · [Report a security problem](SECURITY.md) ·
 [Library packages](docs/PACKAGES.md) · [Privacy](docs/site/privacy.md)
 
 ## Regenerate local outputs
 
-Maintainers can rebuild local samples with `scripts/eapdf-regenerate sample`.
+Maintainers can rebuild local samples with `scripts/eapdf-regenerate-experimental sample`.
+This experimental command requires C2PA and PAdES B-LTA using the current local
+signing configuration. The main clone keeps `eapdf-regenerate`.
 The `everything` option processes all local inputs. These commands create files
 under `out/` and keep logs separately. Read the
 [regeneration instructions](docs/CONVERSION_OPERATIONS.md#regenerating-local-outputs)

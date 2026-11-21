@@ -158,6 +158,7 @@ class Common {
     final java.util.concurrent.atomic.AtomicLong imagePixels = new java.util.concurrent.atomic.AtomicLong();
     final java.util.concurrent.atomic.AtomicLong renderedPages = new java.util.concurrent.atomic.AtomicLong();
     int workerLimit = Math.max(1, Math.min(4, Runtime.getRuntime().availableProcessors()));
+    long largestSourceMessageBytes;
 
     JobReport() {
       ACTIVE_JOB.set(this);

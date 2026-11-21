@@ -1,5 +1,180 @@
 # Project status
 
+EA-PDF Secure 2.3.0 packages the creator and both standalone validators,
+plus Full reader 1.31.0 for Chromium and Firefox. See the
+[release notes](releases/2.3.0.md) and [downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.0).
+
+Speed improvement and GUI update, 19 November 2026 (local secure creator and
+validators **2.3.0**, Full reader **1.31.0**, unpublished): Gmail individual-message
+exports now overlap serialized downloads with bounded PDF conversion and signing
+workers. Actual source sizes reserve heap for pending work; resume checkpoints
+remain on the caller and are recorded only after successful conversion. Failure
+or cancellation stops pending workers. All six Gmail profiles benefit: archive
+preparation retains selection order, and the actual largest source size also
+enables the existing bounded renderers for 1m/1mi and 1c/1ci. Those profiles still
+stage the full selection before rendering and final assembly/signing.
+CLI arguments are unchanged. The Folder / label tooltip states that names are
+case sensitive. The GUI keeps completed/total counts visible through all stages
+and after finishing/stopping, and omits CPU time while retaining wall time and
+the durable process diagnostics.
+
+Measured on six real local EML sources through mocked Gmail downloads, with the
+bundled WeasyPrint renderer, Accessibility enabled and optional PREMIS disabled:
+one worker took 10.39 seconds; four took 5.72 seconds (1.81 times the throughput).
+The six-message 1c comparison took 19.89 seconds with one worker and 10.46 seconds
+with four (1.90 times the throughput). These small offline comparisons exclude
+Gmail network and signing/TSA costs. All 23 regression outputs across the six
+profiles pass standalone Java validation. Retained original sources match their
+SHA-256 hashes; isolated outputs omit them. A live four-worker C2PA/B-LTA export
+completed all 210 individual PDFs in 275 seconds with exit 0; its timing is
+observational rather than a controlled speed comparison.
+
+Verification: creator suite 537 tests (four skipped), then 21 focused final
+progress/GUI/Gmail checks, 30 final archive/collection/security/Gmail checks and
+ten final GUI checks; validator suite 311 (two skipped), plus both executable
+packaging checks; Full viewer 214 unit checks, Chromium, Firefox and 1.30.0 to
+1.31.0 Reload checks. The creator/GUI and both validator JARs use stable three-part
+2.3.0 names. Full Chromium/Firefox packages and permanent unpacked installs use
+1.31.0. These changes remain in the secure experiment; no main-clone transfer or
+publication is included.
+
+Bug fix and code improvement, 19 November 2026 (local experiment, unpublished):
+collection child-validation details now show child summaries and relevant failed
+or incomplete checks, including nested leaf evidence. Saved JSON retains every
+check. The reported five-child failure display shrank from 16,144 to 260 lines.
+The creator also keeps linked images and transparent inline wrappers from
+introducing prohibited paragraph children inside non-grouping links; genuine
+block paragraphs and annotation/ParentTree ownership are retained.
+
+Verification: both whole-source collection profiles, 1c and 1ci, pass standalone
+Java EA-PDF, PDF/A and applicable ISO 32005 validation, with all 56 children passing
+in each. All 56 embedded source hashes match the original collection. The creator
+suite passes 532 tests (three skipped); the validator suite passes 311 (two
+skipped), with both executable packaging checks passing separately.
+
+Bug fix, same local update: the window title and heading now include Secure.
+Gmail's empty-image-description rendering error is reproduced offline and fixed
+in the shared WeasyPrint boundary. Approved images with missing, empty or
+whitespace-only descriptions receive the existing generic description plus a
+review warning. Authored descriptions and original source/image bytes are
+preserved. All six missing/blank-description combinations pass with Accessibility
+on and off; 35 focused renderer, structure and GUI tests pass. Gmail account
+conversion was not rerun. Creator/GUI and Validator JARs and checksums are refreshed
+without a version bump or publication.
+
+New code and code improvement, 19 November 2026 (local experiment, unpublished):
+the EA-PDF Validator window now runs EA-PDF/PDF/A and applicable ISO 32005 checks
+only. The separate `eapdf-security-validator-2.2.0-beta.3.jar` opens a C2PA/PAdES
+window with public trust-policy selection, required protection, categorized checks,
+JSON reports, file hashes and cancellation. Both apps use bounded worker JVMs.
+Existing command-line security checks remain available for regeneration.
+
+Verification: the validator package run passes 307 automated checks, with two
+optional GUI checks skipped; both GUI checks pass separately. Both executable
+archives pass manifest, dependency, CRC and clean-directory launch checks. All six
+signed creator profiles and a renewed archive pass Java conformance/PDF/A and
+required B-LTA checks, without AF_IN_NAME_TREE failures. C2PA signature and binding
+checks pass; C2PA ecosystem trust/time remain UNKNOWN. Source hashes are unchanged,
+and appended bytes are rejected. An older validator JAR was replaced locally.
+
+Bug fix, 19 November 2026 (local reader 1.30.0, unpublished): removed the remaining
+standalone-validator guidance sentence from the security report. Both Full browser
+packages and permanent local installs are refreshed. All 214 reader unit tests,
+offline Chromium security checks, Firefox acceptance and the 1.29.0 to 1.30.0
+Reload check pass.
+Certificate-import acceptance now waits for the updated report before checking it.
+
+Code removal, 19 November 2026: the Linux application ZIP, checksum, ZIP-only
+launcher/readme and packaging script are removed at the user's request.
+Local distribution uses versioned standalone JARs with checksums; the Linux
+creator JARs already contain the renderer runtime. No publication is included.
+
+Bug fix and code improvement, 19 November 2026 (local reader 1.29.0,
+unpublished): the requested overview disclaimer and certificate-prompt sentence
+are removed. Security rows and downloaded JSON identify C2PA, PAdES, their shared
+archival credentials, CMS when applicable, and other checks. Shared certificate
+trust is labelled separately. The filename has its own inline status badge inside
+a flexible layout slot, so its highlight no longer fills the header row.
+Certificate selection continues to update the existing report in place.
+
+New code, 19 November 2026 (local reader 1.28.0, unpublished): authenticated
+creator B-LTA files receive additional browser archival verification. Independent
+PDF.js snapshots include unsigned DSS saves; protected document graphs must stay
+unchanged. The worker checks ESS signer binding, trusted signing/renewal times,
+revision-specific evidence, evidence retention and authenticated C2PA renewals.
+Other producers skip the additional inspection. Missing trust/evidence and
+unsupported structures cannot establish archival protection. General PAdES and
+algorithm-obsolescence policy remain with Java. Certificate selection reuses
+structural snapshots and refreshes trust in the existing open report.
+
+Offline Chromium verification passes for six real creator profiles and a renewed
+archive with the selected public CA certificates, with no UNKNOWN or FAIL rows.
+Source regression tests detect unsigned edits even if later reverted, altered
+Info/streams, visible timestamp fields, duplicate keys and broken revision links.
+Verification also passes 214 reader unit tests, 51 PDF.js source tests and
+142 upstream specs (one canvas-dependent pending case), Chromium compatibility
+and offline security regressions, Firefox real/renewed archive checks and the
+1.27.0 to 1.28.0 extension reload. Both Full local installs are refreshed.
+No publication or main-clone changes are included.
+
+Code improvement, 19 November 2026 (local reader 1.27.0, unpublished): future
+extension builds drop the beta suffix and use three numeric version components.
+The minor version still advances and patch resets to zero on regeneration.
+Legacy beta package versions remain readable so existing installations can update.
+Full Chromium and Firefox packages and permanent local installs are rebuilt.
+Creator/validator versions and historical published release names are unchanged.
+
+Code removal and code improvement, 19 November 2026 (local viewer 1.26.0-beta.3,
+unpublished): the C2PA experiment maintains only the Full reader for Chromium and
+Firefox. Lite and Even More Lite source, build/export commands, CI job and local
+packages/installations are removed. Main is unchanged. The local build continues
+to advance the reader minor version and reset patch to zero on regeneration.
+The security report shows Verified labels in green and Not verified or Failed
+labels in red, and lists selected trusted certificates in the dialog and downloaded
+JSON with subject, issuer, SHA-256 fingerprint and validity dates. The report now uses a summary, compact certificate cards and grouped checks with expandable explanations. Certificate selection and clearing recheck in place while preserving the open dialog, focus, expanded checks and visible position. Offline Chromium
+verification with the two selected public CA certificates passes timestamp trust,
+revocation and trusted-time checks. At that stage the browser archival/revision row remained Not verified; it is
+implemented by the later creator-specific update above. The standalone Java
+validator independently passed B-LTA and allowed-change checks for that document. No publication is included.
+
+Bug fix, 19 November 2026 (local experiment, unpublished): legacy EML text
+labelled ISO-8859-1 can contain Windows-1252 punctuation. These C1 bytes reached
+the renderer as unprintable controls, causing missing-glyph, font-width and PDF/A
+failures in message PDFs and their archives/collections. The reader now recovers
+fully decodable Windows-1252 text with a TEXT_RECOVERED warning and retains the
+original source bytes. Undefined Windows bytes and explicit UTF-8 controls do
+not trigger this recovery. The renderer also tolerates a /proc memory-sampling
+error when its subprocess finishes within the next 100 ms; live-process errors
+still fail. C2PA/PAdES settings and signing order are unchanged.
+
+Verification: 23 focused Java tests, 28 regeneration tests and eight quality
+oracle tests pass. The originally failing 16-source group passes PDF/A and
+security in all four archive profiles; five of six profile jobs pass full
+validation. The remaining 1m count check reports INCOMPLETE for two byte-identical
+inputs. At the user's request, one duplicate was removed from the input corpus,
+with a local backup, and the oracle now selects the retained identical source.
+A fresh 15-source 1m archive passes full Java EA-PDF/PDF/A and requested B-LTA
+validation. The failing message also passes standalone 1s/1si validation.
+Original retained-source hashes are unchanged. Local versioned creator/GUI JARs
+and checksums are refreshed; no version bump or publication is included.
+
+Bug fix and code improvement, 19 November 2026 (local experiment, unpublished):
+renamed the experimental regeneration command to `eapdf-regenerate-experimental`.
+It uses the current local signing configuration and requires C2PA plus PAdES B-LTA
+on every outer PDF. Signing preflight precedes output clearing; security
+verification precedes publication, including validation-warning replacements.
+Java conformance validation receives the same trust policy and required B-LTA
+level. Accessibility and indexes remain enabled; optional PREMIS remains disabled.
+See [regeneration operations](CONVERSION_OPERATIONS.md#regenerating-local-outputs).
+
+Verification: 28 focused regression checks pass. Two real EML sources produce
+eight PDFs across all six profiles; standalone Java EA-PDF/PDF/A checks and the
+requested B-LTA level pass, with C2PA signature and current-file binding verified.
+Unsigned and altered PDFs are rejected by the publication check. Source hashes
+are unchanged. C2PA ecosystem trust/time remain UNKNOWN. The installed main and
+experimental launchers target their respective clones. No bulk regeneration or
+publication is included.
+
 Code preservation and viewer build, 18 November (local only): this checkout is
 retained on `experiment/c2pa-pades`. Normal development continues in the separate
 `eapdf-main` clone from GitHub main. PRs #26–#33 are selected for that clone;
@@ -56,7 +231,7 @@ unknown. The final packages list certificate extensions and use plain report lab
 Updated 17 November 2026 for **creator/validator 2.2.0-beta.3** and
 **full/Lite readers 1.2.0-beta.3**.
 
-## This release
+## Main edition 2.2.0-beta.3
 
 - **New reader:** Lite keeps the familiar layout, folders, attachments and CSV/XMP
   export. It leaves out Conversations, Portfolio view, embedded search indexes

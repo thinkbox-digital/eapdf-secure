@@ -30,7 +30,7 @@ try{
  await until(async()=>{try{return await request('/status',undefined,'GET');}catch{return false;}});
  const result=await request('/session',{capabilities:{alwaysMatch:{browserName:'firefox','moz:firefoxOptions':{binary:process.env.FIREFOX_PATH??'/usr/lib/firefox/firefox',args:['-headless'],prefs:{'browser.download.folderList':2,'browser.download.dir':downloads,'browser.download.useDownloadDir':true,'browser.download.alwaysOpenPanel':false,'browser.helperApps.neverAsk.saveToDisk':'application/pdf,application/octet-stream','pdfjs.disabled':true}}}}});session=result.sessionId;
  const upstream=resolve('tests/fixtures/issue16880.pdf'),mixed=join(work,'mixed.pdf');execFileSync('python3',[resolve('scripts/make-rtl-mixed-fixture.py'),upstream,mixed]);
- for(const [edition,extension]of [['full',resolve('dist/firefox')],['lite',resolve(process.env.LITE_FIREFOX_EXTENSION??'dist/lite/firefox')]]){
+ for(const [edition,extension]of [['full',resolve('dist/firefox')]]){
   const addon=await call('/moz/addon/install',{path:extension,temporary:true});await call('/moz/context',{context:'chrome'});
   const uuid=await execute("Services.io.offline=true;return JSON.parse(Services.prefs.getCharPref('extensions.webextensions.uuids'))[arguments[0]];",[addon]);await call('/moz/context',{context:'content'});await call('/url',{url:`moz-extension://${uuid}/viewer.html`});await until(()=>execute("return !!document.querySelector('#file')&&!document.querySelector('#file').disabled;"));
   await execute("const e=document.createElement('input');e.type='file';e.id='security-reference';e.hidden=true;document.body.append(e);");

@@ -28,7 +28,7 @@ export async function recordCertificate(cert:Certificate,report:SecurityReport){
   if(!report.certificates.some(c=>c.sha256===fingerprint))report.certificates.push({sha256:fingerprint,subject:cert.subject.typesAndValues.map(v=>v.value.valueBlock.value).join(', '),notBefore:cert.notBefore.value.toISOString(),notAfter:cert.notAfter.value.toISOString()});
 }
 /** Content digest is supplied by the streaming file hash; only signed attributes reach WebCrypto. */
-export async function verifyCms(bytes:Uint8Array,digest:string,report:SecurityReport,timestamp=false):Promise<{signed:SignedData;signature:Uint8Array;signer:Certificate;certificates:Certificate[];time?:Date}> {
+export async function verifyCms(bytes:Uint8Array,digest:string,report:SecurityReport,timestamp=false):Promise<{signed:SignedData;signature:Uint8Array;signer:Certificate;certificates:Certificate[];time?:Date;timestampInfo?:TSTInfo}> {
   const info=new ContentInfo({schema:der(bytes,true)});requireSecurity(info.contentType===ContentInfo.SIGNED_DATA,'Expected CMS SignedData');
   const signed=new SignedData({schema:info.content});
   requireSecurity(signed.signerInfos.length===1,'Ambiguous CMS signers');
@@ -40,12 +40,12 @@ export async function verifyCms(bytes:Uint8Array,digest:string,report:SecurityRe
   const contentType=attribute('1.2.840.113549.1.9.3'),messageDigest=attribute('1.2.840.113549.1.9.4');
   requireSecurity(contentType instanceof ObjectIdentifier&&contentType.valueBlock.toString()===(timestamp?TST:DATA),'CMS content type mismatch');
   let expected=digest;
-  let time:Date|undefined;
+  let time:Date|undefined,timestampInfo:TSTInfo|undefined;
   if(timestamp){
     requireSecurity(signed.encapContentInfo.eContentType===TST&&signed.encapContentInfo.eContent instanceof OctetString,'Missing timestamp content');
     const content=new Uint8Array(signed.encapContentInfo.eContent.getValue());
     const tst=new TSTInfo({schema:der(content)});
-    time=tst.genTime;
+    timestampInfo=tst;time=tst.genTime;
     if(tst.messageImprint.hashAlgorithm.algorithmId!==SHA256)throw new UnsupportedSecurity('Unsupported timestamp hash algorithm');
     requireSecurity(hex(tst.messageImprint.hashedMessage.valueBlock.valueHexView)===digest,'Timestamp imprint differs from covered bytes');
     expected=await sha256(content);
@@ -54,5 +54,5 @@ export async function verifyCms(bytes:Uint8Array,digest:string,report:SecurityRe
   const engine=new CryptoEngine({name:'eapdf-offline',crypto:globalThis.crypto,subtle:globalThis.crypto.subtle});
   requireSecurity(await engine.verifyWithPublicKey(signer.signedAttrs.encodedValue,signer.signature,matches[0]!.subjectPublicKeyInfo,signer.signatureAlgorithm,'SHA-256'),'CMS cryptographic signature mismatch');
   await recordCertificate(matches[0]!,report);
-  return {signed,signature:new Uint8Array(signer.signature.getValue()),signer:matches[0]!,certificates:(signed.certificates??[]).filter((c):c is Certificate=>c instanceof Certificate),time};
+  return {signed,signature:new Uint8Array(signer.signature.getValue()),signer:matches[0]!,certificates:(signed.certificates??[]).filter((c):c is Certificate=>c instanceof Certificate),time,timestampInfo};
 }

@@ -44,6 +44,15 @@ function c2pa({unsafe=false,badSignature=false,ec=false}={}){
  return {blob:new Blob([prefix,encoded,suffix]),facts:facts([]),credentials:new Uint8Array(encoded),policy:new TextEncoder().encode('{"schemaVersion":1,"scope":"EMAIL_EXPORT","specification":"2.2","profile":"eapdf-1"}\n')};
 }
 test.after(()=>rm(temporary,{recursive:true,force:true}));
+test('foreign files skip creator archival inspection even when their basic credentials verify',async()=>{
+ let calls=0;
+ const readArchive=async()=>{calls++;throw Error('Must not inspect foreign history');};
+ for(const input of [{blob:new Blob(['%PDF /Producer (EA-PDF)']),facts:facts([])},c2pa()]){
+  const report=await validateSecurity(input,()=>{},()=>{},readArchive);
+  assert.equal(report.checks.find(c=>c.name==='PAdES archival level and allowed revisions').status,'NOT_APPLICABLE');
+ }
+ assert.equal(calls,0);
+});
 test('unsigned and unsupported inputs cannot acquire a green integrity verdict',async()=>{
  let report=await validateSecurity({blob:new Blob(['unsigned']),facts:facts([])});assert.equal(report.status,'NOT_APPLICABLE');
  report=await validateSecurity({blob:new Blob(['unsigned']),facts:facts([]),discoveryError:'Unsupported profile'});assert.equal(report.status,'UNKNOWN');
@@ -54,14 +63,14 @@ test('detached PDF CMS verifies covered bytes while keeping trust unknown; tampe
  await writeFile(join(temporary,'content.bin'),Buffer.concat([prefix,suffix]));run('cms','-sign','-binary','-md','sha256','-in','content.bin','-signer','certificate.pem','-inkey','key.pem','-outform','DER','-out','signature.der');
  const cms=await readFile(join(temporary,'signature.der')),contents=new Uint8Array((gap-2)/2);contents.set(cms);
  const blob=new Blob([prefix,'<'+Buffer.from(contents).toString('hex')+'>',suffix]),input={blob,facts:facts([{contents,byteRange:range,type:'Sig',subFilter:'adbe.pkcs7.detached'}])};
- const report=await validateSecurity(input);assert.equal(report.status,'PASS',JSON.stringify(report));assert.equal(report.checks.find(c=>c.name.includes('certificate trust')).status,'UNKNOWN');assert.equal(report.certificates.length,1);
+ const report=await validateSecurity(input);assert.equal(report.status,'PASS',JSON.stringify(report));assert.equal(report.checks.find(c=>c.name.includes('certificate trust')).status,'UNKNOWN');assert.equal(report.certificates.length,1);assert.equal(report.checks.find(c=>c.name==='PDF signature 1').category,'CMS');assert.equal(report.checks.find(c=>c.name==='Selected trust policy').category,'Other checks');
  const changed=new Blob(['X',blob.slice(1)]);assert.equal((await validateSecurity({...input,blob:changed})).status,'FAIL');
  assert.equal((await validateSecurity({...input,blob:new Blob([blob,'appended'])})).status,'FAIL');
  const invented={...input.facts.signatures[0],byteRange:[0,1,3,1]};await assert.rejects(signatureRange(blob,invented));
 });
 test('C2PA COSE and current PDF binding verify; recomputed unsafe exclusions and changed signatures fail',async()=>{
  const input=c2pa(),report=await validateSecurity(input);assert.equal(report.status,'PASS',JSON.stringify(report));
- assert.equal(report.checks.filter(c=>c.name.startsWith('C2PA')&&c.status==='PASS').length,2);
+ assert.equal(report.checks.filter(c=>c.name.startsWith('C2PA')&&c.status==='PASS').length,2);assert.equal(report.scope,'Export security');assert.ok(report.checks.filter(c=>c.name.startsWith('C2PA')).every(c=>c.category==='C2PA'));
  assert.equal((await validateSecurity({...input,blob:new Blob(['X',input.blob.slice(1)])})).status,'FAIL');
  assert.equal((await validateSecurity(c2pa({unsafe:true}))).status,'FAIL');assert.equal((await validateSecurity(c2pa({badSignature:true}))).status,'FAIL');
 });

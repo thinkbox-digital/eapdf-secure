@@ -184,7 +184,8 @@ public final class JavaValidation {
       else report.check("OPEN", false, "Unable to open the PDF.", Map.of("error", error.toString()));
     }
     report.finishCoverage();
-    if (depth == 0) report.security = eapdf.security.SecurityVerification.inspect(path);
+    if (depth == 0 && !Boolean.getBoolean("eapdf.validator.conformanceOnly"))
+      report.security = eapdf.security.SecurityVerification.inspect(path);
     complete = true;
     return report;
     } finally { if (!complete) report.close(); }

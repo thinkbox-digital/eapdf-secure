@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parents[1]
 PUBLIC_FILES = (
     'README.md', 'eapdf_config.json', 'credentials.example.json',
     'ea-pdf-linux.json', 'ea-pdf-fop.xconf',
+    'signing-digicert.example.json', 'signing-policy.example.json',
     'verapdf/README.md', 'verapdf/ISO-32005.xml', 'verapdf/ISO-32005.json',
 )
 

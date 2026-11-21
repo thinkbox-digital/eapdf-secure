@@ -1,4 +1,4 @@
-// A new installable viewer build always advances the minor version once for all editions.
+// A new installable viewer build always advances the minor version once for both Full browser packages.
 import {readFile,writeFile} from 'node:fs/promises';
 import {execFileSync} from 'node:child_process';
 import {fileURLToPath} from 'node:url';
@@ -17,5 +17,4 @@ console.log(`New viewer build: ${previous} → ${pkg.version}`);
 const run=script=>execFileSync('npm',['run',script],{cwd:root,stdio:'inherit'});
 run('check');run('package:beta');
 for(const browser of ['chromium','firefox'])await installLocalBuild(join(root,'dist',browser),join(root,'local-install/full',browser),pkg.version);
-run('build:lite');run('build:even-more-lite');
 console.log(`Local viewer ${pkg.version} is ready. Reload the installed extension, then reopen its viewer tab.`);

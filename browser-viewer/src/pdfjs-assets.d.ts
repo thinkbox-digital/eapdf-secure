@@ -1,7 +1,7 @@
 import 'pdfjs-dist/types/src/display/api.js';
 import type {PortfolioData} from './collection-data.js';
 import type { PartLocator } from './pdfjs-document-parts.js';
-import type {SecurityFacts} from './security-types.js';
+import type {SecurityFacts,CreatorArchiveFacts} from './security-types.js';
 export type AssetValue = Readonly<{ kind: string; value?: string | number | boolean; bytesHex?: string }>;
 export type AssetOrigin = Readonly<{ kind: 'name-tree' | 'catalog-af' | 'object-af' | 'annotation'; locator: PartLocator; pageIndex: number | null; nameTreeKey: AssetValue }>;
 export type AssetStream = Readonly<{ locator: PartLocator; efKeys: readonly string[]; state: 'present' | 'invalid'; subtype: AssetValue;
@@ -18,6 +18,7 @@ export type DocumentAssets = Readonly<{ apiVersion: 1; documentId: string; files
 export type FileBytesRequest = Readonly<{ documentId: string; fileId: string; streamId: string; maxBytes: number }>;
 declare module 'pdfjs-dist/types/src/display/api.js' {
   interface PDFDocumentProxy {
+    getDocumentAssets(options: {securityOnly:true;creatorArchival:number[]}): Promise<CreatorArchiveFacts>;
     getDocumentAssets(options: {securityOnly:true}): Promise<SecurityFacts>;
     extractPages(pageInfos: Array<{document?:Uint8Array|null;includePages?:Array<number|number[]>}>, copyLevels: null, options: {pageOnly:true}): Promise<Uint8Array|null>;
     getDocumentAssets(options: {embeddedTarget:{page:number;annotation:number|string}}): Promise<{target:string}>;

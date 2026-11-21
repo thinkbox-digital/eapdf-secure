@@ -3,9 +3,10 @@ import assert from 'node:assert/strict';
 import {readFile} from 'node:fs/promises';
 import {createPublicKey} from 'node:crypto';
 import {extensionVersion,advanceMinorVersion} from '../scripts/extension-version.mjs';
-test('new viewer builds advance the minor version and reset patch zero',()=>{
- assert.equal(advanceMinorVersion('1.4.8-beta.3'),'1.5.0-beta.3');
- assert.equal(advanceMinorVersion(advanceMinorVersion('1.4.0-beta.3')),'1.6.0-beta.3');
+test('new viewer builds advance the minor version, reset patch zero and drop beta suffixes',()=>{
+ assert.equal(advanceMinorVersion('1.4.8-beta.3'),'1.5.0');
+ assert.equal(advanceMinorVersion(advanceMinorVersion('1.4.0-beta.3')),'1.6.0');
+ assert.equal(extensionVersion(advanceMinorVersion('1.26.0-beta.3')),'1.27.0');
  assert.equal(advanceMinorVersion('1.9.4'),'1.10.0');
  assert.throws(()=>advanceMinorVersion('1.65535.0'));
 });

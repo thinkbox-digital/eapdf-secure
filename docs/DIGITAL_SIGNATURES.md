@@ -136,15 +136,26 @@ ordinary search. The binding rules are not relaxed.
 
 ## Verification and renewal
 
-The standalone Java validator adds a separate `security` object and
-`summary.security_status` alongside conformance results. Its window shows the
-status and an **Export security** details tab. Select an independently chosen
-policy in the window's **Trust JSON (optional)** field before validation, or use
-`EAPDF_SECURITY_POLICY` or `-Deapdf.security.policy=...`. The validator reads only
-public trust evidence from combined profiles; it never opens the signing key or
-passphrase file. Optionally require a level
+The **EA-PDF Validator** window checks conformance only. Start the separate
+**EA-PDF Security Validator Experimental** for C2PA and PAdES:
+
+```sh
+java -jar /path/to/eapdf-security-validator-2.3.0.jar
+```
+
+Select the PDF and an independently chosen policy in **Trust JSON (optional)**,
+choose **Required protection** or leave **Auto-detect**, then press **Verify**.
+Results identify C2PA, PAdES or PDF signature/CMS checks. **Save report…** includes
+the checks, file SHA-256 and verification time. The security app reads only public
+trust evidence from combined profiles; it never opens the signing key or passphrase.
+Missing trust remains Not verified; a failed check is Failed.
+
+Existing command-line Java validation still adds a separate `security` object and
+`summary.security_status` alongside conformance results. Select trust with
+`EAPDF_SECURITY_POLICY` or `-Deapdf.security.policy=...`; optionally require a level
 with `EAPDF_SECURITY_REQUIRED_PROTECTION` or `-Deapdf.security.requiredProtection=...`.
-These settings add no CLI arguments.
+These settings add no CLI arguments. The conformance window skips these checks
+even when security environment settings are present.
 
 Checks distinguish integrity, requested protection, trust, revocation, timestamps
 and C2PA binding. `UNKNOWN` is not a trust pass. Local C2PA and missing evidence
@@ -193,15 +204,14 @@ published viewer. Install the experimental checkout's
 later local builds keep that path and identity for **Reload**. The regular viewer
 can remain installed alongside it.
 
-The report begins with guidance to use the standalone EA-PDF Validator with an
-independently selected trust JSON for full verification, including revocation and
-trusted timestamps. Browser UNKNOWN for these checks does not establish that
-CRLs or timestamps are missing. Creation uses the selected CRLs and TSA; the
-browser does not load the creator's local JSON or local filesystem paths.
-For browser trust checks, open the report and choose **Choose trusted roots…**.
-Add public CA certificates in PEM/DER format, including from separate folders;
-no private key is needed. Selection applies to this session and can be cleared.
-Embedded PDF certificates are never automatically trusted.
+The browser verifies the supported creator B-LTA workflow, including saved
+revisions and historical evidence. General PAdES profiles and unsupported evidence
+still require the standalone EA-PDF Validator with independently selected trust.
+The browser does not load the creator's local JSON or local filesystem paths.
+Open the report and choose **Add certificates…**. You can select several public
+CA certificates together or add them from separate folders. Selection applies to
+this session and can be cleared. No private key is needed. Embedded PDF
+certificates are never automatically trusted.
 
 A limited Chromium microbenchmark on 17 November 2026 parsed and verified the
 signatures on two local CRLs (1,015 bytes total): 30 measured iterations,
@@ -221,7 +231,6 @@ The report can be downloaded as JSON, including the file SHA-256 and individual
 checks. Closing/reopening the file cancels work and rejects stale results.
 Embedded navigation retains the outer file's result; the outer protection covers
 embedded bytes, and does not imply an extracted child is independently signed.
-Lite and Even More Lite omit security validation and reporting.
 
 Supported checks include SHA-256 detached CMS with RSA/RSA-PSS or ECDSA,
 RFC 3161 signature/document timestamp signatures and imprints, and the Creator's
@@ -253,8 +262,32 @@ lists, which are not implemented. No certificate or TSA URLs are fetched.
 Limits are 32 selected roots/1 MiB total, 32 entries per DSS evidence category,
 1 MiB per evidence stream, 4 MiB combined evidence and eight certificates per path.
 Ambiguous/excessive paths and unsupported critical extensions remain unknown.
-Allowed incremental modifications, full historical evidence handling and the
-PAdES B-LTA archival level still require the Java validator and independent policy.
+Additional archival checks run only after the current signed C2PA claim identifies
+the supported EA-PDF creator profile. Other files skip this additional check while
+retaining ordinary signature, timestamp and credential verification. Creator files
+without archival document timestamps do not claim B-LTA protection.
+
+For supported creator archives, PDF.js independently reads every saved revision
+back to the export signature, including unsigned DSS updates. The worker requires
+unchanged protected objects: pages, original files, metadata, document information,
+ordinary annotations and credential attachment metadata. It allows retained DSS
+evidence, strictly invisible timestamps and authenticated credential replacements.
+It checks signed SHA-256 ESSCertIDv2 signer bindings, ordered signing/renewal times,
+the export signer and TSA paths at recorded times, and fresh signed revocation
+evidence sealed in the applicable timestamp revision. Credential replacements
+verify against their own saved PDF bytes; renewals preserve earlier evidence.
+The initial empty credential reservation is accepted only with the exact creator
+marker and zero padding, before the first filled credential.
+
+Historical inspection is limited to 128 revisions, 200,000 protected objects per
+revision, 32 MiB canonical descriptions per revision and 45 seconds; the overall
+120-second security deadline still applies. Repaired or ambiguous PDF structures,
+unsupported formats, missing roots and unsupported evidence never establish
+archival protection. Structural facts are cached across certificate selection;
+trust decisions are recalculated. This is support for the creator's current
+workflow, not a general ETSI conformance certification or arbitrary PDF change
+classifier. Use Java for other PAdES profiles, unsupported algorithms and policy
+questions such as cryptographic obsolescence.
 Export protection does not authenticate original email senders or certify conformance.
 
 
@@ -267,6 +300,15 @@ PASS, UNKNOWN, FAIL and NOT_APPLICABLE for these four states. Overall PASS refer
 to supported file-integrity checks; read individual trust/time results as well.
 
 A root certificate is a CA certificate that you independently choose to trust.
+Report labels show **Verified** in green and **Not verified** or **Failed** in red.
+Not verified means that the check has not been established; read its explanation.
+The report and downloaded JSON list the selected trusted certificates with their
+subject, issuer, SHA-256 fingerprint and validity dates.
+Checks are grouped by C2PA, PAdES, shared C2PA + PAdES archival credentials,
+CMS where applicable, and Other checks. Shared trust settings and device-clock
+references appear under Other checks. Downloaded JSON records each category.
+Only the filename receives its status highlight; the header row stays uncoloured. Expand a row for its explanation. Adding or clearing certificates updates
+results in place without closing the dialog or resetting expanded rows and scrolling.
 **Choose trusted roots (.pem, .crt, .cer, .der)…** accepts public certificate
 files. It does not need a PKCS#12 signing key or a passphrase. Add roots from
 separate folders as needed; the selections accumulate for the session.
@@ -300,7 +342,7 @@ scores. C2PA identifies the signed provenance record.
 | C2PA signing certificate path | Connects the provenance signer to a selected CA. | Its certificate chain, PDF supporting certificates and roots. | PASS is an X.509 chain result; public C2PA ecosystem trust lists are separate. |
 | C2PA signing certificate revocation | Checks whether that signing certificate was withdrawn. | Embedded signed CRL/OCSP evidence. | PASS means supported fresh status evidence verified. |
 | Offline evidence scope | Explains the evidence sources and limits. | Viewer settings and available embedded evidence. | Information: no certificate-status or timestamp server is contacted. |
-| PAdES archival level and allowed revisions | Checks full long-term protection and permitted later changes. | Complete PDF revision history and archival evidence. | Browser result stays UNKNOWN; use the standalone Java validator. |
+| PAdES archival level and allowed revisions | Checks the supported creator B-LTA workflow and permitted later changes. | Saved revisions, signer bindings, trusted signing/renewal times and protected historical evidence. | PASS requires every supported archival check. Missing trust/evidence is UNKNOWN; changed content fails. Other producers skip this additional check. |
 | Certificate dates (older reports) | Compares certificate validity dates with device time. | Certificate start/end dates and the browser clock. | Older UNKNOWN wording did not mean the dates were outside their ranges. Replaced by an informational device-date reference. |
 
 The current viewer also reports **Signature timestamp 1 signature** separately:

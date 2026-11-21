@@ -26,6 +26,18 @@ async function issue(name,tsa=false){
 }
 const leaf=await issue('document'),tsa=await issue('timestamp',true),now=new Date(),past=new Date(now.getTime()-10000),future=new Date(now.getTime()+3600000);
 const encode=value=>new Uint8Array(value.toSchema().toBER(false));
+test('reports identify selected CA certificates without promoting embedded certificates',async()=>{
+ const {validateSecurity}=await import(pathToFileURL(join(modules,'security-validation.js')));
+ const facts={signatures:[],encrypted:false,evidence:{certificates:[encode(root),encode(leaf)],crls:[],ocsps:[]}};
+ const empty=await validateSecurity({blob:new Blob(['unsigned']),facts});
+ assert.deepEqual(empty.selectedCertificates,[]);
+ const report=await validateSecurity({blob:new Blob(['unsigned']),facts,trustRoots:[encode(root)]});
+ assert.equal(report.selectedCertificates.length,1);
+ const selected=JSON.parse(JSON.stringify(report)).selectedCertificates[0];
+ assert.equal(selected.subject,'Offline trust fixture CA');assert.equal(selected.issuer,selected.subject);
+ assert.match(selected.sha256,/^[a-f0-9]{64}$/);
+ assert.equal(selected.notBefore,root.notBefore.value.toISOString());assert.equal(selected.notAfter,root.notAfter.value.toISOString());
+});
 async function crl({revoked=false,stale=false,forged=false}={}){
  const value=new CertificateRevocationList({version:1,issuer:root.subject,thisUpdate:new Time({type:0,value:past}),nextUpdate:new Time({type:0,value:stale?past:future}),revokedCertificates:revoked?[new RevokedCertificate({userCertificate:leaf.serialNumber,revocationDate:new Time({type:0,value:past})})]:[]});
  await value.sign(key,'SHA-256');if(forged)value.signatureValue.valueBlock.valueHexView[0]^=1;

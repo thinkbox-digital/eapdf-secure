@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """Refresh the human-readable component inventory; --check rejects stale counts."""
 import argparse
-import json
-import subprocess
-import tempfile
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -65,7 +62,6 @@ group('Creator distribution', 'Bundled renderer packaging and verification', 'sc
 package_weasyprint.py|Freezes Python, WeasyPrint, native font libraries and matching fonts into a relocatable Linux runtime.
 embed_weasyprint_runtime.py|Embeds the matching renderer archive and per-file checksums in versioned creator JARs.
 check_bundled_renderer.py|Verifies offline rendering in a clean container without installed Python or Pango, with kernel guards active.
-package_creator_bundle.py|Packages verified self-contained Java tools with public configuration and a launcher; excludes private settings.
 ''')
 
 group('Creator', 'Accessibility and fonts', 'src/main/java/eapdf/', '''
@@ -124,7 +120,7 @@ SecurityVerification.java|Reports export integrity, trust and archival protectio
 ''')
 
 group('Java validator', 'Window and report presentation', 'validator-desktop/src/main/java/eapdf/', '''
-ValidatorGui.java|Shows file selection, validation progress, findings and result details.
+ValidatorGui.java|Shows EA-PDF/PDF/A conformance progress and findings without running security verification.
 ValidationReportReader.java|Reads completed reports for display in the window.
 ''')
 group('Java validator', 'Processes and execution', 'validator-desktop/src/main/java/eapdf/', '''
@@ -134,6 +130,11 @@ ValidationRuntime.java|Chooses runtime budgets, process commands and temporary s
 ValidationSession.java|Tracks work files, completion and failed or interrupted runs.
 CollectionValidationPool.java|Schedules bounded validation of collection children.
 JavaValidation.java|Coordinates inspection, veraPDF checks, rule dispatch, child documents and final results.
+''')
+group('Java security validator', 'Separate window and security worker', 'validator-desktop/src/main/java/eapdf/', '''
+SecurityValidatorGui.java|Shows independent C2PA and PAdES verification, trust policy, protection level and downloadable reports.
+SecurityValidatorEngine.java|Runs a bounded disposable security JVM with timeout, cancellation and scratch cleanup.
+SecurityValidation.java|Verifies export security without conformance checks and records file hashes and check categories.
 ''')
 group('Java validator', 'Executable validation rules', 'validator-desktop/src/main/java/eapdf/', '''
 EaPdfChecks.java|Checks EA-PDF profile and document-level requirements.
@@ -287,7 +288,8 @@ thread-preview.ts|Displays a preview of a conversation thread.
 group('Browser viewer Full', 'Export security validation and reporting', 'browser-viewer/src/', '''
 security-controller.ts|Starts cancellable offline validation on open and displays filename states and a downloadable modal report opened through filename activation.
 security-worker.ts|Runs cryptographic checks away from the reading interface.
-security-validation.ts|Checks PDF signature ranges, CMS digests, timestamp imprints and aggregate integrity results.
+security-validation.ts|Checks signatures, timestamps, C2PA and authenticated creator archival eligibility; foreign files skip additional revision checks.
+security-archival.ts|Verifies creator revision continuity, protected content, ESS signer binding, historical trust/evidence and credential renewals.
 security-cms.ts|Verifies bounded CMS signatures with included certificates, keeping certificate trust separate.
 security-trust.ts|Checks bounded offline certificate paths, CRL and OCSP evidence against explicitly selected CA roots.
 security-c2pa.ts|Verifies supported EA-PDF COSE claims, assertion digests and safe current-file bindings.
@@ -314,45 +316,8 @@ group('Browser viewer Full', 'Browser extension integration', 'browser-viewer/sr
 extension/background.ts|Handles extension background events and reader opening.
 extension/manifest.json|Declares extension entry points, permissions and packaged resources.
 ''')
-group('Browser viewer Lite', 'Feature adapters', 'browser-viewer/lite/overrides/', '''
-viewer-profile.ts|Selects Lite capabilities and resource limits.
-collection-view.ts|Supplies the adapter for the omitted Portfolio presentation.
-conversations.ts|Supplies the adapter for the omitted Conversations feature.
-security-controller.ts|Supplies the adapter for omitted Full security validation and reporting.
-embedded-index.ts|Supplies the adapter for omitted embedded-index loading.
-fulltext-index.ts|Supplies the adapter for omitted embedded full-text search.
-''')
-group('Viewer Lite export and build tools', 'Export and build maintenance', 'browser-viewer/lite/', '''
-export.mjs|Selects shared modules and produces the standalone Lite source export.
-build.mjs|Builds the exported Lite reader.
-run.mjs|Coordinates the local Lite export and build.
-package.mjs|Packages the Lite browser distributions.
-styles.mjs|Selects styles needed by Lite controls.
-prepare-hooks.mjs|Prepares generic PDF.js hooks for Lite.
-rebuild-hooks.mjs|Rebuilds Lite PDF.js worker and display bundles.
-refresh-hook-inputs.mjs|Refreshes recorded hook source inputs.
-verify-hooks.mjs|Checks reproduced hooks against recorded hashes.
-select-hook-tests.mjs|Selects the shared generic-hook regression tests for Lite.
-''')
-
-group('Browser viewer Even More Lite', 'Minimal reading controls and session', 'browser-viewer/even-more-lite/overrides/', '''
-viewer.ts|Coordinates reading, pane controls, asset downloads and attachment links.
-viewer.html|Defines three reading panes without search, filtering or metadata exports.
-viewer.css|Styles adjustable reading panes, embedded assets, text selection and links.
-browser-session.ts|Opens bounded PDFs, extracts assets and keeps the active ancestor chain.
-asset-panel.ts|Lists files with shared view/download controls, owning subjects and attachment-page actions.
-embedded-navigation.ts|Follows embedded PDF links and resolves non-PDF targets for downloading.
-page-text.ts|Displays selectable text and accessible structure without search highlighting.
-extension/background.ts|Opens the local reader when its extension icon is clicked.
-''')
-group('Viewer Lite export and build tools', 'Minimal edition verification', 'browser-viewer/even-more-lite/', '''
-minimal.test.mjs|Checks omitted features, standalone provenance and packaged payload hashes.
-browser-smoke.mjs|Exercises packaged offline reading, all EA-PDF profiles and error recovery.
-firefox-smoke.mjs|Installs and checks the minimal Firefox extension offline.
-asset-fixture.mjs|Creates original edge controls for attachment links and exact asset downloads.
-''')
 group('Viewer local build and install tools', 'Versioned builds and permanent unpacked installs', 'browser-viewer/scripts/', '''
-build-local.mjs|Advances the viewer minor version and rebuilds all locally installable editions.
+build-local.mjs|Advances the viewer minor version and rebuilds the locally installable Full browser packages.
 local-install.mjs|Verifies build bytes and updates permanent unpacked reader directories in place.
 local-reload-smoke.mjs|Checks an actual extension reload across two versions at one fixed install path.
 extension-version.mjs|Maps package versions to browser versions and advances minor versions.
@@ -376,6 +341,7 @@ for title, directory in (
         '0009-named-opening': 'Supports opening documents at named destinations.',
         '0010-rtl-ligatures': 'Backports corrected extraction order for right-to-left ligatures.',
         '0011-page-only-extraction': 'Adds isolated page-only extraction for scoped message downloads.',
+        '0013-creator-archival': 'Exposes prefix-bounded historical creator revisions and protected-object graphs; rejects ambiguous structures and visible timestamp changes.',
         '0012-security-facts': 'Exposes bounded signature dictionaries and decoded DSS certificates/CRLs/OCSP without applying application trust policy.',
         '0001-Add-PDF-A-4-conformance-support': 'Adds PDF/A-4 rendering support.',
         '0002-Keep-inter-word-gaps-extractable-under-negative-lett': 'Preserves extractable word gaps under negative letter spacing.',
@@ -392,48 +358,6 @@ def counts(name):
     return len(lines), sum(bool(line.strip()) for line in lines)
 
 
-def lite_sources(profile='lite'):
-    """Measure the actual Lite export, including selected shared source and adapters."""
-    if not (ROOT / 'browser-viewer/node_modules/typescript/bin/tsc').is_file():
-        raise ValueError('Install viewer dependencies first: npm --prefix browser-viewer ci --ignore-scripts')
-    descriptions = {name: description for _, _, entries in GROUPS for name, description in entries}
-    selected = {}
-    measured = {}
-    with tempfile.TemporaryDirectory(prefix='eapdf-component-inventory-', dir='/tmp') as temporary:
-        destination = Path(temporary) / 'lite'
-        subprocess.run(['node', str(ROOT / 'browser-viewer/lite/export.mjs'),
-                        '--output', str(destination), '--profile', profile], cwd=ROOT, check=True, capture_output=True, text=True)
-        manifest = json.loads((destination / 'export-manifest.json').read_text())
-        for name in sorted(manifest['files']):
-            if not name.startswith('src/') or Path(name).suffix not in {'.ts', '.html', '.css', '.json'}:
-                continue
-            origins = (['browser-viewer/even-more-lite/overrides/' + name.removeprefix('src/')] if profile == 'even-more-lite' else [])
-            origins += ['browser-viewer/lite/overrides/' + name.removeprefix('src/'), 'browser-viewer/' + name]
-            origin = next(origin for origin in origins if (ROOT / origin).is_file())
-            if origin not in descriptions:
-                raise ValueError('Describe new Lite source before refreshing: ' + origin)
-            selected[origin] = descriptions[origin]
-            lines = (destination / name).read_bytes().splitlines()
-            measured[origin] = (len(lines), sum(bool(line.strip()) for line in lines))
-    groups = []
-    for tool, title, entries in GROUPS:
-        if tool not in {'Browser viewer Full', 'Browser viewer Lite', 'Browser viewer Even More Lite'}:
-            continue
-        retained = [(name, description) for name, description in entries if name in selected]
-        if retained:
-            title = {
-                'Full edition conversation processing': 'Conversation interface',
-                'Full edition Portfolio contract': 'Collection view interface',
-                'Search and embedded indexes': 'Search',
-            }.get(title, title)
-            groups.append(('Browser viewer Even More Lite' if profile == 'even-more-lite' else 'Browser viewer Lite', title, retained))
-    if set(selected) != {name for _, _, entries in groups for name, _ in entries}:
-        raise ValueError('Lite source grouping is incomplete')
-    if profile == 'even-more-lite' and sum(values[0] for values in measured.values()) >= 2000:
-        raise ValueError('Even More Lite must remain under 2000 physical application-source lines')
-    return groups, measured
-
-
 def render():
     paths = [name for _, _, entries in GROUPS for name, _ in entries]
     if len(paths) != len(set(paths)):
@@ -444,8 +368,6 @@ def render():
         ('src/main/resources/eapdf', {'.py'}),
         ('validator-desktop/src/main/java', {'.java'}),
         ('browser-viewer/src', {'.ts', '.html', '.css', '.json'}),
-        ('browser-viewer/lite/overrides', {'.ts'}),
-        ('browser-viewer/even-more-lite/overrides', {'.ts', '.html', '.css'}),
         ('eapdf_validation', {'.py'}),
     ):
         expected.update(p.relative_to(ROOT).as_posix() for p in (ROOT / directory).rglob('*')
@@ -453,21 +375,11 @@ def render():
     missing = expected - set(paths)
     if missing:
         raise ValueError('Describe new source files before refreshing: ' + ', '.join(sorted(missing)))
-    lite, lite_measured = lite_sources()
-    minimal, minimal_measured = lite_sources('even-more-lite')
-    groups = []
-    for tool, title, entries in GROUPS:
-        if tool == 'Browser viewer Lite':
-            groups.extend(lite)
-        elif tool == 'Browser viewer Even More Lite':
-            groups.extend(minimal)
-        else:
-            groups.append((tool, title, entries))
-    measured = {(tool, name): (lite_measured[name] if tool == 'Browser viewer Lite' else minimal_measured[name] if tool == 'Browser viewer Even More Lite' else counts(name))
-                for tool, _, entries in groups for name, _ in entries}
+    groups = GROUPS
+    measured = {(tool, name): counts(name) for tool, _, entries in groups for name, _ in entries}
     text = ['# Software components and line counts', '',
             'This inventory describes the main parts of the Creator, Java Validator, diagnostic Python validator, '
-            'and Full, Lite and Even More Lite browser viewers. Each file has a plain-English description and measured line counts.', '',
+            'and the experimental Full browser viewer. Each file has a plain-English description and measured line counts.', '',
             '## Totals by program and source category', '',
             '| Program or category | Files | Nonblank |',
             '| --- | ---: | ---: |']
@@ -475,7 +387,7 @@ def render():
     for tool in tools:
         names = [n for t, _, es in groups if t == tool for n, _ in es]
         text.append(f'| {tool} | {len(names):,} | {sum(measured[tool, n][1] for n in names):,} |')
-    text += ['', 'Full, Lite and Even More Lite are independent program totals: shared source is counted in each edition that uses it. Lite export/build tools, rule data and library patches are listed separately.', '',
+    text += ['', 'The experimental checkout maintains the Full browser viewer for Chromium and Firefox. Rule data and library patches are listed separately.', '',
              '## Lite size estimates', '',
              'Creator and Java validator estimates below are dated 17 November 2026. Their baselines are 17,240 and 9,822 nonblank source lines respectively, each including 235 shared export-security lines. '
              'These are prospective net reductions, allowing for shared-code changes and overlapping controls; they are not implemented savings. Rule data, tests and third-party library source are outside these code counts.', '',
@@ -496,28 +408,11 @@ def render():
              'Removing export-security verification reduces resolved libraries from 81 to 37 and estimates about 18.9 MB less in the JAR, approximately 48 MB to 29 MB (40%); security would be reported as unchecked, with metadata recognition retained. '
              'The untagged-only edition could additionally remove logical-structure/ISO 32005 checks, but tagged inputs and collection children must produce unsupported/INCOMPLETE results. '
              'All six profiles, veraPDF, recursive collection validation, source comparisons, streamed reports, verdict/applicability tracking and resource safeguards remain in these estimates.', '']
-    full_lines = sum(measured[tool, name][1] for tool, _, entries in groups if tool == 'Browser viewer Full' for name, _ in entries)
-    lite_lines = sum(lite_measured[name][1] for name in lite_measured)
-    minimal_lines = sum(minimal_measured[name][1] for name in minimal_measured)
-    text += [f'Even More Lite is already implemented: its current **{minimal_lines:,} nonblank lines** are a measured reduction of '
-             f'**{(lite_lines - minimal_lines) / lite_lines:.1%}** from Lite ({lite_lines:,}) and **{(full_lines - minimal_lines) / full_lines:.1%}** from Full ({full_lines:,}). '
-             'For the dated 1.4.0-beta.3 package comparison, the web ZIP decreased from 5.71 MB to 5.44 MB (4.8%); application JS/CSS/HTML decreased from 336.2 kB to 61.6 kB (81.7%, including minification). '
-             'These package measurements predate later reader changes; see the [edition measurements](../browser-viewer/even-more-lite/README.md#measured-size). '
-             'Java JAR figures above are estimates for the source/dependencies audited on 17 November, not measurements of rebuilt Lite artifacts or comparisons with older distributables. '
-             'No speed or memory improvement has been measured for these proposed editions.', '',
-             '## Component totals', '', '| Program | Component | Files | Nonblank |',
-             '| --- | --- | ---: | ---: |']
+    text += ['## Component totals', '', '| Program | Component | Files | Nonblank |', '| --- | --- | ---: | ---: |']
     for tool, title, entries in groups:
         text.append(f'| {tool} | {title} | {len(entries):,} | {sum(measured[tool, n][1] for n, _ in entries):,} |')
     for tool in tools:
         text += ['', f'## {tool}', '']
-        if tool in {'Browser viewer Lite', 'Browser viewer Even More Lite'}:
-            text += ['Counts include the shared files selected by the maintained Lite exporter and the edition feature adapters. '
-                     'Counts use exported content, including the reduced HTML and CSS; links point to their maintained source files. '
-                     'Tests, bundled libraries and export/build tools are excluded from this program total.', '']
-        if tool == 'Browser viewer Even More Lite':
-            physical = sum(minimal_measured[name][0] for name in minimal_measured)
-            text += [f'Application source totals **{physical:,} physical lines**, including blank lines, shared modules, declarations, HTML, CSS and the extension manifest. Builds and inventory checks enforce a strict limit of fewer than 2,000 physical lines.', '']
         for t, title, entries in groups:
             if t != tool:
                 continue
@@ -528,8 +423,8 @@ def render():
                 text.append(f'| [{name}](../{name}) | {nonblank:,} | {description} |')
             text.append('')
     text += ['## Keeping this inventory current', '',
-             'With Node.js and the viewer dependencies installed (`npm --prefix browser-viewer ci --ignore-scripts`), '
-             'the generator makes temporary Lite and Even More Lite exports to measure its selected files and removes it after counting. '
+             'The generator measures maintained source files directly. '
+             ''
              'Before every GitHub push, run `python3 scripts/build_component_inventory.py` and include the refreshed file in the changes being pushed. '
              'When responsibilities change, update the descriptions and group assignments in that script. '
              'New Java, viewer or Python package source files must be described before regeneration succeeds.', '',

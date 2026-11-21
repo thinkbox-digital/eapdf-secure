@@ -33,39 +33,52 @@ def replace_file(source, destination):
 def main():
     ns = {'m': 'http://maven.apache.org/POM/4.0.0'}
     version = ET.parse(ROOT/'validator-desktop/pom.xml').findtext('m:version', namespaces=ns)
-    filename = f'eapdf-validator-{version}.jar'
+    applications = {f'eapdf-validator-{version}.jar': 'eapdf.ValidatorGui',
+                    f'eapdf-security-validator-{version}.jar': 'eapdf.SecurityValidatorGui'}
     with tempfile.TemporaryDirectory(prefix='eapdf-validator-package-', dir='/tmp') as scratch:
         scratch = Path(scratch)
         subprocess.run(['mvn', '-B', '-f', str(ROOT/'validator-desktop/pom.xml'),
                         '-Deapdf.build.directory=' + str(scratch/'build'), 'verify'], cwd=ROOT, check=True)
-        built = scratch/'build'/filename
-        with ZipFile(built) as jar:
-            if jar.testzip() is not None:
-                raise RuntimeError('Validator ZIP CRC verification failed')
-            manifest = jar.read('META-INF/MANIFEST.MF').decode('utf-8').replace('\r\n', '\n')
-            if '\nMain-Class: eapdf.ValidatorGui\n' not in '\n' + manifest:
-                raise RuntimeError('Validator executable manifest is missing or incorrect')
-        destination = ROOT/'dist'/filename
-        checksum = sha(built)
-        replace_file(built, destination)
-        if sha(destination) != checksum:
-            raise RuntimeError('Published validator differs from the verified build')
-        checksum_file = scratch/'checksum'
-        checksum_file.write_text(checksum + '  ' + filename + '\n')
-        replace_file(checksum_file, destination.with_suffix('.jar.sha256'))
+        checksums = {}
+        for filename, main_class in applications.items():
+            built = scratch/'build'/filename
+            with ZipFile(built) as jar:
+                if jar.testzip() is not None:
+                    raise RuntimeError('Validator ZIP CRC verification failed: ' + filename)
+                manifest = jar.read('META-INF/MANIFEST.MF').decode('utf-8').replace('\r\n', '\n')
+                if '\nMain-Class: ' + main_class + '\n' not in '\n' + manifest:
+                    raise RuntimeError('Validator executable manifest is incorrect: ' + filename)
+            checksums[filename] = sha(built)
+        for filename, checksum in checksums.items():
+            destination = ROOT/'dist'/filename
+            replace_file(scratch/'build'/filename, destination)
+            if sha(destination) != checksum:
+                raise RuntimeError('Installed validator differs from the verified build: ' + filename)
+            checksum_file = scratch/'checksum'
+            checksum_file.write_text(checksum + '  ' + filename + '\n')
+            replace_file(checksum_file, destination.with_suffix('.jar.sha256'))
+            print('Verified executable validator: ' + str(destination))
+            print('SHA-256: ' + checksum)
         paths = [ROOT/'validator-desktop/pom.xml', ROOT/'validator_rule_text.json',
                  ROOT/'config/verapdf/ISO-32005.xml', Path(__file__).resolve()]
         paths += sorted((ROOT/'validator-desktop/src/main').rglob('*'))
         data = {'date': datetime.now(timezone.utc).isoformat(), 'version': version,
                 'scope': 'Verified executable packaging; large-file acceptance is documented separately.',
-                'main_class': 'eapdf.ValidatorGui', 'java_release': 21,
-                'jars': {destination.name: checksum},
+                'main_classes': applications, 'java_release': 21,
+                'jars': checksums,
                 'source_hashes': {str(path.relative_to(ROOT)): sha(path) for path in paths if path.is_file()}}
         metadata = scratch/'validator-build.json'
         metadata.write_text(json.dumps(data, indent=2) + '\n')
         replace_file(metadata, ROOT/'dist/validator-build.json')
-        print('Verified executable validator: ' + str(destination))
-        print('SHA-256: ' + checksum)
+        for pattern in ('eapdf-validator-*.jar', 'eapdf-security-validator-*.jar'):
+            for previous in (ROOT/'dist').glob(pattern):
+                if previous.name not in applications:
+                    previous.unlink()
+                    previous.with_suffix('.jar.sha256').unlink(missing_ok=True)
+        sums = scratch/'SHA256SUMS'
+        sums.write_text(''.join(sha(path) + '  ' + path.name + '\n'
+                               for path in sorted((ROOT/'dist').glob('*.jar'))))
+        replace_file(sums, ROOT/'dist/SHA256SUMS')
 
 if __name__ == '__main__':
     main()

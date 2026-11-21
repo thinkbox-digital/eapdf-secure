@@ -412,7 +412,10 @@ final class SemanticStructure {
       if (nested != null && nested.containsKey(COSName.S)) {
         normalizeBlocks(document, nested, oldParents, page, contentParentRole);
         String nestedRole = nested.getNameAsString(COSName.S);
-        if (INLINE_ROLES.contains(nestedRole)) inline = true;
+        // A linked image is inline content. Treating it as a block would wrap
+        // its sibling OBJR in a paragraph forbidden inside a non-grouping Link.
+        if (INLINE_ROLES.contains(nestedRole)
+            || "Figure".equals(nestedRole) && INLINE_ROLES.contains(contentParentRole)) inline = true;
         else block = true;
       } else inline = true;
     }
@@ -423,7 +426,11 @@ final class SemanticStructure {
       role = "Div";
     }
     // Headings and inline labels can arrive inside anonymous paragraph wrappers.
-    if (parentRole != null && INLINE_CONTAINERS.contains(parentRole) && ("P".equals(role) || "Div".equals(role)) && !block) {
+    // A transparent Div inside a link/span must also stay inline when it has no
+    // blocks. Retain actual paragraphs in links used to group block content.
+    if (parentRole != null && !block
+        && (INLINE_CONTAINERS.contains(parentRole) && ("P".equals(role) || "Div".equals(role))
+            || INLINE_ROLES.contains(parentRole) && "Div".equals(role))) {
       element.setName(COSName.S, "Span");
       return;
     }

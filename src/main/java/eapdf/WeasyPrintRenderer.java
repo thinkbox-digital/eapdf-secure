@@ -133,7 +133,16 @@ final class WeasyPrintRenderer {
         document.head().appendElement("title").text(record == null || Common.nz(record.subject).isBlank() ? "Email" : Common.stripInvalidXml(record.subject));
       for (var image : document.select("img[src]")) {
         String resolved = MailRenderPolicy.REMOTE_ASSET_URI_RESOLVER.resolveURI(baseUri, image.attr("src"));
-        if (resolved == null) image.removeAttr("src"); else image.attr("src", resolved);
+        if (resolved == null) image.removeAttr("src");
+        else {
+          image.attr("src", resolved);
+          // WeasyPrint tags images even when optional Accessibility is off.
+          // Its Figure tags require nonempty Alt, including for HTML alt="".
+          if (image.attr("alt").isBlank()) {
+            image.attr("alt", "Image from the original email");
+            Common.warn(record, "An email image has no source alternative text; a generic description is used and should be reviewed for accessibility.");
+          }
+        }
       }
       Files.writeString(directory.resolve("in.html"), document.outerHtml(), StandardCharsets.UTF_8);
       var assets = new LinkedHashMap<String, String>();
@@ -173,7 +182,8 @@ final class WeasyPrintRenderer {
           ProcessingLimits.checkCancelled();
           if (System.nanoTime() - started >= timeout) throw Common.fail("WeasyPrint exceeded rendering.timeoutSeconds.");
           try { peakRss = Math.max(peakRss, residentBytes(process.pid())); }
-          catch (java.nio.file.NoSuchFileException ended) { if (process.isAlive()) throw ended; }
+          // /proc can report ESRCH as a plain IOException during process exit.
+          catch (IOException ended) { if (!process.waitFor(100, TimeUnit.MILLISECONDS)) throw ended; }
           if (peakRss > config.memoryMiB * 1024L * 1024) throw Common.fail("WeasyPrint exceeded its Python memory allowance.");
           if (Files.size(log) > 1024 * 1024) throw Common.fail("WeasyPrint diagnostic output exceeded 1 MiB.");
         }

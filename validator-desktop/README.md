@@ -1,15 +1,20 @@
 # Standalone Java EA-PDF validator
 
-Unreleased export-security integration reports PDF signatures, C2PA binding and
-PAdES B-LTA separately from EA-PDF/PDF/A conformance. The window includes an
-**Export security** tab. Select independent local evidence with
-`EAPDF_SECURITY_POLICY`; optionally require a level with
-`EAPDF_SECURITY_REQUIRED_PROTECTION`. Unknown trust is not a pass. Failed security
-or an unmet required level gives exit 2 while retaining the conformance verdict.
-See [settings and verification limits](../docs/DIGITAL_SIGNATURES.md).
+The EA-PDF Validator window checks EA-PDF, PDF/A and applicable ISO 32005
+conformance only. It does not run C2PA or PAdES verification.
 
-This is a Java desktop app that checks one PDF at a time. It builds into one
-runnable JAR. **Java 21 or later is the only runtime installation needed.**
+The separate **EA-PDF Security Validator Experimental** window checks C2PA,
+PDF signatures, timestamps and PAdES B-LTA. It has its own **Trust JSON (optional)**
+and **Required protection** controls, categorized results and **Save report…**.
+Unknown trust is not a pass. Verification reads public evidence without opening
+a signing key or changing the PDF. See [settings and verification limits](../docs/DIGITAL_SIGNATURES.md).
+
+Existing command-line validation retains its separate security results and
+`EAPDF_SECURITY_POLICY` / `EAPDF_SECURITY_REQUIRED_PROTECTION` settings. Failed
+security or an unmet required level gives exit 2 while retaining the conformance verdict.
+
+These Java desktop apps check one PDF at a time and build into separate runnable
+JARs. **Java 21 or later is the only runtime installation needed.**
 No Python, Docker, browser, server, source checkout or separate rule files are
 needed. The PDF/A engine, its libraries, the EA-PDF rule descriptions and the
 selected ISO 32005 profile are built into the JAR.
@@ -58,28 +63,43 @@ From the repository root, using Java 21 and Maven:
 mvn -f validator-desktop/pom.xml verify
 ```
 
-On Linux, the JAR is written to `/tmp/eapdf-validator-build/eapdf-validator-2.2.0-beta.3.jar`.
+On Linux, the JAR is written to `/tmp/eapdf-validator-build/eapdf-validator-2.3.0.jar`.
+The separate security app is `/tmp/eapdf-validator-build/eapdf-security-validator-2.3.0.jar`.
 Override the build directory with `-Deapdf.build.directory=/tmp/your-build`.
 No build files are written to the creator's `target/` directory.
 `verify` checks the final shaded JAR's manifest, ZIP CRCs, bundled runtime classes,
 resources and Java 21 entry point from a clean directory. Both Maven JAR and Shade
-stages explicitly set `Main-Class: eapdf.ValidatorGui`.
+stages explicitly set the conformance entry point to `eapdf.ValidatorGui`;
+the security JAR uses `eapdf.SecurityValidatorGui`. Both executable archives are checked.
 
 To build, verify and atomically replace the distributable:
 
 ```sh
 python3 scripts/package_validator.py
-(cd dist && sha256sum -c eapdf-validator-2.2.0-beta.3.jar.sha256)
+(cd dist && sha256sum -c eapdf-validator-2.3.0.jar.sha256)
+(cd dist && sha256sum -c eapdf-security-validator-2.3.0.jar.sha256)
 ```
 
-Publish the executable `eapdf-validator-2.2.0-beta.3.jar`, not the unshaded `original-` JAR.
-The packaging command verifies the build before replacing the distributable.
+Publish the executable `eapdf-validator-2.3.0.jar`, not the unshaded `original-` JAR.
+The packaging command verifies both builds before replacing their distributables.
 
 ## Run
 
 ```sh
-java -jar /path/to/eapdf-validator-2.2.0-beta.3.jar
+java -jar /path/to/eapdf-validator-2.3.0.jar
 ```
+
+For C2PA and PAdES verification, start the separate window:
+
+```sh
+java -jar /path/to/eapdf-security-validator-2.3.0.jar
+```
+
+Choose a PDF, optionally select public trust-policy JSON and a required protection
+level, then press **Verify**. **Auto-detect** assesses the protection present in the
+file. The results distinguish C2PA, PAdES or PDF signature/CMS checks. Select a row
+for evidence; **Save report…** writes JSON including the input SHA-256. **Stop**
+cancels checking without retaining a completed verdict.
 
 The JAR includes its runtime libraries, rules and specification references; only
 a Java 21 desktop runtime is needed. On Linux/Crostini it needs the normal graphical
@@ -101,6 +121,11 @@ The initial list follows specification order. Identical rule/result/message rows
 are grouped. Select a group to see its occurrence count and details;
 different results or messages remain separate. **Save report** preserves the full,
 ungrouped JSON report. **Stop** cancels a run.
+
+Collection child-validation details show each member's summary and the checks
+that explain its failure or incomplete result. Successful and inapplicable child
+checks remain in the saved report. Nested collection failures retain their leaf
+check details, including upstream ISO 32005 rule and structure context.
 
 The input PDF is read only. A separate Java worker lets Stop end checking without
 closing the window. Private scratch prefers disk storage when the system temp

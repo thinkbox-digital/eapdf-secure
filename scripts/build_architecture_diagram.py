@@ -36,9 +36,9 @@ def build(path):
     pdf = canvas.Canvas(str(path), pagesize=(1200, 750), invariant=1, pageCompression=1)
     pdf.setTitle('EA-PDF Software Architecture')
     pdf.setAuthor('Thinkbox.DIGITAL')
-    pdf.setSubject('Creator, standalone validation, and full/Lite readers; current product and dependency overview')
+    pdf.setSubject('Creator, standalone validation, and experimental Full reader; current product and dependency overview')
     pdf.setCreator('EA-PDF architecture diagram builder')
-    pdf.setKeywords('EA-PDF, architecture, creator, validator, viewer, Lite')
+    pdf.setKeywords('EA-PDF, architecture, creator, validator, viewer')
     blue = HexColor('#163f58'); ink = HexColor('#233b4a'); border = HexColor('#cbd9e2')
 
     def text(x, y, value, size=11, bold=False, color=ink):
@@ -66,14 +66,14 @@ def build(path):
         ('Java 21+  |  Desktop and command line', version),
         ('Email to preservation PDF', 'EML, MSG, PST, MBOX and Gmail. PDF 2.0 / PDF/A-4f, email metadata, document parts and attachments.'),
         ('Output choices', 'Single messages, combined archives or collections. Optional accessibility features, search indexes and signing.')])
-    card(xs[1], 418, width, 244, 'STANDALONE VALIDATOR', [
-        ('Java 21+  |  Desktop and command line', version),
-        ('Checks', f'{rules} project rule definitions; PDF/A validation; selected ISO 32005 structure rules.'),
-        ('Scope', 'Embedded PDFs, attachments and source consistency. Reports PASS, FAIL or INCOMPLETE. No server required.')])
-    card(xs[2], 418, width, 244, 'FULL AND LITE READERS', [
+    card(xs[1], 418, width, 244, 'STANDALONE VALIDATORS', [
+        ('Java 21+  |  Separate desktop windows', version),
+        ('Conformance window', f'{rules} project rules; PDF/A, ISO 32005, embedded files and source consistency.'),
+        ('Security window', 'C2PA, PDF signatures, timestamps and PAdES B-LTA; independent trust policy and reports. No server required.')])
+    card(xs[2], 418, width, 244, 'EXPERIMENTAL FULL READER', [
         ('Chromium and Firefox  |  Local files', reader['version']),
         ('Shared reading experience', 'PDF pages, message/folder navigation, attachments, text search, filtering and CSV/XMP export.'),
-        ('Lite', 'Same layout; no Conversations, Portfolio view, embedded indexes or large-archive optimizations. 32 MiB / 2,048 pages.')])
+        ('Export security', 'C2PA and PDF signature checks, selected CA roots, offline certificate/revocation checks and security reports.')])
 
     card(xs[0], 122, width, 274, 'CREATOR LIBRARIES', [
         ('PDF creation and metadata', f"PDFBox / XMPBox {java['pdfbox']}. OpenHTMLtoPDF {java['openhtmltopdf-pdfbox']} with four maintained patches."),
@@ -82,10 +82,10 @@ def build(path):
     card(xs[1], 122, width, 274, 'VALIDATION LIBRARIES', [
         ('veraPDF engines and project checks', f"Core / XMP {vera['core']}; parser {vera['parser']}; PDF model {vera['pdf-model']}; validation model {vera['validation-model']}. Local storage/resource patches remain."),
         ('PDF and email inspection', f"PDFBox {vera['pdfbox']}; POI {vera['poi']}; Gson {vera['gson']}; Jakarta Mail / Angus Mail; project EA-PDF checks."),
-        ('Optional development tool', 'Python CLI for regression tests and diagnostics. The web workbench and its deployment code are removed.')])
+        ('Separate security application', 'Shared pdf-security library, C2PA and EU DSS archival verification. Python CLI remains for conformance regressions and diagnostics.')])
     card(xs[2], 122, width, 274, 'READER FOUNDATION', [
         ('PDF engine and shared hooks', f"PDF.js {reader['dependencies']['pdfjs-dist']}. Generic hooks expose document parts / DPM, associated files, metadata and collection membership."),
-        ('Application layer', f"TypeScript {reader['devDependencies']['typescript']}; browser extensions. Full and Lite share maintained source; Lite is a reproducible standalone export."),
+        ('Application layer', f"TypeScript {reader['devDependencies']['typescript']}; browser extensions. Full Chromium and Firefox packages share maintained source."),
         ('Build tools only', f"Node {reader['engines']['node']}; npm {reader['engines']['npm']}; Playwright {reader['devDependencies']['playwright']}. No Java or Python needed by the extensions.")])
 
     pdf.setStrokeColor(blue); pdf.setFillColor(blue); pdf.setLineWidth(1.5)
@@ -98,7 +98,7 @@ def build(path):
 
     text(40, 91, 'High-level overview: transitive libraries and some helpers are omitted. Rule counts are project definitions, not a claim of complete specification coverage.', 9)
     text(40, 73, 'Preserve original mailboxes separately. Validation has defined limits; PDF/UA machine checks do not replace human accessibility review.', 9)
-    text(40, 43, 'Source and maintenance notes: docs/ARCHITECTURE.md  |  github.com/thinkbox-digital/eapdf', 9, color=blue)
+    text(40, 43, 'Source and maintenance notes: docs/ARCHITECTURE.md  |  github.com/thinkbox-digital/eapdf-secure', 9, color=blue)
     pdf.showPage(); pdf.save()
 
 

@@ -26,6 +26,34 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
 class WeasyIntegrationTests {
   @TempDir Path directory;
 
+  @Test void imagesWithoutDescriptionsRenderWithAccessibilityOnOrOff() throws Exception {
+    String python = System.getenv("EAPDF_WEASYPRINT_PYTHON");
+    assumeTrue(python != null && Files.isExecutable(Path.of(python)), "Optional pinned WeasyPrint environment is not configured");
+    EapdfConfig config = EapdfConfig.get();
+    var previous = config.rendering;
+    boolean previousAccessibility = config.accessibility.addPdfUaFeatures;
+    config.rendering = new EapdfConfig.RenderingConfig(); config.rendering.pythonExecutable = python;
+    try {
+      for (boolean accessibility : List.of(false, true)) for (String alternative : List.of("", "alt=''", "alt='  '")) {
+        config.accessibility.addPdfUaFeatures = accessibility;
+        byte[] source = new String(complexEmail(), StandardCharsets.UTF_8).replace("alt='Four colored pixels'", alternative).getBytes(StandardCharsets.UTF_8);
+        EmailRecord record = EmlReader.readRfc822Bytes(source, "image.eml", "image.eml", "", List.of(), false);
+        byte[] pdf = PdfMailWriter.buildSingleMessagePdf(directory.resolve("eml_image_" + accessibility + "_1s.pdf"), record,
+            TestSupport.fontPath(), TestSupport.iccPath(), false, directory, 1, "s").pdfBytes;
+        try (PDDocument document = Loader.loadPDF(pdf)) {
+          assertTrue(new PDFTextStripper().getText(document).contains("Right edge"));
+          int images = 0;
+          for (var page : document.getPages()) for (var name : page.getResources().getXObjectNames())
+            if (page.getResources().getXObject(name) instanceof org.apache.pdfbox.pdmodel.graphics.image.PDImageXObject) images++;
+          assertTrue(images > 0, "Source image must remain rendered");
+        }
+        assertArrayEquals(source, record.sourceBytes);
+        assertTrue(record.conversionWarnings.stream().anyMatch(w -> w.contains("generic description")));
+        assertTrue(record.conversionWarnings.stream().noneMatch(w -> w.contains("Reduced rendering")));
+      }
+    } finally { config.rendering = previous; config.accessibility.addPdfUaFeatures = previousAccessibility; }
+  }
+
   @Test void complexEmailKeepsTagsUnicodeLinksFontsAndIsolationPolicy() throws Exception {
     String python = System.getenv("EAPDF_WEASYPRINT_PYTHON");
     assumeTrue(python != null && Files.isExecutable(Path.of(python)), "Optional pinned WeasyPrint environment is not configured");

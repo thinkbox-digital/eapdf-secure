@@ -3,7 +3,7 @@ import {Certificate,CertificateChainValidationEngine,CertificateRevocationList,B
 import type {ICryptoEngine} from 'pkijs';
 import {certificate,der,hex,UnsupportedSecurity} from './security-cms.js';
 import {sha256} from './domain/hashes.js';
-import type {SecurityCheck,SecurityEvidence,SecurityState} from './security-types.js';
+import type {SecurityCheck,SecurityEvidence,SecurityState,SelectedTrustCertificate} from './security-types.js';
 
 type Verdict={status:SecurityState;detail:string};
 export type TrustResult={trust:Verdict;revocation:Verdict};
@@ -67,6 +67,15 @@ export class OfflineTrust {
   async policy():Promise<SecurityCheck> {
     const fingerprints=await Promise.all(this.roots.map(async c=>sha256(new Uint8Array(c.toSchema().toBER(false)))));
     return {name:'Selected trust policy',status:this.roots.length?'PASS':'UNKNOWN',detail:this.rootError||(this.roots.length?`${this.roots.length} independently selected CA certificate(s); session only. SHA-256: ${fingerprints.join(', ')}. Embedded PDF certificates never become trust anchors.`:'No independently trusted CA certificates selected. Use Choose trusted roots in this report. No private key or passphrase is needed.')};
+  }
+  async selectedCertificates():Promise<SelectedTrustCertificate[]> {
+    return Promise.all(this.roots.map(async cert=>{
+      this.check();
+      return {sha256:await sha256(new Uint8Array(cert.toSchema().toBER(false))),
+        subject:cert.subject.typesAndValues.map(v=>v.value.valueBlock.value).join(', '),
+        issuer:cert.issuer.typesAndValues.map(v=>v.value.valueBlock.value).join(', '),
+        notBefore:cert.notBefore.value.toISOString(),notAfter:cert.notAfter.value.toISOString()};
+    }));
   }
   async assess(leaf:Certificate,extra:Certificate[],at:Date,timestamp=false):Promise<TrustResult>{
     this.check();
