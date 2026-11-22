@@ -1,5 +1,4 @@
 """Meaningful process-accounting/cleanup regressions for renderer comparisons."""
-import importlib.util
 import json
 import os
 from pathlib import Path
@@ -9,9 +8,8 @@ import threading
 import unittest
 
 ROOT = Path(__file__).resolve().parents[1]
-SPEC = importlib.util.spec_from_file_location("renderer_benchmark", ROOT / "scripts/benchmark_renderers.py")
-BENCH = importlib.util.module_from_spec(SPEC)
-SPEC.loader.exec_module(BENCH)
+sys.path.insert(0, str(ROOT / "scripts"))
+import benchmark_renderers as BENCH
 
 
 @unittest.skipUnless(sys.platform.startswith("linux") and Path("/proc").is_dir(), "Linux /proc accounting")
