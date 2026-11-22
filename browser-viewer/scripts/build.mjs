@@ -58,7 +58,7 @@ try {
     for (const name of ['quickjs-eval.js', 'quickjs-eval.wasm', 'LICENSE_QUICKJS', 'LICENSE_PDFJS_QUICKJS'])
       await rm(join(directory,'vendor/pdfjs/wasm',name),{force:true});
     await cp('node_modules/@xmldom/xmldom/LICENSE',join(directory,'xmldom-LICENSE'));
-    for(const name of ['pkijs','asn1js','pvutils','pvtsutils','bytestreamjs','tslib'])await cp(join('node_modules',name,name==='tslib'?'LICENSE.txt':'LICENSE'),join(directory,name+'-LICENSE'));
+    for(const name of ['pkijs','asn1js'])await cp(join('node_modules',name,'LICENSE'),join(directory,name+'-LICENSE'));
     await cp('LICENSE', join(directory, 'LICENSE'));
     await cp('../docs/site/privacy.md', join(directory, 'PRIVACY.md'));
     await cp('THIRD_PARTY_NOTICES.md', join(directory, 'THIRD_PARTY_NOTICES.md'));

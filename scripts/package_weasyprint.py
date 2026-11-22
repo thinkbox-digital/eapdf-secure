@@ -155,5 +155,5 @@ def build(destination):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--output', type=Path, default=ROOT / 'dist/runtime/weasyprint' / ('linux-' + platform.machine()))
+    parser.add_argument('--output', type=Path, default=ROOT / '.local/runtime/weasyprint' / ('linux-' + platform.machine()))
     build(parser.parse_args().output)

@@ -17,7 +17,8 @@
     "src/core/fonts.js": "ac097fbf0b046f8a5d743ce56f34e1df3e14b4f8a88efed65e185647f7ccca65",
     "test/unit/bidi_spec.js": "6c4ad185a1980aa5ad26a659234715b6709b690b964fbab133037c1dbc476dcb",
     "src/core/editor/pdf_editor.js": "a8c7493e2ea47bc93ecbaa38114d1f52cf2ec7d38d4daefad5b91baff55dccde",
-    "src/core/parser.js": "37ae52e3aee99d4c98bf4b21a3fb74cf3e9e07585dd81d0099c7daadea8a1eb4"
+    "src/core/parser.js": "37ae52e3aee99d4c98bf4b21a3fb74cf3e9e07585dd81d0099c7daadea8a1eb4",
+    "src/core/core_utils.js": "2965027a2f5d5e4a4b510efcadd4babb369e89ab4ab9a61761e3a0a6770bcf46"
   },
   "localInputs": {
     "vendor/pdfjs-patches/0001-document-parts.patch": "b3d54b75e5f9dcbe6a25ee925904f7d7994307d409256b3f6cfdf173d6850fc6",
@@ -38,11 +39,12 @@
     "vendor/pdfjs-patches/0012-security-facts.patch": "eda8b96b012d00a0ec4557a0dd1b4cc3d1f35c70c5b9d5fbbaaa4021c7241887",
     "vendor/pdfjs-patches/security.test.mjs": "1554845e74b62b2328e7af2332d7f8d70ac79723d80c9e385537042f0eb05e5f",
     "vendor/pdfjs-patches/0013-creator-archival.patch": "4acf6b86cc6e0a3cf9cba06179740757b217e5a4514539ec3ee79305d41c8c31",
-    "vendor/pdfjs-patches/archival.test.mjs": "5f3ed0f14ae44999c6d5d079573e2e1ff48ef69a23b84e3909a57fe22a2ebaed"
+    "vendor/pdfjs-patches/archival.test.mjs": "5f3ed0f14ae44999c6d5d079573e2e1ff48ef69a23b84e3909a57fe22a2ebaed",
+    "vendor/pdfjs-patches/0014-font-name-quote-regexp.patch": "c138225099a12fd88dd84043512fec41feb8b40e26a653da724d1f5a3163cd1b"
   },
   "outputs": {
     "vendor/pdfjs-patched/pdf.mjs": "8b40947296f939f61f1b042fd805a73fd0e6f5f3b056bffed6d9ec0e07a2a095",
-    "vendor/pdfjs-patched/pdf.worker.mjs": "ef76d894c19fb95a56a538f235c49dc25d47432657f7eb4fdb3950bf095b88f3"
+    "vendor/pdfjs-patched/pdf.worker.mjs": "caa08240157c6f6039329d2a674cf985f9c2972e0ee4edfaa505af299e9d0e56"
   },
   "internalEventBuildDefine": "0a475cb6-573c-46ed-869d-fa7c5839d995",
   "patches": [
@@ -58,6 +60,7 @@
     "vendor/pdfjs-patches/0010-rtl-ligatures.patch",
     "vendor/pdfjs-patches/0011-page-only-extraction.patch",
     "vendor/pdfjs-patches/0012-security-facts.patch",
-    "vendor/pdfjs-patches/0013-creator-archival.patch"
+    "vendor/pdfjs-patches/0013-creator-archival.patch",
+    "vendor/pdfjs-patches/0014-font-name-quote-regexp.patch"
   ]
 }

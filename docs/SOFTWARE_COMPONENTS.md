@@ -6,16 +6,17 @@ This inventory describes the main parts of the Creator, Java Validator, diagnost
 
 | Program or category | Files | Nonblank |
 | --- | ---: | ---: |
-| Creator | 63 | 17,432 |
+| Creator | 63 | 17,444 |
 | Creator distribution | 3 | 278 |
 | Creator and Java validator | 3 | 244 |
-| Java validator | 44 | 9,597 |
+| Java validator | 44 | 9,637 |
 | Java security validator | 3 | 292 |
 | Validation rule descriptions and data | 6 | 61,911 |
 | Python diagnostic validator | 14 | 11,382 |
 | Browser viewer Full | 80 | 6,364 |
 | Viewer local build and install tools | 4 | 142 |
-| Library patch recipes | 17 | 3,362 |
+| Desktop viewer | 20 | 6,995 |
+| Library patch recipes | 18 | 3,372 |
 
 The experimental checkout maintains the Full browser viewer for Chromium and Firefox. Rule data and library patches are listed separately.
 
@@ -41,7 +42,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Program | Component | Files | Nonblank |
 | --- | --- | ---: | ---: |
-| Creator | Window and user controls | 4 | 1,003 |
+| Creator | Window and user controls | 4 | 1,012 |
 | Creator | Commands and conversion processes | 9 | 1,562 |
 | Creator | Email readers and source reconstruction | 9 | 2,682 |
 | Creator | PDF assembly and email appearance | 8 | 3,863 |
@@ -51,7 +52,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Creator | Accessibility font integration | 1 | 11 |
 | Creator | Metadata and document organization | 4 | 1,501 |
 | Creator | Embedded search indexing | 2 | 448 |
-| Creator | Signing and output integrity | 6 | 1,657 |
+| Creator | Signing and output integrity | 6 | 1,660 |
 | Creator | Memory limits and PDF storage | 9 | 839 |
 | Creator | Shared settings and models | 3 | 1,683 |
 | Creator | PST library integration | 3 | 490 |
@@ -59,7 +60,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Java validator | Window and report presentation | 2 | 663 |
 | Java validator | Processes and execution | 6 | 1,060 |
 | Java security validator | Separate window and security worker | 3 | 292 |
-| Java validator | Executable validation rules | 8 | 4,511 |
+| Java validator | Executable validation rules | 8 | 4,551 |
 | Java validator | Rule references and finding records | 2 | 139 |
 | Java validator | Source and content evidence | 10 | 965 |
 | Java validator | Memory limits and PDF storage | 9 | 574 |
@@ -81,7 +82,8 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Browser viewer Full | Full edition Portfolio contract | 1 | 21 |
 | Browser viewer Full | Browser extension integration | 2 | 46 |
 | Viewer local build and install tools | Versioned builds and permanent unpacked installs | 4 | 142 |
-| Library patch recipes | PDF.js patches for reader APIs and behavior | 13 | 2,795 |
+| Desktop viewer | Application, navigation and rendering | 20 | 6,995 |
+| Library patch recipes | PDF.js patches for reader APIs and behavior | 14 | 2,805 |
 | Library patch recipes | HTML renderer patches for PDF output | 4 | 567 |
 
 ## Creator
@@ -90,7 +92,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/EapdfGui.java](../src/main/java/eapdf/EapdfGui.java) | 875 | Shows input, output and conversion settings and controls a conversion run. |
+| [src/main/java/eapdf/EapdfGui.java](../src/main/java/eapdf/EapdfGui.java) | 884 | Shows input, output and conversion settings and controls a conversion run. |
 | [src/main/java/eapdf/SigningSettings.java](../src/main/java/eapdf/SigningSettings.java) | 69 | Imports operator-selected signing settings and resolves local evidence paths without retaining the settings filename. |
 | [src/main/java/eapdf/GuiRunConfiguration.java](../src/main/java/eapdf/GuiRunConfiguration.java) | 25 | Translates window selections into a checked run configuration. |
 | [src/main/java/eapdf/GuiLog.java](../src/main/java/eapdf/GuiLog.java) | 34 | Collects and displays conversion messages in the window. |
@@ -178,7 +180,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [src/main/java/eapdf/PdfSigning.java](../src/main/java/eapdf/PdfSigning.java) | 250 | Applies PDF signatures using configured signing material. |
-| [src/main/java/eapdf/EaPdfSecurity.java](../src/main/java/eapdf/EaPdfSecurity.java) | 152 | Coordinates C2PA export provenance, timestamped signing and archival renewal before publication. |
+| [src/main/java/eapdf/EaPdfSecurity.java](../src/main/java/eapdf/EaPdfSecurity.java) | 155 | Coordinates C2PA export provenance, timestamped signing and archival renewal before publication. |
 | [src/main/java/eapdf/OutputTransaction.java](../src/main/java/eapdf/OutputTransaction.java) | 212 | Stages completed output and publishes it safely. |
 | [src/main/java/eapdf/PreservationInventory.java](../src/main/java/eapdf/PreservationInventory.java) | 357 | Records source content and checks that conversion preserved the expected material. |
 | [src/main/java/eapdf/PdfCreationValidator.java](../src/main/java/eapdf/PdfCreationValidator.java) | 587 | Checks newly created PDFs and reconciles preservation records before completion. |
@@ -262,7 +264,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [validator-desktop/src/main/java/eapdf/EaPdfChecks.java](../validator-desktop/src/main/java/eapdf/EaPdfChecks.java) | 987 | Checks EA-PDF profile and document-level requirements. |
-| [validator-desktop/src/main/java/eapdf/MetadataChecks.java](../validator-desktop/src/main/java/eapdf/MetadataChecks.java) | 1,571 | Checks XMP declarations and message metadata consistency. |
+| [validator-desktop/src/main/java/eapdf/MetadataChecks.java](../validator-desktop/src/main/java/eapdf/MetadataChecks.java) | 1,611 | Checks XMP declarations and message metadata consistency. |
 | [validator-desktop/src/main/java/eapdf/AttachmentChecks.java](../validator-desktop/src/main/java/eapdf/AttachmentChecks.java) | 280 | Checks embedded files, attachment records and source preservation evidence. |
 | [validator-desktop/src/main/java/eapdf/DocumentPartChecks.java](../validator-desktop/src/main/java/eapdf/DocumentPartChecks.java) | 209 | Checks document-part structure and page ownership links. |
 | [validator-desktop/src/main/java/eapdf/LogicalStructureChecks.java](../validator-desktop/src/main/java/eapdf/LogicalStructureChecks.java) | 397 | Checks tagged PDF structure and its correspondence with email content. |
@@ -531,6 +533,34 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | [browser-viewer/scripts/extension-version.mjs](../browser-viewer/scripts/extension-version.mjs) | 15 | Maps package versions to browser versions and advances minor versions. |
 
 
+## Desktop viewer
+
+### Application, navigation and rendering
+
+| Source file | Nonblank | Function |
+| --- | ---: | --- |
+| [desktop-viewer/src/main/java/eapdf/viewer/ContinuousReader.java](../desktop-viewer/src/main/java/eapdf/viewer/ContinuousReader.java) | 651 | Renders pages and tracks position in a continuous viewport. |
+| [desktop-viewer/src/main/java/eapdf/viewer/EmbeddedTextSearch.java](../desktop-viewer/src/main/java/eapdf/viewer/EmbeddedTextSearch.java) | 644 | Reads and validates a supported embedded archive search index. |
+| [desktop-viewer/src/main/java/eapdf/viewer/FileCards.java](../desktop-viewer/src/main/java/eapdf/viewer/FileCards.java) | 158 | Displays associated files and exposes preview and export actions. |
+| [desktop-viewer/src/main/java/eapdf/viewer/MailNavigation.java](../desktop-viewer/src/main/java/eapdf/viewer/MailNavigation.java) | 771 | Builds message and folder navigation from archive metadata. |
+| [desktop-viewer/src/main/java/eapdf/viewer/PackagedViewerLauncher.java](../desktop-viewer/src/main/java/eapdf/viewer/PackagedViewerLauncher.java) | 52 | Loads the JavaFX graphics runtime bundled for the host platform. |
+| [desktop-viewer/src/main/java/eapdf/viewer/PdfAssetIndex.java](../desktop-viewer/src/main/java/eapdf/viewer/PdfAssetIndex.java) | 415 | Finds embedded and associated file records. |
+| [desktop-viewer/src/main/java/eapdf/viewer/PdfNavigation.java](../desktop-viewer/src/main/java/eapdf/viewer/PdfNavigation.java) | 226 | Builds page, asset and collection navigation from PDF records. |
+| [desktop-viewer/src/main/java/eapdf/viewer/PortfolioView.java](../desktop-viewer/src/main/java/eapdf/viewer/PortfolioView.java) | 760 | Presents PDF Portfolio items, folders and opening destinations. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerApplication.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerApplication.java) | 2,160 | Runs the viewer window and coordinates document and pane actions. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerArchiveStats.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerArchiveStats.java) | 34 | Summarizes profile and archive contents for the status bar. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerGlyph.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerGlyph.java) | 48 | Provides icons for desktop reader controls. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerLauncher.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerLauncher.java) | 8 | Starts the JavaFX application. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerMailScan.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerMailScan.java) | 75 | Extracts mail navigation properties from the loaded document. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerRenderingDocument.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerRenderingDocument.java) | 47 | Opens the PDF rendering backend and manages its document lifetime. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerSearch.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerSearch.java) | 138 | Searches the active PDF or archive members and locates matches. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerSession.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerSession.java) | 87 | Owns the active PDF and its links to parent documents. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerTools.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerTools.java) | 321 | Supports attachment, metadata, message and printing actions. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerWindowState.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerWindowState.java) | 119 | Persists window, pane and zoom settings. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerXmp.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerXmp.java) | 168 | Reads document XMP and builds metadata exports. |
+| [desktop-viewer/src/main/java/eapdf/viewer/XdgFileChooser.java](../desktop-viewer/src/main/java/eapdf/viewer/XdgFileChooser.java) | 113 | Opens native Linux file dialogs through XDG Desktop Portal. |
+
+
 ## Library patch recipes
 
 ### PDF.js patches for reader APIs and behavior
@@ -550,6 +580,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | [browser-viewer/vendor/pdfjs-patches/0011-page-only-extraction.patch](../browser-viewer/vendor/pdfjs-patches/0011-page-only-extraction.patch) | 107 | Adds isolated page-only extraction for scoped message downloads. |
 | [browser-viewer/vendor/pdfjs-patches/0012-security-facts.patch](../browser-viewer/vendor/pdfjs-patches/0012-security-facts.patch) | 70 | Exposes bounded signature dictionaries and decoded DSS certificates/CRLs/OCSP without applying application trust policy. |
 | [browser-viewer/vendor/pdfjs-patches/0013-creator-archival.patch](../browser-viewer/vendor/pdfjs-patches/0013-creator-archival.patch) | 266 | Exposes prefix-bounded historical creator revisions and protected-object graphs; rejects ambiguous structures and visible timestamp changes. |
+| [browser-viewer/vendor/pdfjs-patches/0014-font-name-quote-regexp.patch](../browser-viewer/vendor/pdfjs-patches/0014-font-name-quote-regexp.patch) | 10 | Uses equivalent character classes for quotes in font names. |
 
 ### HTML renderer patches for PDF output
 

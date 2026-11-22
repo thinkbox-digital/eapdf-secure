@@ -1,8 +1,23 @@
 # Project status
 
-EA-PDF Secure 2.3.1 packages the creator and both standalone validators,
-plus Full reader 1.32.0 for Chromium and Firefox. See the
-[release notes](releases/2.3.1.md) and [downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.1).
+**Release verification.** The [package acceptance check](../README.md#release-package-acceptance)
+exercises the creator, standalone validator, and packaged readers on the same
+six generated profiles. It also checks explicit collection metadata against
+validated children. GitHub publication through the acceptance workflow uses the
+packages and checksums from the successful job.
+
+
+Current release, 22 November 2026. Creator and validator **2.3.2**,
+browser reader **1.33.0**, and desktop viewer **0.8.0**.
+[Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.2) ·
+[Release notes](releases/2.3.2.md).
+
+**New code.** Desktop Viewer 0.8.0 is available as a standalone JAR. The
+release acceptance run covered all six profiles in the creator, standalone
+validator, Chromium, Firefox, and the desktop viewer.
+
+**Dependency maintenance.** The Maven build-helper upgrade from PR #8
+requires Maven 3.9.0. Secure retains 3.6.1, which builds on Maven 3.8.
 
 The compact Full reader gives the header actions a full-width row below 600 pixels, leaving more vertical space for the PDF.
 
@@ -554,6 +569,9 @@ retained heap in the storage probes. This is not a general speed or memory claim
 Release checks and library versions are recorded in the
 [verification record](releases/2.2.0-beta.3-validation.md).
 Earlier counts remain dated evidence in the changelog and release records.
+
+The desktop viewer ships as one versioned Java JAR per checkout. It runs
+with Java 21 or later and a separate JavaFX runtime for the host platform.
 
 The tested desktop environment is mainly Linux with Java 21. Reader extensions
 are unsigned; Firefox installation is temporary. Browser-store distribution,

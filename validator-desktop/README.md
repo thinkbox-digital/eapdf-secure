@@ -63,8 +63,8 @@ From the repository root, using Java 21 and Maven:
 mvn -f validator-desktop/pom.xml verify
 ```
 
-On Linux, the JAR is written to `/tmp/eapdf-validator-build/eapdf-validator-2.3.1.jar`.
-The separate security app is `/tmp/eapdf-validator-build/eapdf-security-validator-2.3.1.jar`.
+On Linux, the JAR is written to `/tmp/eapdf-validator-build/eapdf-validator-2.3.2.jar`.
+The separate security app is `/tmp/eapdf-validator-build/eapdf-security-validator-2.3.2.jar`.
 Override the build directory with `-Deapdf.build.directory=/tmp/your-build`.
 No build files are written to the creator's `target/` directory.
 `verify` checks the final shaded JAR's manifest, ZIP CRCs, bundled runtime classes,
@@ -76,23 +76,23 @@ To build, verify and atomically replace the distributable:
 
 ```sh
 python3 scripts/package_validator.py
-(cd dist && sha256sum -c eapdf-validator-2.3.1.jar.sha256)
-(cd dist && sha256sum -c eapdf-security-validator-2.3.1.jar.sha256)
+(cd dist && sha256sum -c eapdf-validator-2.3.2.jar.sha256)
+(cd dist && sha256sum -c eapdf-security-validator-2.3.2.jar.sha256)
 ```
 
-Publish the executable `eapdf-validator-2.3.1.jar`, not the unshaded `original-` JAR.
+Publish the executable `eapdf-validator-2.3.2.jar`, not the unshaded `original-` JAR.
 The packaging command verifies both builds before replacing their distributables.
 
 ## Run
 
 ```sh
-java -jar /path/to/eapdf-validator-2.3.1.jar
+java -jar /path/to/eapdf-validator-2.3.2.jar
 ```
 
 For C2PA and PAdES verification, start the separate window:
 
 ```sh
-java -jar /path/to/eapdf-security-validator-2.3.1.jar
+java -jar /path/to/eapdf-security-validator-2.3.2.jar
 ```
 
 Choose a PDF, optionally select public trust-policy JSON and a required protection

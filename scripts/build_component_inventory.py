@@ -323,6 +323,29 @@ local-reload-smoke.mjs|Checks an actual extension reload across two versions at 
 extension-version.mjs|Maps package versions to browser versions and advances minor versions.
 ''')
 
+group('Desktop viewer', 'Application, navigation and rendering', 'desktop-viewer/src/main/java/eapdf/viewer/', '''
+ContinuousReader.java|Renders pages and tracks position in a continuous viewport.
+EmbeddedTextSearch.java|Reads and validates a supported embedded archive search index.
+FileCards.java|Displays associated files and exposes preview and export actions.
+MailNavigation.java|Builds message and folder navigation from archive metadata.
+PackagedViewerLauncher.java|Loads the JavaFX graphics runtime bundled for the host platform.
+PdfAssetIndex.java|Finds embedded and associated file records.
+PdfNavigation.java|Builds page, asset and collection navigation from PDF records.
+PortfolioView.java|Presents PDF Portfolio items, folders and opening destinations.
+ViewerApplication.java|Runs the viewer window and coordinates document and pane actions.
+ViewerArchiveStats.java|Summarizes profile and archive contents for the status bar.
+ViewerGlyph.java|Provides icons for desktop reader controls.
+ViewerLauncher.java|Starts the JavaFX application.
+ViewerMailScan.java|Extracts mail navigation properties from the loaded document.
+ViewerRenderingDocument.java|Opens the PDF rendering backend and manages its document lifetime.
+ViewerSearch.java|Searches the active PDF or archive members and locates matches.
+ViewerSession.java|Owns the active PDF and its links to parent documents.
+ViewerTools.java|Supports attachment, metadata, message and printing actions.
+ViewerWindowState.java|Persists window, pane and zoom settings.
+ViewerXmp.java|Reads document XMP and builds metadata exports.
+XdgFileChooser.java|Opens native Linux file dialogs through XDG Desktop Portal.
+''')
+
 # Patch text is counted separately: context and removed lines are not live code.
 for title, directory in (
     ('PDF.js patches for reader APIs and behavior', 'browser-viewer/vendor/pdfjs-patches'),
@@ -341,6 +364,7 @@ for title, directory in (
         '0009-named-opening': 'Supports opening documents at named destinations.',
         '0010-rtl-ligatures': 'Backports corrected extraction order for right-to-left ligatures.',
         '0011-page-only-extraction': 'Adds isolated page-only extraction for scoped message downloads.',
+        '0014-font-name-quote-regexp': 'Uses equivalent character classes for quotes in font names.',
         '0013-creator-archival': 'Exposes prefix-bounded historical creator revisions and protected-object graphs; rejects ambiguous structures and visible timestamp changes.',
         '0012-security-facts': 'Exposes bounded signature dictionaries and decoded DSS certificates/CRLs/OCSP without applying application trust policy.',
         '0001-Add-PDF-A-4-conformance-support': 'Adds PDF/A-4 rendering support.',
@@ -369,6 +393,7 @@ def render():
         ('validator-desktop/src/main/java', {'.java'}),
         ('browser-viewer/src', {'.ts', '.html', '.css', '.json'}),
         ('eapdf_validation', {'.py'}),
+        ('desktop-viewer/src/main/java', {'.java'}),
     ):
         expected.update(p.relative_to(ROOT).as_posix() for p in (ROOT / directory).rglob('*')
                         if p.is_file() and p.suffix in suffixes)

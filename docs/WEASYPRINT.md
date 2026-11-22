@@ -49,7 +49,7 @@ native libraries; end-user machines do not supply them. From the project root:
 python3 -m venv /tmp/eapdf-runtime-builder
 /tmp/eapdf-runtime-builder/bin/python -I -m pip --isolated install -r requirements-weasyprint-build.lock
 /tmp/eapdf-runtime-builder/bin/python -I scripts/package_weasyprint.py
-python3 scripts/check_bundled_renderer.py --runtime dist/runtime/weasyprint/linux-x86_64 --output /tmp/eapdf-runtime-check
+python3 scripts/check_bundled_renderer.py --runtime .local/runtime/weasyprint/linux-x86_64 --output /tmp/eapdf-runtime-check
 # Build Java artifacts in a temporary directory, then embed before distribution.
 mvn -Deapdf.build.directory=/tmp/eapdf-java-build package
 python3 scripts/embed_weasyprint_runtime.py --runtime dist/runtime/weasyprint/linux-x86_64 /tmp/eapdf-java-build/emailtopdfa-2.3.1.jar /tmp/eapdf-java-build/emailtopdfa-2.3.1-gui.jar

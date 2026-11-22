@@ -7,10 +7,10 @@
 Turn saved emails and mailboxes into PDFs you can read, search and archive.
 Supports **EML, MSG, PST, MBOX and Gmail**.
 
-[User guide](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.1)
+[User guide](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.2)
 
-**Secure 2.3.1** includes the creator, conformance validator, security validator
-and Full reader 1.32.0 for Chromium and Firefox.
+**Secure 2.3.2** includes the creator, conformance validator, security validator
+and Full reader 1.33.0 for Chromium and Firefox.
 Java applications need **Java 21 or later**. The readers run locally in your browser.
 
 The creator defaults to WeasyPrint 70.0 and
@@ -47,15 +47,19 @@ and trusted-timestamp checks.
 
 ## Download
 
+Read local PDFs and EA-PDF archives in the standalone Linux viewer. See the
+[desktop viewer guide](desktop-viewer/README.md) for release packages and launch instructions.
+
 | Tool | What it does |
 | --- | --- |
-| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/emailtopdfa-2.3.1-gui.jar) | Convert email using a desktop window. |
-| [Command-line creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/emailtopdfa-2.3.1.jar) | Convert email from a terminal or script. |
-| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-validator-2.3.1.jar) | Check the finished PDFs and save a report. |
-| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-security-validator-2.3.1.jar) | Verify C2PA provenance, PDF signatures, timestamps and PAdES archival protection. |
-| Full reader: [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-viewer-1.32.0-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.1/eapdf-viewer-1.32.0-firefox.zip) | Read messages, folders and attachments; includes Conversations, Portfolio view and larger-archive support. |
+| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/emailtopdfa-2.3.2-gui.jar) | Convert email using a desktop window. |
+| [Command-line creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/emailtopdfa-2.3.2.jar) | Convert email from a terminal or script. |
+| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/eapdf-validator-2.3.2.jar) | Check the finished PDFs and save a report. |
+| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/eapdf-security-validator-2.3.2.jar) | Verify C2PA provenance, PDF signatures, timestamps and PAdES archival protection. |
+| [Desktop viewer](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/eapdf-desktop-viewer-secure-0.8.0.jar) | Read EA-PDF archives and PDF Portfolios in a Java 21+ desktop app. |
+| Full reader: [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/eapdf-viewer-1.33.0-chromium.zip) / [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.3.2/eapdf-viewer-1.33.0-firefox.zip) | Read messages, folders and attachments; includes Conversations, Portfolio view and larger-archive support. |
 
-The [release page](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.1)
+The [release page](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.2)
 also has the configuration ZIP, PDF manual and SHA-256 checksums.
 Browser extensions are unsigned; Firefox installation is temporary.
 
@@ -65,7 +69,7 @@ Browser extensions are unsigned; Firefox installation is temporary.
 2. Start the Creator:
 
    ```sh
-   java -jar emailtopdfa-2.3.1-gui.jar
+   java -jar emailtopdfa-2.3.2-gui.jar
    ```
 
 3. Choose your email files, output folder and format, then convert.
@@ -95,7 +99,7 @@ for details and [examples](examples/) for sample files.
 ## From the command line
 
 ```sh
-java -Xmx2g -jar emailtopdfa-2.3.1.jar --jobs 2 --out /tmp/eapdf-output message.eml
+java -Xmx2g -jar emailtopdfa-2.3.2.jar --jobs 2 --out /tmp/eapdf-output message.eml
 ```
 
 For a collection, add `--archive-profile c --archive-output /tmp/eapdf-output/archive_1c.pdf`.
@@ -136,6 +140,31 @@ The `everything` option processes all local inputs. These commands create files
 under `out/` and keep logs separately. Read the
 [regeneration instructions](docs/CONVERSION_OPERATIONS.md#regenerating-local-outputs)
 before running them.
+
+## Release package acceptance
+
+Run the same acceptance check locally with the candidate JARs and viewer ZIPs.
+Use JDK 21, Python 3.12 with `pikepdf`, and the browser viewer's Node dependencies
+and Playwright Chromium. For Firefox set `FIREFOX_PATH` and `GECKODRIVER_PATH`
+if the executables are outside PATH. For the desktop JAR use a graphical session
+or `xvfb-run` and set `JAVAFX_LIB` when JavaFX is installed separately.
+
+```sh
+python3 -B scripts/check_release_packages.py \
+  --creator "$CREATOR_JAR" --validator "$VALIDATOR_JAR" \
+  --viewer "$CHROMIUM_ZIP" --viewer "$FIREFOX_ZIP" \
+  --desktop-viewer "$DESKTOP_JAR" --output "$(mktemp -d)/acceptance"
+```
+
+Pass each browser or web ZIP with a separate `--viewer` argument. The gate
+generates all six profiles from dedicated EML fixtures, checks PDF structure
+and payloads, requires standalone EA-PDF and veraPDF PDF/A-4f success, rejects
+missing and invalid collection children, and opens the same PDFs in the
+package readers. Successful checks write `SHA256SUMS` beside the logs and reports.
+
+For a GitHub release, dispatch **Release package acceptance** on the
+`v<VERSION>` tag with **publish** enabled. Its publish job uploads the
+verified packages after rechecking their hashes.
 
 ## License
 

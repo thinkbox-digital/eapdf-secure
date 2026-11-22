@@ -669,10 +669,12 @@ public class EapdfGui {
       policy.setEditable(importedTrust[0] == null);
       JTextField tsa = new JTextField(controls.signing.tsaUrl, 36);
       Runnable updateProtection = () -> {
-        boolean archival = "PADES_B_LTA".equals(((ProtectionChoice) protection.getSelectedItem()).code());
+        var choice = (ProtectionChoice) protection.getSelectedItem();
+        if (choice == null) return;
+        boolean archival = "PADES_B_LTA".equals(choice.code());
         if (archival) c2pa.setSelected(true);
         c2pa.setEnabled(!archival);
-        if ("CMS_AND_PDF".equals(((ProtectionChoice) protection.getSelectedItem()).code())) tsa.setText("");
+        if ("CMS_AND_PDF".equals(choice.code())) tsa.setText("");
         else if (tsa.getText().isBlank()) tsa.setText(EapdfConfig.SigningConfig.DEFAULT_TSA_URL);
       };
       protection.addActionListener(changed -> updateProtection.run());
@@ -693,10 +695,12 @@ public class EapdfGui {
         chooser.setFileFilter(new FileNameExtensionFilter("JSON settings", "json"));
         if (chooser.showOpenDialog(settings) != JFileChooser.APPROVE_OPTION) return;
         try {
+          var choice = (ProtectionChoice) protection.getSelectedItem();
+          if (choice == null) throw new IllegalArgumentException("Choose a protection level.");
           var base = new Gson().fromJson(new Gson().toJson(controls.signing), EapdfConfig.SigningConfig.class);
           base.pkcs12Path = path.getText().trim(); base.passphraseFile = passphrase.getText().trim();
           base.alias = alias.getText().trim(); base.reason = reason.getText().trim(); base.c2pa = c2pa.isSelected();
-          base.protection = ((ProtectionChoice) protection.getSelectedItem()).code();
+          base.protection = choice.code();
           base.tsaUrl = tsa.getText().trim(); base.tsaPolicyOid = oid.getText().trim();
           base.trustPolicy = importedTrust[0]; base.policyPath = importedTrust[0] == null ? policy.getText().trim() : "";
           var loaded = SigningSettings.read(chooser.getSelectedFile().toPath(), base);
@@ -714,12 +718,17 @@ public class EapdfGui {
       addRow(settings, gc, 9, "", new JLabel("The password is requested unless a passphrase file is selected. Sources remain unchanged."));
       if (JOptionPane.showConfirmDialog(frame, settings, "Export security",
           JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE) == JOptionPane.OK_OPTION) {
+        var choice = (ProtectionChoice) protection.getSelectedItem();
+        if (choice == null) {
+          showError("Choose a protection level.");
+          return;
+        }
         controls.signing.pkcs12Path = path.getText().trim();
         controls.signing.alias = alias.getText().trim();
         controls.signing.reason = reason.getText().trim();
         controls.signing.passphraseFile = passphrase.getText().trim();
         controls.signing.c2pa = c2pa.isSelected();
-        controls.signing.protection = ((ProtectionChoice) protection.getSelectedItem()).code();
+        controls.signing.protection = choice.code();
         controls.signing.trustPolicy = importedTrust[0] == null ? null : importedTrust[0].deepCopy();
         controls.signing.policyPath = importedTrust[0] == null ? policy.getText().trim() : "";
         controls.signing.tsaUrl = tsa.getText().trim();

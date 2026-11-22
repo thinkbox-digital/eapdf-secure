@@ -16,7 +16,7 @@ export async function makeSbom(root) {
   ['JBIG2 and PDF.js wrapper','bundled-'+pin.version,'BSD and Apache-2.0','vendor/pdfjs/wasm/LICENSE_JBIG2'],
   ['ICC profiles','bundled-'+pin.version,'CC0-1.0','vendor/pdfjs/iccs/LICENSE'],
  ];
- if(pkg.name==='eapdf-browser-viewer')for(const name of ['pkijs','asn1js','pvutils','pvtsutils','bytestreamjs','tslib']){
+ if(pkg.name==='eapdf-browser-viewer')for(const name of ['pkijs','asn1js']){
   const dependency=JSON.parse(await read('node_modules/'+name+'/package.json'));
   materials.push([name,dependency.version,dependency.license,name+'-LICENSE']);
  }

@@ -23,14 +23,16 @@ public final class EaPdfSecurity {
     var cfg = EapdfConfig.get().signing;
     var level = PdfSecurity.Protection.valueOf(cfg.protection);
     var policy = configuredPolicy();
+    boolean timestampRequired = level != PdfSecurity.Protection.CMS_AND_PDF;
+    boolean hasTimestampService = !Common.nz(cfg.tsaUrl).isBlank();
     if (!cfg.enabled) {
-      if (level != PdfSecurity.Protection.CMS_AND_PDF || !Common.nz(cfg.tsaUrl).isBlank())
+      if (timestampRequired || hasTimestampService)
         throw Common.fail("Timestamped protection requires PDF signing; no downgrade was performed.");
       return;
     }
-    if ((level != PdfSecurity.Protection.CMS_AND_PDF) != !Common.nz(cfg.tsaUrl).isBlank())
+    if (timestampRequired != hasTimestampService)
       throw Common.fail("The timestamp service must match signing.protection; no downgrade was performed.");
-    if (level != PdfSecurity.Protection.CMS_AND_PDF && policy.anchors().isEmpty())
+    if (timestampRequired && policy.anchors().isEmpty())
       throw Common.fail("Trusted timestamps require independently selected trust certificates in signing.policyPath.");
     char[] password = password();
     try (var identity = identity(password)) {
@@ -83,6 +85,7 @@ public final class EaPdfSecurity {
     var cfg = EapdfConfig.get().signing;
     var profile = cfg.c2pa ? new EaPdfC2paProfile(Common.projectVersion()) : null;
     if (!cfg.enabled) {
+      if (profile == null) throw Common.fail("No PDF protection is configured.");
       C2pa.complete(path, null, null, profile);
       requireC2pa(path, profile);
       return;
