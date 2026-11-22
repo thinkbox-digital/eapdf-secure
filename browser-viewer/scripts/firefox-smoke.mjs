@@ -67,7 +67,7 @@ try {
   } } });
   session = result.sessionId;
   const addon = await call('/moz/addon/install', { path: resolve('dist/firefox'), temporary: true });
-  assert.equal(addon, 'eapdf-m0-viewer@thinkbox.local');
+  assert.equal(addon, 'eapdf-secure-viewer@thinkbox.local');
   await call('/moz/context', { context: 'chrome' });
   const uuid = await execute("Services.io.offline = true; return JSON.parse(Services.prefs.getCharPref('extensions.webextensions.uuids'))[arguments[0]];", [addon]);
   assert.ok(uuid);
