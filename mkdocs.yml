@@ -1,9 +1,9 @@
-site_name: EA-PDF
+site_name: EA-PDF Secure
 site_description: Convert email to preservation PDFs, validate the results, and read messages and attachments.
 site_author: Thinkbox.DIGITAL
-site_url: https://thinkbox-digital.github.io/eapdf/
-repo_url: https://github.com/thinkbox-digital/eapdf
-repo_name: thinkbox-digital/eapdf
+site_url: https://thinkbox-digital.github.io/eapdf-secure/
+repo_url: https://github.com/thinkbox-digital/eapdf-secure
+repo_name: thinkbox-digital/eapdf-secure
 copyright: Created by Thinkbox.DIGITAL
 # scripts/build_documentation.py supplies the assembled documentation directory.
 docs_dir: docs/site
@@ -77,4 +77,4 @@ nav:
       - Report a vulnerability: developers/security.md
   - Privacy: privacy.md
   - Downloads: downloads.md
-  - Source code: https://github.com/thinkbox-digital/eapdf
+  - Source code: https://github.com/thinkbox-digital/eapdf-secure

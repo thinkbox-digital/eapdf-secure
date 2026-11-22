@@ -12,6 +12,7 @@ Start with the [user guide](manual/user-manual.html) or [PDF manual](EA-PDF_User
 | Renderer phase attribution and concurrency | [Performance analysis](RENDERER_PERFORMANCE_ANALYSIS.md) |
 | Prospective OpenHTML removal savings | [Removal estimate](OPENHTML_REMOVAL_ESTIMATE.md) |
 | Upstream renderer risks and follow-ups | [WeasyPrint upstream review](WEASYPRINT_UPSTREAM_ISSUES.md) |
+| Desktop Viewer setup and use | [User manual](manual/user-manual.html#desktop-viewer) |
 | Reader installation and use | [Reader guide](../browser-viewer/README.md) |
 | Conversion and recovery | [Operations](CONVERSION_OPERATIONS.md) |
 | Gmail | [Gmail setup](GMAIL.md) |

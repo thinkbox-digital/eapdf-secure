@@ -1,6 +1,6 @@
 # Project status
 
-**Release verification.** The [package acceptance check](../README.md#release-package-acceptance)
+**Release verification.** The [package acceptance check](../TECHNICAL_GUIDE.md#release-package-acceptance)
 exercises the creator, standalone validator, and packaged readers on the same
 six generated profiles. It also checks explicit collection metadata against
 validated children. GitHub publication through the acceptance workflow uses the
@@ -385,7 +385,7 @@ assets remain packaged, so the complete ZIP reduction is 4.9%. These figures do
 not measure speed or browser memory. Build checks verify omitted modules,
 provenance and package hashes; Chromium extension/web and Firefox extension
 checks cover ordinary PDFs and all six EA-PDF profiles. See the
-[edition guide](../browser-viewer/even-more-lite/README.md).
+[edition guide](https://github.com/thinkbox-digital/eapdf-lite/blob/main/browser-viewer/README.md).
 
 New code, 17 November (unreleased): optional C2PA export provenance, timestamped
 CMS and PAdES B-LTA use the shared PDF security coordinator inside the outer-PDF
