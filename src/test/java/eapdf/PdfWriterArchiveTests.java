@@ -2,7 +2,6 @@ package eapdf;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.charset.StandardCharsets;
 import java.util.List;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
@@ -79,16 +78,12 @@ class PdfWriterArchiveTests {
       } finally { MailRenderPolicy.ACTIVE_RENDER_RECORD.remove(); }
     }
     String log = Files.readString(tempDir.resolve("logs/blocked.log"));
-    Assertions.assertTrue(log.contains("External resource loading is disabled"));
     Assertions.assertTrue(log.contains("encounters: 3"));
   }
 
   @Test
   void perFileLogCaptureWritesSummaryOnly() throws Exception {
     Path out = tempDir.resolve("summary.pdf");
-    EmailRecord record = new EmailRecord();
-    record.subject = "Monthly Sample";
-    record.sourcePath = "gmail://message-123";
 
     try (Common.CommandRuntime runtime = Common.commandRuntime(); Common.PerFileLogCapture capture = Common.beginPerFileLog(out)) {
       capture.append("Mar 28, 2026 12:00:38 PM org.apache.pdfbox.pdmodel.font.PDType1Font <init>\n");
@@ -96,8 +91,8 @@ class PdfWriterArchiveTests {
       capture.append("WARNING: Using fallback font LiberationSans for base font Symbol\n");
       capture.append("com.openhtmltopdf.css-parse WARNING:: ignored malformed CSS declaration\n");
       capture.append("ERROR StatusLogger Log4j2 could not find a logging implementation. Please add log4j-core to the classpath.\n");
-      Common.recordBlacklistedRemoteAsset("https://example.com/logo.gif", "Connection refused", record);
-      Common.recordBlacklistedRemoteAsset("https://example.com/logo.gif", "previously blacklisted", record);
+      Common.recordBlockedRemoteAsset("https://example.com/logo.gif?tracking=private-value");
+      Common.recordBlockedRemoteAsset("https://example.com/logo.gif?tracking=private-value");
     }
 
     Path logPath = tempDir.resolve("logs").resolve("summary.log");
@@ -105,12 +100,11 @@ class PdfWriterArchiveTests {
 
     Assertions.assertTrue(log.contains("Warnings recorded: 2"));
     Assertions.assertTrue(log.contains("Errors recorded: 0"));
-    Assertions.assertTrue(log.contains("Blacklisted remote asset encounters: 2"));
+    Assertions.assertTrue(log.contains("Blocked remote asset encounters: 2"));
+    Assertions.assertTrue(log.contains("Distinct blocked remote assets tracked: 1"));
     Assertions.assertTrue(log.contains("2x Using fallback font LiberationSans for base font Symbol"));
-    Assertions.assertTrue(log.contains("https://example.com/logo.gif"));
-    Assertions.assertTrue(log.contains("reason: Connection refused"));
-    Assertions.assertTrue(log.contains("subject: Monthly Sample"));
-    Assertions.assertTrue(log.contains("source: gmail://message-123"));
+    Assertions.assertFalse(log.contains("example.com"));
+    Assertions.assertFalse(log.contains("private-value"));
     Assertions.assertFalse(log.contains("org.apache.pdfbox.pdmodel.font.PDType1Font <init>"));
     Assertions.assertFalse(log.contains("css-parse WARNING::"));
     Assertions.assertFalse(log.contains("StatusLogger"));

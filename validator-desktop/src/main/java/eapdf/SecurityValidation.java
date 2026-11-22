@@ -15,6 +15,7 @@ public final class SecurityValidation {
 
   public static void main(String[] args) throws Exception {
     if (args.length != 2) throw new IllegalArgumentException("Security worker requires an input and report path");
+    ValidationRuntime.watchController();
     Path input = Path.of(args[0]), output = Path.of(args[1]);
     String policy = System.getenv("EAPDF_SECURITY_POLICY");
     List<Path> protectedInputs = protectedInputs(input, policy);

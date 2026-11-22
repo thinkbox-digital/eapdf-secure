@@ -3,7 +3,7 @@
 ## From the command line
 
 ```sh
-java -Xmx2g -jar emailtopdfa-2.4.0-beta.1.jar --jobs 2 --out /tmp/eapdf-output message.eml
+java -Xmx2g -jar emailtopdfa-2.4.0-beta.2.jar --jobs 2 --out /tmp/eapdf-output message.eml
 ```
 
 For a collection, add `--archive-profile c --archive-output /tmp/eapdf-output/archive_1c.pdf`.
@@ -21,7 +21,7 @@ is in `browser-viewer/local-install/full/firefox`.
 
 ## Build and contribute
 
-Use Java 21 and Maven. The source checkout includes the pinned PDF security
+Use Java 21 and Maven 3.9 or later. The source checkout includes the pinned PDF security
 dependency and its Maven metadata for both Java builds.
 
 ```sh

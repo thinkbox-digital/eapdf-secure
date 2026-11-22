@@ -18,6 +18,8 @@ from email.policy import SMTP
 
 import pikepdf
 
+from published_outputs import latest_batch_pdfs
+
 ROOT = Path(__file__).resolve().parents[1]
 PROFILES = ('1s', '1si', '1m', '1mi', '1c', '1ci')
 SUBJECTS = ('Release acceptance alpha', 'Release acceptance beta')
@@ -230,6 +232,28 @@ def check_desktop(classpath, java, label, output, manifest, javafx_lib=None):
         output / f'{label}.log')
 
 
+def check_batch_publication(creator, sources, output, environment):
+    target = output / 'batch-publication'
+    target.mkdir()
+    previous = {}
+    for attempt in ('first', 'next'):
+        log = target / f'{attempt}.log'
+        run(['java', '-Xmx768m', '-jar', creator, '--out', target, '--jobs', '1', sources[0].parent],
+            log, env=environment)
+        snapshots = latest_batch_pdfs(target)
+        require(len(snapshots) == len(sources), 'Batch manifest omitted generated PDFs')
+        require(all(value and sha256(path) == value for path, value in snapshots.items()),
+                'Batch manifest hashes do not match the snapshot members')
+        manifest = next(iter(snapshots)).parents[1] / 'manifest.json'
+        require(f'Batch manifest: {manifest}' in log.read_text(), 'Creator did not report its immutable batch manifest')
+        require(all(sha256(target / path.name) == value for path, value in snapshots.items()),
+                'Flat compatibility copies differ from the completed generation')
+        require(not snapshots.keys() & previous.keys(), 'The latest batch reused previous member paths')
+        require(all(sha256(path) == value for path, value in previous.items()),
+                'A later conversion changed an earlier batch snapshot')
+        previous = snapshots
+
+
 def check_preservation(creator, validator, fixture, sources, output):
     directory = output / 'preservation'
     directory.mkdir()
@@ -362,6 +386,7 @@ def main():
         check_desktop(str(args.desktop_viewer.resolve()), 'java', 'desktop-viewer', output, manifest, javafx_lib)
     first_pdf = Path(documents['1s']['path'])
     check_preservation(creator, validator, first_pdf, sources, output)
+    check_batch_publication(creator, sources, output, creator_env)
     if args.desktop_viewer:
         check_jar_window(args.desktop_viewer.resolve(), r'EA-PDF Desktop Viewer', output, first_pdf)
     if args.creator_gui:

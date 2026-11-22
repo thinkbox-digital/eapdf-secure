@@ -24,13 +24,13 @@ final class SecurityValidatorEngine implements SecurityValidatorGui.Engine {
     Run run = current.get();
     Path directory = null;
     try {
-      run.check(); directory = ValidationRuntime.temporaryDirectory();
+      run.check(); directory = ValidationRuntime.controllerDirectory();
       Path output = directory.resolve("security.json"), diagnostic = directory.resolve("diagnostics.txt");
       long heap = Math.min(Runtime.getRuntime().maxMemory() / (1024 * 1024), ValidationRuntime.workerHeapMiB());
       var command = List.of(Path.of(System.getProperty("java.home"), "bin", System.getProperty("os.name").startsWith("Windows") ? "java.exe" : "java").toString(),
           "-Xmx" + heap + "m", "-XX:MaxDirectMemorySize=128m", "-XX:MaxMetaspaceSize=256m",
           "-XX:ReservedCodeCacheSize=128m", "-XX:ActiveProcessorCount=4", "-Djava.awt.headless=true",
-          "-Djava.io.tmpdir=" + directory, "-cp", System.getProperty("java.class.path"),
+          "-Djava.io.tmpdir=" + directory, ValidationRuntime.controllerArgument(), "-cp", System.getProperty("java.class.path"),
           SecurityValidation.class.getName(), input.toRealPath().toString(), output.toString());
       var builder = new ProcessBuilder(ValidationRuntime.boundedCommand(command, heap));
       builder.environment().put("EAPDF_SECURITY_POLICY", policy);

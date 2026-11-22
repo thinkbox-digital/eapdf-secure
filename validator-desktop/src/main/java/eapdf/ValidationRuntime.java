@@ -2,11 +2,164 @@ package eapdf;
 
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
+import java.nio.channels.FileChannel;
+import java.nio.channels.OverlappingFileLockException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.time.Instant;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TreeSet;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 /** Resource allowances and private disk scratch for a single validation worker. */
 final class ValidationRuntime {
+    private static final String CONTROLLER = "eapdf.validator.controller";
+    private static final String JOB_PREFIX = "eapdf-validator-job-";
+
+    static String controllerArgument() throws IOException {
+        ProcessHandle process = ProcessHandle.current();
+        return "-D" + CONTROLLER + "=" + process.pid() + "@" + start(process);
+    }
+
+    private static Instant start(ProcessHandle process) throws IOException {
+        return process.info().startInstant().orElseThrow(() -> new IOException("Cannot establish validator process ownership"));
+    }
+
+    static void watchController() throws IOException {
+        String identity = System.getProperty(CONTROLLER);
+        if (identity == null) return;
+        ProcessHandle parent = ProcessHandle.current().parent().orElseThrow(() -> new IOException("Validation controller exited"));
+        if (!identity.equals(parent.pid() + "@" + start(parent))) throw new IOException("Validation controller exited");
+        Thread watcher = new Thread(() -> {
+            parent.onExit().join();
+            Runtime.getRuntime().halt(2);
+        }, "validation-controller-watchdog");
+        watcher.setDaemon(true);
+        watcher.start();
+    }
+
+    /** Stable locks also serialize overlapping main, summary and progress path sets. */
+    static final class ReportSet implements AutoCloseable {
+        private static final String LOCK_DIRECTORY = ".eapdf-validator-locks";
+        private static final java.util.concurrent.locks.ReentrantLock IN_PROCESS = new java.util.concurrent.locks.ReentrantLock();
+        final Path report;
+        private final Path locks;
+        private final List<FileChannel> channels = new java.util.ArrayList<>();
+        private final List<java.nio.channels.FileLock> held = new java.util.ArrayList<>();
+        private final Map<String, Revision> mirrored = new LinkedHashMap<>();
+        private List<Path> protectedInputs = List.of();
+        void protectInputs(List<Path> inputs) { protectedInputs = List.copyOf(inputs); }
+        private static final List<String> SUFFIXES = List.of(".progress.json", ".summary.json", "");
+        private record Revision(Object key, java.nio.file.attribute.FileTime modified, long size) {}
+
+        ReportSet(Path requested, long timeLimit) throws IOException, InterruptedException {
+            Path absolute = requested.toAbsolutePath();
+            Path parent = absolute.getParent().toRealPath();
+            report = parent.resolve(absolute.getFileName());
+            for (Path part : report) if (LOCK_DIRECTORY.equalsIgnoreCase(part.toString()))
+                throw new IOException("The report path uses the reserved validator lock directory.");
+            locks = parent.resolve(LOCK_DIRECTORY);
+            if (Files.getFileStore(parent).supportsFileAttributeView("posix")) {
+                Files.createDirectories(locks, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(
+                    java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")));
+            } else Files.createDirectories(locks);
+            if (!Files.isDirectory(locks, LinkOption.NOFOLLOW_LINKS)) throw new IOException("Invalid validator report lock directory.");
+            var names = new TreeSet<String>();
+            for (String suffix : SUFFIXES) names.add(lockName(report, suffix));
+            long started = System.nanoTime();
+            if (!IN_PROCESS.tryLock(timeLimit, TimeUnit.NANOSECONDS)) throw new IOException("Another validation owns the report destination.");
+            try {
+                for (String name : names) {
+                    FileChannel channel = FileChannel.open(locks.resolve(name + ".lock"), StandardOpenOption.CREATE,
+                        StandardOpenOption.WRITE, LinkOption.NOFOLLOW_LINKS);
+                    channels.add(channel);
+                    while (true) {
+                        if (Thread.interrupted()) throw new InterruptedException("Validation cancelled while waiting for its report.");
+                        try {
+                            var lock = channel.tryLock();
+                            if (lock != null) { held.add(lock); break; }
+                        }
+                        catch (OverlappingFileLockException busy) { /* Another run in this JVM owns the report. */ }
+                        if (System.nanoTime() - started >= timeLimit) throw new IOException("Another validation owns the report destination.");
+                        TimeUnit.MILLISECONDS.sleep(100);
+                    }
+                    Files.deleteIfExists(locks.resolve(name + ".pending"));
+                }
+            } catch (IOException | InterruptedException | RuntimeException error) {
+                try { close(); } catch (IOException cleanup) { error.addSuppressed(cleanup); }
+                throw error;
+            }
+        }
+
+        private static String lockName(Path base, String suffix) {
+            String name = java.text.Normalizer.normalize((base.getFileName() + suffix).toLowerCase(Locale.ROOT),
+                java.text.Normalizer.Form.NFC);
+            return UUID.nameUUIDFromBytes(name.getBytes(StandardCharsets.UTF_8)).toString();
+        }
+
+        void mirror(Path workerReport, boolean complete) throws IOException {
+            if (!complete) mirrorFile(workerReport, ".progress.json", false);
+            else for (String suffix : SUFFIXES) mirrorFile(workerReport, suffix, true);
+        }
+
+        private void mirrorFile(Path workerReport, String suffix, boolean complete) throws IOException {
+            Path source = workerReport.resolveSibling(workerReport.getFileName() + suffix);
+            BasicFileAttributes attributes;
+            try { attributes = Files.readAttributes(source, BasicFileAttributes.class, LinkOption.NOFOLLOW_LINKS); }
+            catch (NoSuchFileException missing) { return; }
+            if (!attributes.isRegularFile() || attributes.size() > workFileLimit())
+                throw new IOException("Validation report exceeds its file allowance.");
+            var revision = new Revision(attributes.fileKey(), attributes.lastModifiedTime(), attributes.size());
+            if (!complete && revision.equals(mirrored.get(suffix))) return;
+            if (!complete && finishedProgress(source)) return;
+            Path pending = locks.resolve(lockName(report, suffix) + ".pending");
+            try {
+                Files.copy(source, pending);
+                if (Files.size(pending) > workFileLimit()) throw new IOException("Validation report exceeds its file allowance.");
+                // The worker can replace the source between the initial check and the copy.
+                if (!complete && finishedProgress(pending)) return;
+                Path output = report.resolveSibling(report.getFileName() + suffix);
+                ValidationOutputs.protect(output, protectedInputs);
+                if (!suffix.isEmpty()) {
+                    try (var reader = Files.newBufferedReader(pending)) {
+                        var sidecar = com.google.gson.JsonParser.parseReader(reader).getAsJsonObject();
+                        sidecar.addProperty("report", report.toString());
+                        Files.writeString(pending, JavaValidation.JSON.toJson(sidecar));
+                    }
+                }
+                ValidationSession.replace(pending, output);
+                mirrored.put(suffix, revision);
+            } finally { Files.deleteIfExists(pending); }
+        }
+
+        private static boolean finishedProgress(Path snapshot) throws IOException {
+            try (var input = Files.newBufferedReader(snapshot)) {
+                var progress = com.google.gson.JsonParser.parseReader(input).getAsJsonObject();
+                return "Finished".equals(JavaValidation.text(progress, "stage"));
+            }
+        }
+
+        @Override public void close() throws IOException {
+            IOException failure = null;
+            try {
+                for (var channel : channels.reversed()) {
+                    try { channel.close(); }
+                    catch (IOException error) {
+                        if (failure == null) failure = error;
+                        else failure.addSuppressed(error);
+                    }
+                }
+            } finally { held.clear(); IN_PROCESS.unlock(); }
+            if (failure != null) throw failure;
+        }
+    }
+
     static long setting(String name, long fallback) {
         String value = System.getProperty(name, System.getenv(name));
         return value == null || value.isBlank() ? fallback : Math.max(1, Long.parseLong(value));
@@ -121,7 +274,7 @@ final class ValidationRuntime {
         if (configured != null && !configured.isBlank()) return Math.max(1, Long.parseLong(configured));
         return Math.min(86400, Math.max(600, 600 + bytes / (128 * 1024)));
     }
-    static Path temporaryDirectory() throws IOException {
+    private static Path temporaryRoot() throws IOException {
         Path root = Path.of(System.getProperty("java.io.tmpdir"));
         String type = Files.getFileStore(root).type().toLowerCase(java.util.Locale.ROOT);
         if (type.equals("tmpfs") || type.equals("ramfs")) {
@@ -129,12 +282,45 @@ final class ValidationRuntime {
             String diskType = Files.getFileStore(disk.toAbsolutePath().getParent()).type().toLowerCase(java.util.Locale.ROOT);
             if (!diskType.equals("tmpfs") && !diskType.equals("ramfs")) { Files.createDirectories(disk); root = disk; }
         }
+        return root;
+    }
+
+    static Path temporaryDirectory() throws IOException {
+        return privateDirectory(temporaryRoot(), "eapdf-validator-");
+    }
+
+    static Path controllerDirectory() throws IOException {
+        Path root = temporaryRoot();
+        ProcessHandle process = ProcessHandle.current();
+        Path directory = privateDirectory(root, JOB_PREFIX + process.pid() + "-" + start(process).toEpochMilli() + "-");
+        try (var candidates = Files.newDirectoryStream(root, JOB_PREFIX + "*")) {
+            var owner = Files.getOwner(directory);
+            for (Path candidate : candidates) {
+                try {
+                    if (!Files.isDirectory(candidate, LinkOption.NOFOLLOW_LINKS) || !Files.getOwner(candidate).equals(owner)) continue;
+                    String[] identity = candidate.getFileName().toString().substring(JOB_PREFIX.length()).split("-", 3);
+                    if (identity.length != 3 || !identity[0].matches("[0-9]+") || !identity[1].matches("[0-9]+")) continue;
+                    long pid = Long.parseLong(identity[0]), started = Long.parseLong(identity[1]);
+                    boolean active = ProcessHandle.of(pid).filter(ProcessHandle::isAlive)
+                            .map(p -> p.info().startInstant().map(instant -> instant.toEpochMilli() == started).orElse(true)).orElse(false);
+                    if (!active) removeDirectory(candidate);
+                } catch (IOException | NumberFormatException error) {
+                    System.err.println("Unable to reclaim abandoned validation scratch: " + error.getMessage());
+                }
+            }
+        } catch (IOException error) {
+            System.err.println("Unable to scan validation scratch: " + error.getMessage());
+        }
+        return directory;
+    }
+
+    private static Path privateDirectory(Path root, String prefix) throws IOException {
         return Files.getFileStore(root).supportsFileAttributeView("posix")
-            ? Files.createTempDirectory(root, "eapdf-validator-", java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
-            : Files.createTempDirectory(root, "eapdf-validator-");
+            ? Files.createTempDirectory(root, prefix, java.nio.file.attribute.PosixFilePermissions.asFileAttribute(java.nio.file.attribute.PosixFilePermissions.fromString("rwx------")))
+            : Files.createTempDirectory(root, prefix);
     }
     static void removeDirectory(Path directory) throws IOException {
-        if (directory == null) return;
+        if (directory == null || !Files.exists(directory, LinkOption.NOFOLLOW_LINKS)) return;
         try (var paths = Files.walk(directory)) {
             for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) Files.deleteIfExists(path);
         }

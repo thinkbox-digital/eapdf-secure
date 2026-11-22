@@ -1,8 +1,12 @@
 package eapdf;
 
+import com.google.gson.JsonParser;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -112,16 +116,121 @@ class SupervisedConversionTests {
     var entries = List.of(new OutputTransaction.Entry(first.toString(), payload.toString(), 11, digest, true),
         new OutputTransaction.Entry(third.toString(), payload.toString(), 11, digest, false),
         new OutputTransaction.Entry(second.toString(), payload.toString(), 11, digest, true));
-    Assertions.assertThrows(java.io.IOException.class, () -> OutputTransaction.publish(entries, (source, target) -> {
+    Assertions.assertThrows(java.io.IOException.class, () -> OutputTransaction.publish(entries, (source, target, replace) -> {
       if (moves.incrementAndGet() == 3) throw new java.io.IOException("simulated disk exhaustion");
-      Files.createLink(target, source);
+      OutputTransaction.publishOutput(source, target, replace);
     }));
     Assertions.assertEquals("first original", Files.readString(first));
     Assertions.assertEquals("second original", Files.readString(second));
     Assertions.assertFalse(Files.exists(third));
     try (var paths = Files.list(directory)) {
-      Assertions.assertFalse(paths.anyMatch(path -> path.getFileName().toString().startsWith(".eapdf-")));
+      Assertions.assertFalse(paths.anyMatch(path -> path.getFileName().toString().endsWith(".tmp")));
     }
+  }
+
+  private List<OutputTransaction.Entry> batchEntries(Path output, String version, String prefix) throws IOException {
+    Path stage = Files.createDirectory(directory.resolve(version + "-stage"));
+    List<OutputTransaction.Entry> entries = new ArrayList<>();
+    for (String name : List.of("first.pdf", "second.pdf")) {
+      Path source = Files.writeString(stage.resolve(name), version + " " + name);
+      entries.add(new OutputTransaction.Entry(output.resolve(prefix + name).toString(), source.toString(),
+          Files.size(source), Common.digestHex(source, "SHA-256")));
+    }
+    return entries;
+  }
+
+  private static void replaceBatchFile(Path source, Path target, boolean replace) throws IOException {
+    OutputTransaction.publishOutput(source, target, replace);
+  }
+
+  private static void assertBatchFiles(Path manifest, String version, String prefix) throws IOException {
+    var snapshot = JsonParser.parseString(Files.readString(manifest)).getAsJsonObject();
+    Assertions.assertEquals(1, snapshot.get("schemaVersion").getAsInt());
+    Assertions.assertEquals(manifest.getParent().getFileName().toString(), snapshot.get("generation").getAsString());
+    var files = snapshot.getAsJsonArray("files");
+    Assertions.assertEquals(2, files.size());
+    for (int index = 0; index < files.size(); index++) {
+      String name = index == 0 ? "first.pdf" : "second.pdf";
+      var file = files.get(index).getAsJsonObject();
+      String relative = file.get("path").getAsString();
+      Assertions.assertEquals("00000" + index + "/" + prefix + name, relative);
+      Path payload = manifest.getParent().resolve(relative);
+      Assertions.assertEquals(version + " " + name, Files.readString(payload));
+      Assertions.assertEquals(Files.size(payload), file.get("size").getAsLong());
+      Assertions.assertEquals(Common.digestHex(payload, "SHA-256"), file.get("sha256").getAsString());
+    }
+  }
+
+  @Test void batchReadersStayOnTheirGenerationWhileFlatPathsAreReplaced() throws Exception {
+    Path output = Files.createDirectory(directory.resolve("out")).toRealPath();
+    Path current = output.resolve(".eapdf-publication/current.json");
+    Path old = OutputTransaction.publish(batchEntries(output, "old", ""), SupervisedConversionTests::replaceBatchFile,
+        directory.resolve("old.journal"));
+    String oldPointer = Files.readString(old);
+    Assertions.assertEquals(oldPointer, Files.readString(current));
+    Files.writeString(output.resolve("first.pdf"), "edited legacy flat file");
+    assertBatchFiles(old, "old", "");
+
+    Path updated = OutputTransaction.publish(batchEntries(output, "new", ""), (source, target, replace) -> {
+      replaceBatchFile(source, target, replace);
+      Assertions.assertEquals(oldPointer, Files.readString(current));
+      assertBatchFiles(old, "old", "");
+    }, directory.resolve("new.journal"));
+
+    Assertions.assertNotEquals(old, updated);
+    Assertions.assertEquals(Files.readString(updated), Files.readString(current));
+    assertBatchFiles(updated, "new", "");
+    assertBatchFiles(old, "old", "");
+  }
+
+  @Test void failedBatchLeavesCurrentAndRemovesTheUnpublishedGeneration() throws Exception {
+    Path output = Files.createDirectory(directory.resolve("out")).toRealPath();
+    Path current = output.resolve(".eapdf-publication/current.json");
+    Path old = OutputTransaction.publish(batchEntries(output, "old", ""), SupervisedConversionTests::replaceBatchFile,
+        directory.resolve("old.journal"));
+    Path failedJournal = directory.resolve("failed.journal");
+    AtomicInteger moves = new AtomicInteger();
+    var entries = batchEntries(output, "new", "");
+
+    Assertions.assertThrows(IOException.class, () -> OutputTransaction.publish(entries, (source, target, replace) -> {
+      if (moves.incrementAndGet() == 2) throw new IOException("simulated publication failure");
+      replaceBatchFile(source, target, replace);
+    }, failedJournal));
+
+    Assertions.assertEquals(Files.readString(old), Files.readString(current));
+    Assertions.assertEquals("old first.pdf", Files.readString(output.resolve("first.pdf")));
+    Assertions.assertEquals("old second.pdf", Files.readString(output.resolve("second.pdf")));
+    Assertions.assertFalse(Files.exists(failedJournal));
+    try (var paths = Files.list(current.getParent().toRealPath())) {
+      Assertions.assertEquals(List.of(old.getParent()), paths.filter(Files::isDirectory).toList());
+    }
+  }
+
+  @Test void recoveryKeepsAPreviouslyPublishedGenerationAfterCurrentAdvances() throws Exception {
+    Path output = Files.createDirectory(directory.resolve("out")).toRealPath();
+    Path current = output.resolve(".eapdf-publication/current.json");
+    Path old = OutputTransaction.publish(batchEntries(output, "old", ""), SupervisedConversionTests::replaceBatchFile,
+        directory.resolve("old.journal"));
+    Path latest = OutputTransaction.publish(batchEntries(output, "more", "other-"), SupervisedConversionTests::replaceBatchFile,
+        directory.resolve("latest.journal"));
+    Path destination = output.resolve("first.pdf");
+    Path backup = Files.writeString(output.resolve(".eapdf-backup-recovery.tmp"), "original before old batch");
+    Path recoveryJournal = directory.resolve("interrupted.journal");
+    var entry = new OutputTransaction.Recovery(destination.toString(), output.resolve(".eapdf-publish-recovery.tmp").toString(),
+        backup.toString(), OutputTransaction.fileIdentity(destination));
+    // Simulate a crash after the atomic move consumed the ready pointer, before journal cleanup.
+    Assertions.assertFalse(Files.exists(old.resolveSibling(".current.json.tmp")));
+    OutputTransaction.writeJournal(recoveryJournal,
+        new OutputTransaction.Journal(false, List.of(entry), new OutputTransaction.Batch(old.getParent().toString(), true)));
+
+    OutputTransaction.recover(recoveryJournal);
+
+    Assertions.assertEquals(Files.readString(latest), Files.readString(current));
+    Assertions.assertEquals("old first.pdf", Files.readString(destination));
+    assertBatchFiles(old, "old", "");
+    assertBatchFiles(latest, "more", "other-");
+    Assertions.assertFalse(Files.exists(backup));
+    Assertions.assertFalse(Files.exists(recoveryJournal));
   }
 
   @Test void outputManifestHasNoMessageCountCutoff() throws Exception {
@@ -140,7 +249,8 @@ class SupervisedConversionTests {
         }
         OutputTransaction.publish(manifest, stage);
         try (var files = Files.list(output)) {
-          Assertions.assertEquals(count, files.count());
+          Assertions.assertEquals(count, files.filter(Files::isRegularFile)
+              .filter(path -> !path.getFileName().toString().equals(".eapdf-publication.lock")).count());
         }
       }
     } finally {
@@ -214,10 +324,10 @@ class SupervisedConversionTests {
     Path prepared = Files.writeString(publication.resolve("prepared"), "new PDF");
     String oldDigest = Common.digestHex(original, "SHA-256");
     String newDigest = Common.digestHex(prepared, "SHA-256");
-    var recovery = List.of(new OutputTransaction.Recovery(destination.toString(), publication.toString(), newDigest, oldDigest));
+    var recovery = List.of(new OutputTransaction.LegacyRecovery(destination.toString(), publication.toString(), newDigest, oldDigest));
     Path journal = directory.resolve("publication.json");
     Files.createLink(destination, prepared);
-    OutputTransaction.writeJournal(journal, new OutputTransaction.Journal(false, recovery));
+    Files.writeString(journal, new com.google.gson.Gson().toJson(new OutputTransaction.LegacyJournal(false, recovery)));
     OutputTransaction.recover(journal);
     Assertions.assertEquals("original PDF", Files.readString(destination));
     Assertions.assertFalse(Files.exists(journal));
@@ -226,7 +336,7 @@ class SupervisedConversionTests {
     Files.writeString(original, "original PDF");
     Files.writeString(prepared, "new PDF");
     Files.writeString(destination, "user replacement");
-    OutputTransaction.writeJournal(journal, new OutputTransaction.Journal(false, recovery));
+    Files.writeString(journal, new com.google.gson.Gson().toJson(new OutputTransaction.LegacyJournal(false, recovery)));
     Assertions.assertThrows(java.io.IOException.class, () -> OutputTransaction.recover(journal));
     Assertions.assertEquals("user replacement", Files.readString(destination));
     Assertions.assertEquals("original PDF", Files.readString(original));
@@ -254,11 +364,87 @@ class SupervisedConversionTests {
     Path staged = Files.writeString(directory.resolve("staged"), "new archive");
     String digest = Common.digestHex(staged, "SHA-256");
     var entry = new OutputTransaction.Entry(destination.toString(), staged.toString(), Files.size(staged), digest, false);
-    Assertions.assertThrows(java.nio.file.FileAlreadyExistsException.class, () -> OutputTransaction.publish(List.of(entry), (source, target) -> {
+    Assertions.assertThrows(java.nio.file.FileAlreadyExistsException.class, () -> OutputTransaction.publish(List.of(entry), (source, target, replace) -> {
       Files.writeString(target, "other conversion result");
-      Files.createLink(target, source);
+      OutputTransaction.publishOutput(source, target, replace);
     }));
     Assertions.assertEquals("other conversion result", Files.readString(destination));
+  }
+
+  @Test void stalePublicationCannotRollBackANewerOutput() throws Exception {
+    Path destination = directory.resolve("output.pdf");
+    Path prepared = directory.resolve("prepared.pdf");
+    Path backup = directory.resolve("backup.pdf");
+    Path journal = directory.resolve("publication.json");
+    Files.writeString(destination, "previous replacement");
+    Files.writeString(backup, "previous original");
+    var recovery = new OutputTransaction.Recovery(destination.toString(), prepared.toString(), backup.toString(),
+        OutputTransaction.fileIdentity(destination));
+    OutputTransaction.writeJournal(journal, new OutputTransaction.Journal(false, List.of(recovery)));
+    Files.writeString(prepared, "new committed output");
+    Files.move(prepared, destination, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+    OutputTransaction.recover(journal);
+    Assertions.assertEquals("new committed output", Files.readString(destination));
+    Assertions.assertFalse(Files.exists(backup));
+  }
+
+  @Test void automaticallyNamedOutputCannotReplaceAConcurrentPublication() throws Exception {
+    Path destination = directory.resolve("selected.pdf");
+    Path stage = directory.resolve("stage");
+    Path manifest = directory.resolve("manifest.json");
+    try (var transaction = new OutputTransaction(stage)) {
+      Assertions.assertEquals(destination, Common.availableArchivePath(destination));
+      OutputTransaction.write(destination, temporary -> Files.writeString(temporary, "replacement"));
+      transaction.finish(manifest);
+    }
+    Files.writeString(destination, "first publisher");
+    Assertions.assertThrows(java.io.IOException.class, () -> OutputTransaction.publish(manifest, stage));
+    Assertions.assertEquals("first publisher", Files.readString(destination));
+  }
+
+  public static class PublicationProbe {
+    public static void main(String[] args) throws Exception {
+      Path destination = Path.of(args[0]);
+      Path payload = Path.of(args[1]);
+      System.out.println("Starting");
+      var entry = new OutputTransaction.Entry(destination.toString(), payload.toString(), Files.size(payload), "");
+      OutputTransaction.publish(List.of(entry), (source, target, replace) -> {
+        OutputTransaction.publishOutput(source, target, replace);
+        System.out.println("Published");
+        if (Boolean.parseBoolean(args[3])) new java.util.concurrent.Semaphore(0).acquireUninterruptibly();
+      }, Path.of(args[2]));
+    }
+  }
+
+  @Test void separateJvmWaitsForPublisherAndSurvivesStaleRecovery() throws Exception {
+    var children = new java.util.ArrayList<Process>();
+    var javaExecutable = Path.of(System.getProperty("java.home"), "bin", "java").toString();
+    Path destination = directory.resolve("shared.pdf");
+    Files.writeString(destination, "original");
+    try (var reader = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor()) {
+      try {
+        for (String name : List.of("first", "second")) {
+          Path payload = Files.writeString(directory.resolve(name + ".payload"), name);
+          Process child = new ProcessBuilder(javaExecutable, "-cp", System.getProperty("java.class.path"), PublicationProbe.class.getName(),
+              destination.toString(), payload.toString(), directory.resolve(name + ".journal").toString(),
+              Boolean.toString(name.equals("first"))).redirectError(directory.resolve(name + ".log").toFile()).start();
+          children.add(child);
+          var stdout = child.inputReader();
+          Assertions.assertEquals("Starting", reader.submit(stdout::readLine).get(15, TimeUnit.SECONDS));
+          if (name.equals("first")) Assertions.assertEquals("Published", reader.submit(stdout::readLine).get(15, TimeUnit.SECONDS));
+        }
+        Assertions.assertFalse(children.get(1).waitFor(250, TimeUnit.MILLISECONDS));
+        Assertions.assertEquals("first", Files.readString(destination));
+        Assertions.assertTrue(children.get(0).destroyForcibly().waitFor(10, TimeUnit.SECONDS));
+        Assertions.assertTrue(children.get(1).waitFor(30, TimeUnit.SECONDS),
+            "Second publisher did not complete after the lock holder exited");
+        Assertions.assertEquals(0, children.get(1).exitValue());
+        OutputTransaction.recover(directory.resolve("first.journal"));
+        Assertions.assertEquals("second", Files.readString(destination));
+      } finally {
+        for (Process child : children) if (child.isAlive()) child.destroyForcibly().waitFor(10, TimeUnit.SECONDS);
+      }
+    }
   }
 
   @Test void abandonedCleanupUsesProcessStartIdentityAndLeavesActiveWorkspacesAlone() throws Exception {

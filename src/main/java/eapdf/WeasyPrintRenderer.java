@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.openhtmltopdf.pdfboxout.PdfRendererBuilder;
 import java.io.IOException;
+import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -24,7 +25,7 @@ final class WeasyPrintRenderer {
   private static final AtomicLong RESERVED = new AtomicLong();
   private WeasyPrintRenderer() {}
 
-  static byte[] render(String xhtml, String baseUri, String primaryFont, boolean fitWideContent) throws Exception {
+  static void renderTo(String xhtml, String baseUri, String primaryFont, boolean fitWideContent, OutputStream output) throws Exception {
     var config = EapdfConfig.get().rendering;
     if (!System.getProperty("os.name").toLowerCase(java.util.Locale.ROOT).contains("linux"))
       throw Common.fail("WeasyPrint requires Linux Landlock and libseccomp; OpenHTMLtoPDF remains available.");
@@ -54,7 +55,7 @@ final class WeasyPrintRenderer {
         RESERVED.addAndGet(reservation);
       }
       try (AutoCloseable globalSlot = jobSlot(config.maxProcesses, started, timeout)) {
-        return renderReserved(xhtml, baseUri, primaryFont, fitWideContent, started, timeout, config, python, bundled != null);
+        renderReserved(xhtml, baseUri, primaryFont, fitWideContent, started, timeout, config, python, bundled != null, output);
       }
       finally { RESERVED.addAndGet(-reservation); }
     } catch (InterruptedException interrupted) {
@@ -115,8 +116,8 @@ final class WeasyPrintRenderer {
     return executable.toAbsolutePath().normalize();
   }
 
-  private static byte[] renderReserved(String xhtml, String baseUri, String primaryFont, boolean fitWideContent,
-      long started, long timeout, EapdfConfig.RenderingConfig config, Path python, boolean bundled) throws Exception {
+  private static void renderReserved(String xhtml, String baseUri, String primaryFont, boolean fitWideContent,
+      long started, long timeout, EapdfConfig.RenderingConfig config, Path python, boolean bundled, OutputStream output) throws Exception {
     Path directory = Files.createTempDirectory("eapdf-weasy-");
     try (AutoCloseable cleanup = () -> Common.deleteTree(directory)) {
       EmailRecord record = MailRenderPolicy.ACTIVE_RENDER_RECORD.get();
@@ -195,9 +196,6 @@ final class WeasyPrintRenderer {
       long bytes = Files.size(pdf);
       if (bytes > config.maxOutputMiB * 1024L * 1024) throw Common.fail("WeasyPrint output exceeded rendering.maxOutputMiB.");
       ProcessingLimits.checkOutput(bytes);
-      long javaAvailable = Runtime.getRuntime().maxMemory()
-          - (Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory());
-      if (bytes > javaAvailable / 3) throw Common.fail("WeasyPrint PDF exceeds the available Java buffer allowance.");
       if (Files.size(metrics) > 1024 * 1024) throw Common.fail("WeasyPrint metrics exceeded 1 MiB.");
       JsonObject measured = JSON.fromJson(Files.readString(metrics), JsonObject.class);
       if (!VERSION.equals(measured.get("version").getAsString())) throw Common.fail("WeasyPrint worker version mismatch.");
@@ -207,7 +205,7 @@ final class WeasyPrintRenderer {
         Common.warn(record, "Unavailable images use neutral placeholders; source alternative text and link targets are retained.");
       try (var rendered = IndexedPdfLoader.load(pdf)) { ProcessingLimits.accountPages(rendered.getNumberOfPages()); }
       checkDeadline(started, timeout);
-      return Files.readAllBytes(pdf);
+      Files.copy(pdf, output);
     }
   }
 

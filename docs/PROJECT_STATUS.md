@@ -7,17 +7,11 @@ validated children. GitHub publication through the acceptance workflow uses the
 packages and checksums from the successful job.
 
 
-Current release, 22 November 2026. Creator and validator **2.3.2**,
-browser reader **1.33.0**, and desktop viewer **0.8.0**.
-[Downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.3.2) ·
-[Release notes](releases/2.3.2.md).
-
-**New code.** Desktop Viewer 0.8.0 is available as a standalone JAR. The
-release acceptance run covered all six profiles in the creator, standalone
-validator, Chromium, Firefox, and the desktop viewer.
-
-**Dependency maintenance.** The Maven build-helper upgrade from PR #8
-requires Maven 3.9.0. Secure retains 3.6.1, which builds on Maven 3.8.
+Secure 2.4.0-beta.2 updates the creator and validators. Browser Full is 1.35.0
+and the desktop viewer is 0.9.0. Multi-file outputs expose an immutable
+manifest, and Secure resolves pdf-security from its checked-in Maven repository.
+The validator build uses Maven 3.9 or later.
+[Release notes](releases/2.4.0-beta.2.md).
 
 The compact Full reader gives the header actions a full-width row below 600 pixels, leaving more vertical space for the PDF.
 

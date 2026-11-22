@@ -6,7 +6,7 @@ EA-PDF is a specification for archiving email in PDF/A. It supports individual m
 
 Turn saved emails and mailboxes into PDFs you can read, search and archive. Supports EML, MSG, PST, MBOX and Gmail.
 
-[User manual](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Release downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.4.0-beta.1)
+[User manual](docs/manual/user-manual.html) · [PDF manual](docs/EA-PDF_User_Manual.pdf) · [Release downloads](https://github.com/thinkbox-digital/eapdf-secure/releases/tag/v2.4.0-beta.2)
 
 ## Download
 
@@ -14,11 +14,11 @@ C2PA provenance, PAdES signing and signature verification are experimental. Test
 
 | App | Use it to |
 | --- | --- |
-| [Desktop Viewer](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.1/eapdf-desktop-viewer-secure-0.9.0.jar) | Open PDFs, browse email and attachments, and save files. |
-| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.1/emailtopdfa-2.4.0-beta.1-gui.jar) | Convert email to PDF in a desktop window. |
-| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.1/eapdf-validator-2.4.0-beta.1.jar) | Check a PDF and save a report. |
-| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.1/eapdf-security-validator-2.4.0-beta.1.jar) | Review signatures, timestamps and provenance. |
-| Full browser reader for [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.1/eapdf-viewer-1.34.0-chromium.zip) or [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.1/eapdf-viewer-1.34.0-firefox.zip) | Read PDFs in your browser. |
+| [Desktop Viewer](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.2/eapdf-desktop-viewer-secure-0.9.0.jar) | Open PDFs, browse email and attachments, and save files. |
+| [Creator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.2/emailtopdfa-2.4.0-beta.2-gui.jar) | Convert email to PDF in a desktop window. |
+| [Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.2/eapdf-validator-2.4.0-beta.2.jar) | Check a PDF and save a report. |
+| [Security Validator](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.2/eapdf-security-validator-2.4.0-beta.2.jar) | Review signatures, timestamps and provenance. |
+| Full browser reader for [Chromium](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.2/eapdf-viewer-1.35.0-chromium.zip) or [Firefox](https://github.com/thinkbox-digital/eapdf-secure/releases/download/v2.4.0-beta.2/eapdf-viewer-1.35.0-firefox.zip) | Read PDFs in your browser. |
 
 ## Get started
 

@@ -19,6 +19,9 @@ env:
   EAPDF_EDITION: secure
 
 jobs:
+  quality:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref_type == 'tag'
+    uses: ./.github/workflows/quality.yml
   acceptance:
     runs-on: ubuntu-24.04
     timeout-minutes: 35
@@ -34,7 +37,7 @@ jobs:
         run: |
           test "$GITHUB_REF" = "refs/tags/v$(cat VERSION)"
           echo "commit=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-      - uses: actions/setup-java@77dd5b2ce225ea11469928ac317850245a74ae78 # v6.2.0
+      - uses: actions/setup-java@d1374f8ac74474200d16ef8ecee22c7ae7a51880 # v6.3.0
         with:
           distribution: temurin
           java-version: '21'
@@ -49,7 +52,7 @@ jobs:
           cache-dependency-path: browser-viewer/package-lock.json
       - name: Install acceptance dependencies
         run: |
-          python -m pip install 'pikepdf==10.18.2'
+          python -m pip install --require-hashes -r requirements-validator.lock
           python browser-viewer/scripts/install-ci-firefox.py "$RUNNER_TEMP/firefox-tools"
           sudo apt-get update
           sudo apt-get install -y xvfb xauth x11-utils libpangoft2-1.0-0 libharfbuzz-subset0 libseccomp2 fonts-dejavu-core
@@ -128,6 +131,48 @@ jobs:
           cp -- "$evidence/SHA256SUMS" "$stage/"
           (cd "$stage" && sha256sum --strict -c SHA256SUMS)
           cp "docs/releases/$version.md" "$RUNNER_TEMP/release-notes.md"
+      - name: Inventory candidate dependencies
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/release-candidates"
+          evidence="$RUNNER_TEMP/release-acceptance"
+          inventory="$evidence/inventory"
+          mkdir -p "$inventory"
+          goal=org.apache.maven.plugins:maven-dependency-plugin:3.9.0:list
+          flags=(-B -DincludeScope=runtime -DoutputAbsoluteArtifactFilename=true)
+          mvn "${flags[@]}" "$goal" "-DoutputFile=$inventory/creator-dependencies.txt"
+          mvn "${flags[@]}" -f validator-desktop/pom.xml "$goal" "-DoutputFile=$inventory/validator-dependencies.txt"
+          mvn "${flags[@]}" -f desktop-viewer/pom.xml "$goal" "-DoutputFile=$inventory/desktop-dependencies.txt"
+          browser=()
+          for package in "$stage/"eapdf-viewer-*.zip; do browser+=(--browser-zip "$package"); done
+          desktop=("$stage/"eapdf-*viewer-*.jar)
+          creator="$stage/emailtopdfa-$(cat VERSION).jar"
+          validator=("$stage"/eapdf-validator-*.jar)
+          test -f "$creator" && test "${#validator[@]}" -eq 1 && test "${#desktop[@]}" -eq 1
+          python3 -B scripts/security_inventory.py --output "$inventory" \
+            --creator-dependencies "$inventory/creator-dependencies.txt" --creator-jar "$creator" \
+            --creator-gui-jar "$stage/emailtopdfa-$(cat VERSION)-gui.jar" \
+            --validator-dependencies "$inventory/validator-dependencies.txt" --validator-jar "${validator[0]}" \
+            --desktop-dependencies "$inventory/desktop-dependencies.txt" --desktop-jar "${desktop[0]}" "${browser[@]}"
+      - uses: anchore/scan-action/download-grype@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7.4.0
+        id: grype
+      - name: Gate high and critical runtime advisories
+        env:
+          GRYPE: ${{ steps.grype.outputs.cmd }}
+        run: |
+          set -euo pipefail
+          stage="$RUNNER_TEMP/release-candidates"
+          evidence="$RUNNER_TEMP/release-acceptance"
+          inventory="$evidence/inventory"
+          status=0
+          for bom in "$inventory/"*.cdx.json; do
+            "$GRYPE" "sbom:$bom" --fail-on high --output json > "${bom%.cdx.json}.grype.json" || status=1
+          done
+          test "$status" -eq 0
+          cp -- "$inventory/"*.cdx.json "$stage/"
+          (cd "$stage" && sha256sum -- *.cdx.json) >> "$stage/SHA256SUMS"
+          (cd "$stage" && sha256sum --strict -c SHA256SUMS)
+          cp -- "$stage/SHA256SUMS" "$evidence/"
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
@@ -150,7 +195,7 @@ jobs:
 
   publish:
     if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref_type == 'tag'
-    needs: acceptance
+    needs: [quality, acceptance]
     runs-on: ubuntu-24.04
     permissions:
       contents: write

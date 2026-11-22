@@ -24,6 +24,10 @@ final class ValidationSession implements AutoCloseable {
     private final Thread shutdown;
 
     ValidationSession(Path input, Path output, String runId, boolean recoverUpstream) throws IOException {
+        this(input, output, runId, recoverUpstream, null);
+    }
+
+    ValidationSession(Path input, Path output, String runId, boolean recoverUpstream, Path stagedSummary) throws IOException {
         this.input = input.toAbsolutePath();
         this.outputs = ValidationOutputs.of(output);
         this.runId = runId;
@@ -32,7 +36,7 @@ final class ValidationSession implements AutoCloseable {
         pdfa = new JsonObject(); pdfa.addProperty("status", "NOT_RUN");
         pdfa.addProperty("ran", false); pdfa.addProperty("compliant", false); pdfa.addProperty("profile_allowed", false);
         if (recoverUpstream) {
-            Path brief = outputs.summary();
+            Path brief = stagedSummary != null && Files.isRegularFile(stagedSummary) ? stagedSummary : outputs.summary();
             if (Files.isRegularFile(brief)) try (var reader = Files.newBufferedReader(brief)) {
                 JsonObject prior = JsonParser.parseReader(reader).getAsJsonObject();
                 JsonObject summary = prior.getAsJsonObject("summary");

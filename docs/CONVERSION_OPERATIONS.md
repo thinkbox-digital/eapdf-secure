@@ -12,10 +12,27 @@ The GUI Stop action requests supervisor shutdown off the UI thread. Shutdown ter
 
 Final PDFs are written privately and checked before publication. Internal temporary collection children are **not** final outputs and remain readable in the private worker workspace. Branding, finding-aid/spreadsheet generation and PREMIS output have been removed. A worker failure, native resource failure or timeout publishes no staged output and cannot overwrite an existing PDF. Gmail completion hashes describe staged bytes; if publication fails, the next resume detects missing/mismatched published files and rebuilds them.
 
-After successful conversion, the supervisor verifies the bounded manifest and payload checksums, prepares same-filesystem destination files, records a recovery journal, and replaces the requested outputs with rollback backups. Ordinary publication/disk failures restore original files and remove new outputs. Crash journals distinguish incomplete replacement (restore originals) from committed replacement (keep new files and remove backups). Failed recovery retains its directory/backups and reports their location; do not delete them manually before recovery. Cooperative GUI cancellation waits around the commit phase instead of interrupting a half-completed rename sequence.
+After successful conversion, the supervisor verifies the manifest and payload
+checksums. It locks the destination directories across processes, prepares files
+on the destination filesystem, and records a recovery journal before replacing
+outputs. An automatic filename collision fails publication and preserves the
+other job's output. Automatic destinations require hard links on the output filesystem. Explicitly requested destinations can be replaced. Archives cannot replace the input, configuration, or signing assets. Logs retain failure evidence.
 
-This is recoverable multi-file publication, not instantaneous multi-file visibility or an ACID transaction across filesystems/power loss. External readers should wait for successful process exit; independent jobs choosing the same automatic filename cannot both publish to it. Supply a distinct output directory to keep both runs. An explicit archive path may replace an existing archive. Selecting an input as the destination is rejected.
-The output filesystem must support hard links for atomic publication without replacing a competing file. Logs retain failure evidence and are not rolled back as if the attempt had never happened.
+Cancellation before the commit point rolls back completed replacements. The journal
+lets recovery restore previous files when it can confirm ownership of the
+installed output. Recovery retains the working data when ownership is uncertain.
+For a multi-file job, the supervisor also copies the verified results to a
+generation under `.eapdf-publication/` and atomically replaces `current.json`
+after the batch is complete. Open `current.json` once, then resolve every
+`files[].path` relative to `.eapdf-publication/<generation>/`. The manifest gives
+each file's byte size and SHA-256. The `Batch manifest` line identifies the
+immutable `manifest.json` for that job, even if another job advances `current.json`.
+The generation copies stay available as output history for readers holding an
+earlier manifest.
+
+The direct PDF paths are compatibility copies with per-file replacement. Use
+the manifest to read a consistent batch. A single-PDF job publishes its PDF
+atomically and leaves the latest multi-file manifest available.
 
 ## Limits
 

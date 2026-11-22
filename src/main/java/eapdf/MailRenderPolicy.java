@@ -17,8 +17,13 @@ private MailRenderPolicy() {}
 static final FSUriResolver REMOTE_ASSET_URI_RESOLVER = new RemoteAssetUriResolver();
 static final FSStreamFactory REMOTE_ASSET_STREAM_FACTORY = new BlacklistingHttpStreamFactory();
 static final InheritableThreadLocal<EmailRecord> ACTIVE_RENDER_RECORD = new InheritableThreadLocal<>();
-static final ThreadLocal<Set<String>> RENDERED_IMAGES = new ThreadLocal<>();
+static final ThreadLocal<RenderedImages> RENDERED_IMAGES = new ThreadLocal<>();
 static final ThreadLocal<Map<String, String>> ORIENTED_IMAGE_URIS = new ThreadLocal<>();
+
+static final class RenderedImages {
+  final Set<String> digests = new HashSet<>();
+  long pixels;
+}
 
 static final class NullFsStream implements FSStream {
   @Override
@@ -37,8 +42,7 @@ static final class BlacklistingHttpStreamFactory implements FSStreamFactory {
   @Override
   public FSStream getUrl(String url) {
     String key = remoteAssetKey(url);
-    if (key == null) return new NullFsStream();
-    blacklistRemoteAsset(key, "External resource loading is disabled");
+    if (key != null) Common.recordBlockedRemoteAsset(key);
     return new NullFsStream();
   }
 }
@@ -66,13 +70,13 @@ static final class RemoteAssetUriResolver implements FSUriResolver {
     if (cid) return null;
     String rawKey = remoteAssetKey(uri);
     if (rawKey != null) {
-      blacklistRemoteAsset(rawKey, "External resource loading is disabled");
+      Common.recordBlockedRemoteAsset(rawKey);
       return null;
     }
     String resolved = delegate.resolveURI(baseUri, uri);
     String resolvedKey = remoteAssetKey(resolved);
     if (resolvedKey != null) {
-      blacklistRemoteAsset(resolvedKey, "External resource loading is disabled");
+      Common.recordBlockedRemoteAsset(resolvedKey);
       return null;
     }
     if (isAllowedRenderResource(resolved)) return orientRenderImage(resolved);
@@ -146,9 +150,8 @@ static String orientRenderImage(String uri) {
     byte[] display = ImageOrientation.orientedPng(bytes);
     if (display == null) return uri;
     // The original JPEG's pixels were already charged by the resource check.
-    Set<String> images = RENDERED_IMAGES.get();
-    if (images != null) images.add(HexFormat.of().formatHex(
-        java.security.MessageDigest.getInstance("SHA-256").digest(display)));
+    RenderedImages images = RENDERED_IMAGES.get();
+    if (images != null) images.digests.add(Common.sha256Hex(display));
     String oriented = "eapdf-image:" + Common.sha256Hex(display);
     record.renderAssets.put(oriented, display);
     if (cache != null) cache.put(uri, oriented);
@@ -162,16 +165,21 @@ static String orientRenderImage(String uri) {
 }
 
 static void checkRenderImage(byte[] bytes) {
-  int[] dimensions = sniffImageSize(bytes);
-  Set<String> images = RENDERED_IMAGES.get();
-  if (images == null || dimensions[0] == 0) return;
-  try {
-    if (images.add(HexFormat.of().formatHex(java.security.MessageDigest.getInstance("SHA-256").digest(bytes)))) {
-      ProcessingLimits.accountImage((long) dimensions[0] * dimensions[1]);
-    }
-  } catch (java.security.NoSuchAlgorithmException error) {
-    throw new IllegalStateException(error);
+  RenderedImages images = RENDERED_IMAGES.get();
+  String digest = null;
+  if (images != null) try {
+    digest = Common.sha256Hex(bytes);
+  } catch (Exception failure) {
+    throw new IllegalStateException("Could not fingerprint a render image", failure);
   }
+  if (images != null && images.digests.contains(digest)) return;
+  int[] dimensions = sniffImageSize(bytes);
+  if (images == null || dimensions[0] == 0) return;
+  long pixels = (long) dimensions[0] * dimensions[1];
+  ProcessingLimits.checkRenderedPixels(images.pixels + pixels);
+  images.digests.add(digest);
+  images.pixels += pixels;
+  ProcessingLimits.accountImage(pixels);
 }
 
 static FSStream trustedRenderAsset(String uri) {
@@ -229,10 +237,16 @@ static void configureRendererLogging() {
   XRLog.setLevel(XRLog.CSS_PARSE, Level.SEVERE);
   var delegate = XRLog.getLoggerImpl();
   XRLog.setLoggerImpl(new com.openhtmltopdf.util.XRLogger() {
-    @Override public void log(String where, Level level, String message) { delegate.log(where, level, message); }
-    @Override public void log(String where, Level level, String message, Throwable error) { delegate.log(where, level, message, error); }
+    @Override public void log(String where, Level level, String message) {
+      delegate.log(where, level, ConversionDiagnostics.redactIdentifiers(ACTIVE_RENDER_RECORD.get(), message));
+    }
+    @Override public void log(String where, Level level, String message, Throwable error) {
+      log(where, level, error == null ? message : message + " (" + error.getClass().getSimpleName() + ")");
+    }
     @Override public void setLevel(String logger, Level level) { delegate.setLevel(logger, level); }
-    @Override public void log(com.openhtmltopdf.util.Diagnostic diagnostic) { delegate.log(diagnostic); }
+    @Override public void log(com.openhtmltopdf.util.Diagnostic diagnostic) {
+      log(diagnostic.getLogMessageId().getWhere(), diagnostic.getLevel(), diagnostic.getFormattedMessage(), diagnostic.getError());
+    }
     @Override public boolean isLogLevelEnabled(com.openhtmltopdf.util.Diagnostic diagnostic) {
       var id = diagnostic.getLogMessageId();
       // The renderer produces an intermediate PDF. Final title/description metadata
@@ -245,11 +259,6 @@ static void configureRendererLogging() {
   });
 }
 
-static void blacklistRemoteAsset(String key, String reason) {
-  if (key == null) return;
-  String normalizedReason = Common.nz(reason).trim();
-  Common.recordBlacklistedRemoteAsset(key, normalizedReason, ACTIVE_RENDER_RECORD.get());
-}
 
 static AssociatedFile findLocationAsset(String uri, EmailRecord record) {
   for (Map.Entry<String, AssociatedFile> resource : record.nativeLocationResources.entrySet()) {

@@ -135,7 +135,7 @@ class AuditRepairTests {
     String digest = Common.digestHex(staged, "SHA-256");
     var entries = List.of(new OutputTransaction.Entry(existing.toString(), staged.toString(), 9, digest, true),
         new OutputTransaction.Entry(fresh.toString(), staged.toString(), 9, digest, false));
-    OutputTransaction.publish(entries, (source, target) -> Files.createLink(target, source));
+    OutputTransaction.publish(entries, OutputTransaction::publishOutput);
     assertEquals("completed", Files.readString(existing));
     assertEquals(mode, Files.getPosixFilePermissions(existing));
     assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(fresh));

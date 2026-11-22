@@ -41,6 +41,8 @@ MboxReader.java|Converts messages from an MBOX mailbox.
 MboxParser.java|Locates and parses individual messages inside an MBOX file.
 MboxReadInventory.java|Tracks which MBOX records were read and retained.
 GmailDownloadToPdf.java|Connects to Gmail and converts selected messages and labels.
+GmailOAuthReceiver.java|Binds the Gmail OAuth response to the local authorization request.
+GmailTokenStore.java|Encrypts persistent OAuth tokens for each Google client and account.
 GmailResumeStore.java|Saves Gmail download progress so interrupted work can resume.
 MimeMessageWriter.java|Reconstructs MIME email while retaining original identifiers and attachment bytes.
 ''')
@@ -61,6 +63,7 @@ weasyprint_worker.py|Runs pinned WeasyPrint under Linux filesystem, network, pro
 group('Creator distribution', 'Bundled renderer packaging and verification', 'scripts/', '''
 package_weasyprint.py|Freezes Python, WeasyPrint, native font libraries and matching fonts into a relocatable Linux runtime.
 embed_weasyprint_runtime.py|Embeds the matching renderer archive and per-file checksums in versioned creator JARs.
+published_outputs.py|Resolves a complete creator generation from its publication manifest.
 check_bundled_renderer.py|Verifies offline rendering in a clean container without installed Python or Pango, with kernel guards active.
 ''')
 
@@ -126,6 +129,7 @@ ValidationReportReader.java|Reads completed reports for display in the window.
 group('Java validator', 'Processes and execution', 'validator-desktop/src/main/java/eapdf/', '''
 JavaValidatorEngine.java|Runs validation in a separate JVM and handles progress, timeout and cancellation.
 ValidationWorker.java|Launches the bounded command-line validation worker.
+ValidationOutputs.java|Protects selected inputs and coordinates report paths across validator processes.
 ValidationRuntime.java|Chooses runtime budgets, process commands and temporary storage.
 ValidationSession.java|Tracks work files, completion and failed or interrupted runs.
 CollectionValidationPool.java|Schedules bounded validation of collection children.
@@ -350,6 +354,7 @@ XdgFileChooser.java|Opens native Linux file dialogs through XDG Desktop Portal.
 for title, directory in (
     ('PDF.js patches for reader APIs and behavior', 'browser-viewer/vendor/pdfjs-patches'),
     ('HTML renderer patches for PDF output', 'third_party/openhtmltopdf/patches'),
+    ('PST reader patches for bounded extraction', 'third_party/java-libpst/patches'),
 ):
     entries = []
     descriptions = {
@@ -370,6 +375,8 @@ for title, directory in (
         '0001-Add-PDF-A-4-conformance-support': 'Adds PDF/A-4 rendering support.',
         '0002-Keep-inter-word-gaps-extractable-under-negative-lett': 'Preserves extractable word gaps under negative letter spacing.',
         '0003-Add-PDF-UA-2-conformance-support': 'Adds PDF/UA-2 rendering support.',
+        '0001-bound-pst-node-decoding': 'Bounds PST node expansion and verifies chained block declarations.',
+        '0005-Bound-layout-page-allocation': 'Checks the page budget before allocating more PDF layout pages.',
         '0004-Disable-GSUB-ligature-substitution-so-all-glyphs-map': 'Keeps glyphs mapped to text by disabling GSUB ligature substitution.',
     }
     for path in sorted((ROOT / directory).glob('*.patch')):

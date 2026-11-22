@@ -6,17 +6,17 @@ This inventory describes the main parts of the Creator, Java Validator, diagnost
 
 | Program or category | Files | Nonblank |
 | --- | ---: | ---: |
-| Creator | 63 | 17,444 |
-| Creator distribution | 3 | 278 |
+| Creator | 65 | 18,303 |
+| Creator distribution | 4 | 341 |
 | Creator and Java validator | 3 | 244 |
-| Java validator | 44 | 9,637 |
-| Java security validator | 3 | 292 |
+| Java validator | 45 | 10,109 |
+| Java security validator | 3 | 340 |
 | Validation rule descriptions and data | 6 | 61,911 |
-| Python diagnostic validator | 14 | 11,382 |
+| Python diagnostic validator | 14 | 11,474 |
 | Browser viewer Full | 80 | 6,364 |
-| Viewer local build and install tools | 4 | 142 |
-| Desktop viewer | 20 | 6,995 |
-| Library patch recipes | 18 | 3,372 |
+| Viewer local build and install tools | 4 | 198 |
+| Desktop viewer | 20 | 7,022 |
+| Library patch recipes | 20 | 3,613 |
 
 The experimental checkout maintains the Full browser viewer for Chromium and Firefox. Rule data and library patches are listed separately.
 
@@ -42,34 +42,34 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Program | Component | Files | Nonblank |
 | --- | --- | ---: | ---: |
-| Creator | Window and user controls | 4 | 1,012 |
-| Creator | Commands and conversion processes | 9 | 1,562 |
-| Creator | Email readers and source reconstruction | 9 | 2,682 |
-| Creator | PDF assembly and email appearance | 8 | 3,863 |
+| Creator | Window and user controls | 4 | 1,019 |
+| Creator | Commands and conversion processes | 9 | 1,646 |
+| Creator | Email readers and source reconstruction | 11 | 3,069 |
+| Creator | PDF assembly and email appearance | 8 | 3,854 |
 | Creator | Default page renderer worker | 1 | 479 |
-| Creator distribution | Bundled renderer packaging and verification | 3 | 278 |
+| Creator distribution | Bundled renderer packaging and verification | 4 | 341 |
 | Creator | Accessibility and fonts | 4 | 1,214 |
 | Creator | Accessibility font integration | 1 | 11 |
-| Creator | Metadata and document organization | 4 | 1,501 |
+| Creator | Metadata and document organization | 4 | 1,531 |
 | Creator | Embedded search indexing | 2 | 448 |
-| Creator | Signing and output integrity | 6 | 1,660 |
-| Creator | Memory limits and PDF storage | 9 | 839 |
-| Creator | Shared settings and models | 3 | 1,683 |
-| Creator | PST library integration | 3 | 490 |
+| Creator | Signing and output integrity | 6 | 1,975 |
+| Creator | Memory limits and PDF storage | 9 | 864 |
+| Creator | Shared settings and models | 3 | 1,694 |
+| Creator | PST library integration | 3 | 499 |
 | Creator and Java validator | Export security policy and verification | 3 | 244 |
 | Java validator | Window and report presentation | 2 | 663 |
-| Java validator | Processes and execution | 6 | 1,060 |
-| Java security validator | Separate window and security worker | 3 | 292 |
-| Java validator | Executable validation rules | 8 | 4,551 |
+| Java validator | Processes and execution | 7 | 1,512 |
+| Java security validator | Separate window and security worker | 3 | 340 |
+| Java validator | Executable validation rules | 8 | 4,571 |
 | Java validator | Rule references and finding records | 2 | 139 |
 | Java validator | Source and content evidence | 10 | 965 |
 | Java validator | Memory limits and PDF storage | 9 | 574 |
 | Java validator | Local veraPDF integration | 7 | 1,685 |
 | Validation rule descriptions and data | Shared rule catalog and specification profiles | 6 | 61,911 |
-| Python diagnostic validator | Entry point and shared inspection | 1 | 7,080 |
+| Python diagnostic validator | Entry point and shared inspection | 1 | 7,116 |
 | Python diagnostic validator | Executable rule families | 6 | 3,412 |
-| Python diagnostic validator | Reports and engine integration | 5 | 605 |
-| Python diagnostic validator | Worker isolation and decode limits | 2 | 285 |
+| Python diagnostic validator | Reports and engine integration | 5 | 637 |
+| Python diagnostic validator | Worker isolation and decode limits | 2 | 309 |
 | Browser viewer Full | Window layout and controls | 13 | 1,021 |
 | Browser viewer Full | Document opening and navigation | 12 | 1,660 |
 | Browser viewer Full | Email and archive interpretation | 18 | 1,020 |
@@ -81,10 +81,11 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Browser viewer Full | Full edition Portfolio controls | 6 | 417 |
 | Browser viewer Full | Full edition Portfolio contract | 1 | 21 |
 | Browser viewer Full | Browser extension integration | 2 | 46 |
-| Viewer local build and install tools | Versioned builds and permanent unpacked installs | 4 | 142 |
-| Desktop viewer | Application, navigation and rendering | 20 | 6,995 |
+| Viewer local build and install tools | Versioned builds and permanent unpacked installs | 4 | 198 |
+| Desktop viewer | Application, navigation and rendering | 20 | 7,022 |
 | Library patch recipes | PDF.js patches for reader APIs and behavior | 14 | 2,805 |
-| Library patch recipes | HTML renderer patches for PDF output | 4 | 567 |
+| Library patch recipes | HTML renderer patches for PDF output | 5 | 596 |
+| Library patch recipes | PST reader patches for bounded extraction | 1 | 212 |
 
 ## Creator
 
@@ -94,34 +95,36 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | --- | ---: | --- |
 | [src/main/java/eapdf/EapdfGui.java](../src/main/java/eapdf/EapdfGui.java) | 884 | Shows input, output and conversion settings and controls a conversion run. |
 | [src/main/java/eapdf/SigningSettings.java](../src/main/java/eapdf/SigningSettings.java) | 69 | Imports operator-selected signing settings and resolves local evidence paths without retaining the settings filename. |
-| [src/main/java/eapdf/GuiRunConfiguration.java](../src/main/java/eapdf/GuiRunConfiguration.java) | 25 | Translates window selections into a checked run configuration. |
+| [src/main/java/eapdf/GuiRunConfiguration.java](../src/main/java/eapdf/GuiRunConfiguration.java) | 32 | Translates window selections into a checked run configuration. |
 | [src/main/java/eapdf/GuiLog.java](../src/main/java/eapdf/GuiLog.java) | 34 | Collects and displays conversion messages in the window. |
 
 ### Commands and conversion processes
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/EmailToPDFA.java](../src/main/java/eapdf/EmailToPDFA.java) | 415 | Reads command-line requests and coordinates source selection and conversion. |
-| [src/main/java/eapdf/GuiConversionProcess.java](../src/main/java/eapdf/GuiConversionProcess.java) | 68 | Starts and stops the separate conversion process used by the window. |
-| [src/main/java/eapdf/ConversionSupervisor.java](../src/main/java/eapdf/ConversionSupervisor.java) | 327 | Supervises bounded conversion jobs and handles worker failures. |
+| [src/main/java/eapdf/EmailToPDFA.java](../src/main/java/eapdf/EmailToPDFA.java) | 421 | Reads command-line requests and coordinates source selection and conversion. |
+| [src/main/java/eapdf/GuiConversionProcess.java](../src/main/java/eapdf/GuiConversionProcess.java) | 74 | Starts and stops the separate conversion process used by the window. |
+| [src/main/java/eapdf/ConversionSupervisor.java](../src/main/java/eapdf/ConversionSupervisor.java) | 368 | Supervises bounded conversion jobs and handles worker failures. |
 | [src/main/java/eapdf/PstProcesses.java](../src/main/java/eapdf/PstProcesses.java) | 109 | Coordinates separate PST conversion workers. |
-| [src/main/java/eapdf/MboxProcesses.java](../src/main/java/eapdf/MboxProcesses.java) | 167 | Coordinates separate MBOX conversion workers. |
+| [src/main/java/eapdf/MboxProcesses.java](../src/main/java/eapdf/MboxProcesses.java) | 168 | Coordinates separate MBOX conversion workers. |
 | [src/main/java/eapdf/MonthlyFilenameArchiveToPdf.java](../src/main/java/eapdf/MonthlyFilenameArchiveToPdf.java) | 156 | Groups dated source filenames into monthly PDF archives. |
-| [src/main/java/eapdf/ConversionProgress.java](../src/main/java/eapdf/ConversionProgress.java) | 251 | Records run progress for the window and command-line tools. |
+| [src/main/java/eapdf/ConversionProgress.java](../src/main/java/eapdf/ConversionProgress.java) | 272 | Records run progress for the window and command-line tools. |
 | [src/main/java/eapdf/ConversionDiagnostic.java](../src/main/java/eapdf/ConversionDiagnostic.java) | 34 | Represents one conversion diagnostic. |
-| [src/main/java/eapdf/ConversionDiagnostics.java](../src/main/java/eapdf/ConversionDiagnostics.java) | 35 | Collects conversion diagnostics and their context. |
+| [src/main/java/eapdf/ConversionDiagnostics.java](../src/main/java/eapdf/ConversionDiagnostics.java) | 44 | Collects conversion diagnostics and their context. |
 
 ### Email readers and source reconstruction
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/EmlReader.java](../src/main/java/eapdf/EmlReader.java) | 655 | Reads MIME email files, their headers, bodies and attachments. |
-| [src/main/java/eapdf/MsgReader.java](../src/main/java/eapdf/MsgReader.java) | 577 | Reads Outlook message files and preserves native message details. |
-| [src/main/java/eapdf/PstReader.java](../src/main/java/eapdf/PstReader.java) | 423 | Reads Outlook mailbox folders, messages and attachments. |
+| [src/main/java/eapdf/EmlReader.java](../src/main/java/eapdf/EmlReader.java) | 689 | Reads MIME email files, their headers, bodies and attachments. |
+| [src/main/java/eapdf/MsgReader.java](../src/main/java/eapdf/MsgReader.java) | 632 | Reads Outlook message files and preserves native message details. |
+| [src/main/java/eapdf/PstReader.java](../src/main/java/eapdf/PstReader.java) | 464 | Reads Outlook mailbox folders, messages and attachments. |
 | [src/main/java/eapdf/MboxReader.java](../src/main/java/eapdf/MboxReader.java) | 86 | Converts messages from an MBOX mailbox. |
-| [src/main/java/eapdf/MboxParser.java](../src/main/java/eapdf/MboxParser.java) | 173 | Locates and parses individual messages inside an MBOX file. |
+| [src/main/java/eapdf/MboxParser.java](../src/main/java/eapdf/MboxParser.java) | 176 | Locates and parses individual messages inside an MBOX file. |
 | [src/main/java/eapdf/MboxReadInventory.java](../src/main/java/eapdf/MboxReadInventory.java) | 53 | Tracks which MBOX records were read and retained. |
-| [src/main/java/eapdf/GmailDownloadToPdf.java](../src/main/java/eapdf/GmailDownloadToPdf.java) | 400 | Connects to Gmail and converts selected messages and labels. |
+| [src/main/java/eapdf/GmailDownloadToPdf.java](../src/main/java/eapdf/GmailDownloadToPdf.java) | 428 | Connects to Gmail and converts selected messages and labels. |
+| [src/main/java/eapdf/GmailOAuthReceiver.java](../src/main/java/eapdf/GmailOAuthReceiver.java) | 77 | Binds the Gmail OAuth response to the local authorization request. |
+| [src/main/java/eapdf/GmailTokenStore.java](../src/main/java/eapdf/GmailTokenStore.java) | 149 | Encrypts persistent OAuth tokens for each Google client and account. |
 | [src/main/java/eapdf/GmailResumeStore.java](../src/main/java/eapdf/GmailResumeStore.java) | 168 | Saves Gmail download progress so interrupted work can resume. |
 | [src/main/java/eapdf/MimeMessageWriter.java](../src/main/java/eapdf/MimeMessageWriter.java) | 147 | Reconstructs MIME email while retaining original identifiers and attachment bytes. |
 
@@ -129,11 +132,11 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/PdfMailWriter.java](../src/main/java/eapdf/PdfMailWriter.java) | 2,053 | Owns final PDF assembly, page and message boundaries, structure and profile decisions. |
-| [src/main/java/eapdf/MailHtmlRenderer.java](../src/main/java/eapdf/MailHtmlRenderer.java) | 701 | Prepares email HTML, resolves inline content and renders it into PDF pages. |
-| [src/main/java/eapdf/MailRenderPolicy.java](../src/main/java/eapdf/MailRenderPolicy.java) | 293 | Applies rendering resource and content policies. |
-| [src/main/java/eapdf/WeasyPrintRenderer.java](../src/main/java/eapdf/WeasyPrintRenderer.java) | 268 | Stages trusted resources and runs the default sandboxed WeasyPrint page renderer. |
-| [src/main/java/eapdf/EmbeddedWeasyPrintRuntime.java](../src/main/java/eapdf/EmbeddedWeasyPrintRuntime.java) | 142 | Verifies and installs the bundled renderer into a private cache before execution. |
+| [src/main/java/eapdf/PdfMailWriter.java](../src/main/java/eapdf/PdfMailWriter.java) | 1,979 | Owns final PDF assembly, page and message boundaries, structure and profile decisions. |
+| [src/main/java/eapdf/MailHtmlRenderer.java](../src/main/java/eapdf/MailHtmlRenderer.java) | 755 | Prepares email HTML, resolves inline content and renders it into PDF pages. |
+| [src/main/java/eapdf/MailRenderPolicy.java](../src/main/java/eapdf/MailRenderPolicy.java) | 301 | Applies rendering resource and content policies. |
+| [src/main/java/eapdf/WeasyPrintRenderer.java](../src/main/java/eapdf/WeasyPrintRenderer.java) | 266 | Stages trusted resources and runs the default sandboxed WeasyPrint page renderer. |
+| [src/main/java/eapdf/EmbeddedWeasyPrintRuntime.java](../src/main/java/eapdf/EmbeddedWeasyPrintRuntime.java) | 147 | Verifies and installs the bundled renderer into a private cache before execution. |
 | [src/main/java/eapdf/WeasyFontFaces.java](../src/main/java/eapdf/WeasyFontFaces.java) | 111 | Finds and verifies matching font-family style faces for the WeasyPrint renderer. |
 | [src/main/java/eapdf/EmailStyles.java](../src/main/java/eapdf/EmailStyles.java) | 243 | Scopes source email CSS while preserving selector states and presentation. |
 | [src/main/java/eapdf/ImageOrientation.java](../src/main/java/eapdf/ImageOrientation.java) | 52 | Corrects image orientation when preparing visible content. |
@@ -165,7 +168,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | --- | ---: | --- |
 | [src/main/java/eapdf/PdfMetadataWriter.java](../src/main/java/eapdf/PdfMetadataWriter.java) | 285 | Writes document, message and preserved-source XMP metadata. |
 | [src/main/java/eapdf/PdfDocumentParts.java](../src/main/java/eapdf/PdfDocumentParts.java) | 124 | Builds the document-part hierarchy linking messages to pages and content. |
-| [src/main/java/eapdf/PdfAttachmentSupport.java](../src/main/java/eapdf/PdfAttachmentSupport.java) | 393 | Plans and embeds attachments and preserved source files. |
+| [src/main/java/eapdf/PdfAttachmentSupport.java](../src/main/java/eapdf/PdfAttachmentSupport.java) | 423 | Plans and embeds attachments and preserved source files. |
 | [src/main/java/eapdf/PdfCollectionSupport.java](../src/main/java/eapdf/PdfCollectionSupport.java) | 699 | Describes collection members, folders and archive segments. |
 
 ### Embedded search indexing
@@ -181,7 +184,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | --- | ---: | --- |
 | [src/main/java/eapdf/PdfSigning.java](../src/main/java/eapdf/PdfSigning.java) | 250 | Applies PDF signatures using configured signing material. |
 | [src/main/java/eapdf/EaPdfSecurity.java](../src/main/java/eapdf/EaPdfSecurity.java) | 155 | Coordinates C2PA export provenance, timestamped signing and archival renewal before publication. |
-| [src/main/java/eapdf/OutputTransaction.java](../src/main/java/eapdf/OutputTransaction.java) | 212 | Stages completed output and publishes it safely. |
+| [src/main/java/eapdf/OutputTransaction.java](../src/main/java/eapdf/OutputTransaction.java) | 527 | Stages completed output and publishes it safely. |
 | [src/main/java/eapdf/PreservationInventory.java](../src/main/java/eapdf/PreservationInventory.java) | 357 | Records source content and checks that conversion preserved the expected material. |
 | [src/main/java/eapdf/PdfCreationValidator.java](../src/main/java/eapdf/PdfCreationValidator.java) | 587 | Checks newly created PDFs and reconciles preservation records before completion. |
 | [src/main/java/eapdf/MetadataScanner.java](../src/main/java/eapdf/MetadataScanner.java) | 99 | Scans generated metadata for creation-time integrity checks. |
@@ -197,22 +200,22 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | [src/main/java/eapdf/IndexedPdfLoader.java](../src/main/java/eapdf/IndexedPdfLoader.java) | 90 | Loads PDFs through the project object-index storage path. |
 | [src/main/java/eapdf/ObjectKeyIndex.java](../src/main/java/eapdf/ObjectKeyIndex.java) | 33 | Indexes PDF object numbers and generations. |
 | [src/main/java/eapdf/PayloadStore.java](../src/main/java/eapdf/PayloadStore.java) | 99 | Stores large message and attachment payloads outside ordinary object graphs. |
-| [src/main/java/eapdf/ProcessingLimits.java](../src/main/java/eapdf/ProcessingLimits.java) | 100 | Defines processing limits for conversion work. |
+| [src/main/java/eapdf/ProcessingLimits.java](../src/main/java/eapdf/ProcessingLimits.java) | 125 | Defines processing limits for conversion work. |
 | [src/main/java/eapdf/PstJobBudget.java](../src/main/java/eapdf/PstJobBudget.java) | 76 | Budgets resources for PST conversion jobs. |
 
 ### Shared settings and models
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/eapdf/EapdfConfig.java](../src/main/java/eapdf/EapdfConfig.java) | 162 | Loads and checks conversion configuration. |
-| [src/main/java/eapdf/Common.java](../src/main/java/eapdf/Common.java) | 1,379 | Provides shared email, filename, metadata and conversion helpers. |
-| [src/main/java/eapdf/Models.java](../src/main/java/eapdf/Models.java) | 142 | Defines the message and attachment values passed between readers and writers. |
+| [src/main/java/eapdf/EapdfConfig.java](../src/main/java/eapdf/EapdfConfig.java) | 166 | Loads and checks conversion configuration. |
+| [src/main/java/eapdf/Common.java](../src/main/java/eapdf/Common.java) | 1,387 | Provides shared email, filename, metadata and conversion helpers. |
+| [src/main/java/eapdf/Models.java](../src/main/java/eapdf/Models.java) | 141 | Defines the message and attachment values passed between readers and writers. |
 
 ### PST library integration
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [src/main/java/com/pff/EaPdfPstFile.java](../src/main/java/com/pff/EaPdfPstFile.java) | 42 | Adapts PST file access for the creator. |
+| [src/main/java/com/pff/EaPdfPstFile.java](../src/main/java/com/pff/EaPdfPstFile.java) | 51 | Adapts PST file access for the creator. |
 | [src/main/java/com/pff/EaPdfPstProperties.java](../src/main/java/com/pff/EaPdfPstProperties.java) | 34 | Exposes native PST properties needed for source preservation. |
 | [src/main/java/com/pff/PSTTable7C.java](../src/main/java/com/pff/PSTTable7C.java) | 414 | Provides the local PST table reader implementation. |
 
@@ -225,6 +228,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | --- | ---: | --- |
 | [scripts/package_weasyprint.py](../scripts/package_weasyprint.py) | 147 | Freezes Python, WeasyPrint, native font libraries and matching fonts into a relocatable Linux runtime. |
 | [scripts/embed_weasyprint_runtime.py](../scripts/embed_weasyprint_runtime.py) | 72 | Embeds the matching renderer archive and per-file checksums in versioned creator JARs. |
+| [scripts/published_outputs.py](../scripts/published_outputs.py) | 63 | Resolves a complete creator generation from its publication manifest. |
 | [scripts/check_bundled_renderer.py](../scripts/check_bundled_renderer.py) | 59 | Verifies offline rendering in a clean container without installed Python or Pango, with kernel guards active. |
 
 
@@ -252,18 +256,19 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java](../validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java) | 103 | Runs validation in a separate JVM and handles progress, timeout and cancellation. |
-| [validator-desktop/src/main/java/eapdf/ValidationWorker.java](../validator-desktop/src/main/java/eapdf/ValidationWorker.java) | 68 | Launches the bounded command-line validation worker. |
-| [validator-desktop/src/main/java/eapdf/ValidationRuntime.java](../validator-desktop/src/main/java/eapdf/ValidationRuntime.java) | 140 | Chooses runtime budgets, process commands and temporary storage. |
-| [validator-desktop/src/main/java/eapdf/ValidationSession.java](../validator-desktop/src/main/java/eapdf/ValidationSession.java) | 159 | Tracks work files, completion and failed or interrupted runs. |
-| [validator-desktop/src/main/java/eapdf/CollectionValidationPool.java](../validator-desktop/src/main/java/eapdf/CollectionValidationPool.java) | 177 | Schedules bounded validation of collection children. |
-| [validator-desktop/src/main/java/eapdf/JavaValidation.java](../validator-desktop/src/main/java/eapdf/JavaValidation.java) | 413 | Coordinates inspection, veraPDF checks, rule dispatch, child documents and final results. |
+| [validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java](../validator-desktop/src/main/java/eapdf/JavaValidatorEngine.java) | 105 | Runs validation in a separate JVM and handles progress, timeout and cancellation. |
+| [validator-desktop/src/main/java/eapdf/ValidationWorker.java](../validator-desktop/src/main/java/eapdf/ValidationWorker.java) | 133 | Launches the bounded command-line validation worker. |
+| [validator-desktop/src/main/java/eapdf/ValidationOutputs.java](../validator-desktop/src/main/java/eapdf/ValidationOutputs.java) | 125 | Protects selected inputs and coordinates report paths across validator processes. |
+| [validator-desktop/src/main/java/eapdf/ValidationRuntime.java](../validator-desktop/src/main/java/eapdf/ValidationRuntime.java) | 312 | Chooses runtime budgets, process commands and temporary storage. |
+| [validator-desktop/src/main/java/eapdf/ValidationSession.java](../validator-desktop/src/main/java/eapdf/ValidationSession.java) | 192 | Tracks work files, completion and failed or interrupted runs. |
+| [validator-desktop/src/main/java/eapdf/CollectionValidationPool.java](../validator-desktop/src/main/java/eapdf/CollectionValidationPool.java) | 187 | Schedules bounded validation of collection children. |
+| [validator-desktop/src/main/java/eapdf/JavaValidation.java](../validator-desktop/src/main/java/eapdf/JavaValidation.java) | 458 | Coordinates inspection, veraPDF checks, rule dispatch, child documents and final results. |
 
 ### Executable validation rules
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validator-desktop/src/main/java/eapdf/EaPdfChecks.java](../validator-desktop/src/main/java/eapdf/EaPdfChecks.java) | 987 | Checks EA-PDF profile and document-level requirements. |
+| [validator-desktop/src/main/java/eapdf/EaPdfChecks.java](../validator-desktop/src/main/java/eapdf/EaPdfChecks.java) | 1,007 | Checks EA-PDF profile and document-level requirements. |
 | [validator-desktop/src/main/java/eapdf/MetadataChecks.java](../validator-desktop/src/main/java/eapdf/MetadataChecks.java) | 1,611 | Checks XMP declarations and message metadata consistency. |
 | [validator-desktop/src/main/java/eapdf/AttachmentChecks.java](../validator-desktop/src/main/java/eapdf/AttachmentChecks.java) | 280 | Checks embedded files, attachment records and source preservation evidence. |
 | [validator-desktop/src/main/java/eapdf/DocumentPartChecks.java](../validator-desktop/src/main/java/eapdf/DocumentPartChecks.java) | 209 | Checks document-part structure and page ownership links. |
@@ -327,9 +332,9 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validator-desktop/src/main/java/eapdf/SecurityValidatorGui.java](../validator-desktop/src/main/java/eapdf/SecurityValidatorGui.java) | 159 | Shows independent C2PA and PAdES verification, trust policy, protection level and downloadable reports. |
+| [validator-desktop/src/main/java/eapdf/SecurityValidatorGui.java](../validator-desktop/src/main/java/eapdf/SecurityValidatorGui.java) | 200 | Shows independent C2PA and PAdES verification, trust policy, protection level and downloadable reports. |
 | [validator-desktop/src/main/java/eapdf/SecurityValidatorEngine.java](../validator-desktop/src/main/java/eapdf/SecurityValidatorEngine.java) | 79 | Runs a bounded disposable security JVM with timeout, cancellation and scratch cleanup. |
-| [validator-desktop/src/main/java/eapdf/SecurityValidation.java](../validator-desktop/src/main/java/eapdf/SecurityValidation.java) | 54 | Verifies export security without conformance checks and records file hashes and check categories. |
+| [validator-desktop/src/main/java/eapdf/SecurityValidation.java](../validator-desktop/src/main/java/eapdf/SecurityValidation.java) | 61 | Verifies export security without conformance checks and records file hashes and check categories. |
 
 
 ## Validation rule descriptions and data
@@ -352,7 +357,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validate_eapdf.py](../validate_eapdf.py) | 7,080 | Provides the diagnostic CLI, shared evidence helpers, remaining checks and coordination of rule families. |
+| [validate_eapdf.py](../validate_eapdf.py) | 7,116 | Provides the diagnostic CLI, shared evidence helpers, remaining checks and coordination of rule families. |
 
 ### Executable rule families
 
@@ -372,15 +377,15 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | [eapdf_validation/__init__.py](../eapdf_validation/__init__.py) | 1 | Marks the shared validation package. |
 | [eapdf_validation/report_model.py](../eapdf_validation/report_model.py) | 77 | Accumulates findings and decides combined report status. |
 | [eapdf_validation/reporting.py](../eapdf_validation/reporting.py) | 209 | Formats validation reports for readers. |
-| [eapdf_validation/engines.py](../eapdf_validation/engines.py) | 291 | Runs external veraPDF and structure-profile checks. |
+| [eapdf_validation/engines.py](../eapdf_validation/engines.py) | 323 | Runs external veraPDF and structure-profile checks. |
 | [rule_documentation.py](../rule_documentation.py) | 27 | Formats rule conditions and requirement references in report pages. |
 
 ### Worker isolation and decode limits
 
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
-| [validation_worker.py](../validation_worker.py) | 142 | Runs diagnostic validation with memory, disk and worker limits. |
-| [pdf_stream_limits.py](../pdf_stream_limits.py) | 143 | Bounds stream decoding and PDF inspection resources. |
+| [validation_worker.py](../validation_worker.py) | 167 | Runs diagnostic validation with memory, disk and worker limits. |
+| [pdf_stream_limits.py](../pdf_stream_limits.py) | 142 | Bounds stream decoding and PDF inspection resources. |
 
 
 ## Browser viewer Full
@@ -528,7 +533,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | Source file | Nonblank | Function |
 | --- | ---: | --- |
 | [browser-viewer/scripts/build-local.mjs](../browser-viewer/scripts/build-local.mjs) | 20 | Advances the viewer minor version and rebuilds the locally installable Full browser packages. |
-| [browser-viewer/scripts/local-install.mjs](../browser-viewer/scripts/local-install.mjs) | 55 | Verifies build bytes and updates permanent unpacked reader directories in place. |
+| [browser-viewer/scripts/local-install.mjs](../browser-viewer/scripts/local-install.mjs) | 111 | Verifies build bytes and updates permanent unpacked reader directories in place. |
 | [browser-viewer/scripts/local-reload-smoke.mjs](../browser-viewer/scripts/local-reload-smoke.mjs) | 52 | Checks an actual extension reload across two versions at one fixed install path. |
 | [browser-viewer/scripts/extension-version.mjs](../browser-viewer/scripts/extension-version.mjs) | 15 | Maps package versions to browser versions and advances minor versions. |
 
@@ -547,7 +552,7 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | [desktop-viewer/src/main/java/eapdf/viewer/PdfAssetIndex.java](../desktop-viewer/src/main/java/eapdf/viewer/PdfAssetIndex.java) | 415 | Finds embedded and associated file records. |
 | [desktop-viewer/src/main/java/eapdf/viewer/PdfNavigation.java](../desktop-viewer/src/main/java/eapdf/viewer/PdfNavigation.java) | 226 | Builds page, asset and collection navigation from PDF records. |
 | [desktop-viewer/src/main/java/eapdf/viewer/PortfolioView.java](../desktop-viewer/src/main/java/eapdf/viewer/PortfolioView.java) | 760 | Presents PDF Portfolio items, folders and opening destinations. |
-| [desktop-viewer/src/main/java/eapdf/viewer/ViewerApplication.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerApplication.java) | 2,160 | Runs the viewer window and coordinates document and pane actions. |
+| [desktop-viewer/src/main/java/eapdf/viewer/ViewerApplication.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerApplication.java) | 2,187 | Runs the viewer window and coordinates document and pane actions. |
 | [desktop-viewer/src/main/java/eapdf/viewer/ViewerArchiveStats.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerArchiveStats.java) | 34 | Summarizes profile and archive contents for the status bar. |
 | [desktop-viewer/src/main/java/eapdf/viewer/ViewerGlyph.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerGlyph.java) | 48 | Provides icons for desktop reader controls. |
 | [desktop-viewer/src/main/java/eapdf/viewer/ViewerLauncher.java](../desktop-viewer/src/main/java/eapdf/viewer/ViewerLauncher.java) | 8 | Starts the JavaFX application. |
@@ -590,6 +595,13 @@ The headless validator can remove 896 measured desktop/report-presentation lines
 | [third_party/openhtmltopdf/patches/0002-Keep-inter-word-gaps-extractable-under-negative-lett.patch](../third_party/openhtmltopdf/patches/0002-Keep-inter-word-gaps-extractable-under-negative-lett.patch) | 26 | Preserves extractable word gaps under negative letter spacing. |
 | [third_party/openhtmltopdf/patches/0003-Add-PDF-UA-2-conformance-support.patch](../third_party/openhtmltopdf/patches/0003-Add-PDF-UA-2-conformance-support.patch) | 361 | Adds PDF/UA-2 rendering support. |
 | [third_party/openhtmltopdf/patches/0004-Disable-GSUB-ligature-substitution-so-all-glyphs-map.patch](../third_party/openhtmltopdf/patches/0004-Disable-GSUB-ligature-substitution-so-all-glyphs-map.patch) | 71 | Keeps glyphs mapped to text by disabling GSUB ligature substitution. |
+| [third_party/openhtmltopdf/patches/0005-Bound-layout-page-allocation.patch](../third_party/openhtmltopdf/patches/0005-Bound-layout-page-allocation.patch) | 29 | Checks the page budget before allocating more PDF layout pages. |
+
+### PST reader patches for bounded extraction
+
+| Source file | Nonblank | Function |
+| --- | ---: | --- |
+| [third_party/java-libpst/patches/0001-bound-pst-node-decoding.patch](../third_party/java-libpst/patches/0001-bound-pst-node-decoding.patch) | 212 | Bounds PST node expansion and verifies chained block declarations. |
 
 ## Keeping this inventory current
 

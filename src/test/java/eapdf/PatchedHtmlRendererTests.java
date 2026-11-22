@@ -8,6 +8,32 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PatchedHtmlRendererTests {
+  @Test void rendererChecksPageCapacityBeforeAllocating() throws Exception {
+    var builder = new com.openhtmltopdf.pdfboxout.PdfRendererBuilder();
+    builder.withHtmlContent("<html><head></head><body><p>Page content</p></body></html>", "");
+    builder.toStream(java.io.OutputStream.nullOutputStream());
+    try (var renderer = builder.buildPdfRenderer()) {
+      renderer.layout();
+      var layer = renderer.getRootBox().getLayer();
+      var context = renderer.getSharedContext().newLayoutContextInstance();
+      var pages = layer.getPages();
+      int limit = com.openhtmltopdf.layout.Layer.MAX_LAYOUT_PAGES;
+      assertEquals(1, pages.size());
+      pages.addAll(java.util.Collections.nCopies(limit - pages.size(), pages.getFirst()));
+      assertThrows(com.openhtmltopdf.layout.Layer.LayoutLimitExceeded.class, () -> layer.addPage(context));
+      assertEquals(limit, pages.size());
+      pages.removeLast();
+      Thread.currentThread().interrupt();
+      try {
+        assertThrows(com.openhtmltopdf.layout.Layer.LayoutLimitExceeded.class, () -> layer.addPage(context));
+        assertTrue(Thread.currentThread().isInterrupted());
+        assertEquals(limit - 1, pages.size());
+      } finally {
+        Thread.interrupted();
+      }
+    }
+  }
+
   @org.junit.jupiter.api.io.TempDir java.nio.file.Path directory;
   private String previousEngine;
 
