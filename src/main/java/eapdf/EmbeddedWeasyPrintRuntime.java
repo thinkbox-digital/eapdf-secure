@@ -59,7 +59,6 @@ final class EmbeddedWeasyPrintRuntime {
       Files.setPosixFilePermissions(lock, PosixFilePermissions.fromString("rw-------"));
       try (var ignored = channel.lock()) {
         if (valid(target, files)) return target;
-        if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) Common.deleteTree(target);
         Path staging = Files.createTempDirectory(cache, ".extract-", PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
         try {
           System.out.println("[renderer] Preparing the included renderer for first use...");
@@ -102,8 +101,14 @@ final class EmbeddedWeasyPrintRuntime {
             for (Path directory : paths.filter(p -> Files.isDirectory(p, LinkOption.NOFOLLOW_LINKS)).toList())
               Files.setPosixFilePermissions(directory, PosixFilePermissions.fromString("rwx------"));
           }
+          if (!valid(staging, files)) throw new IOException("Extracted renderer verification failed");
+          if (Files.exists(target, LinkOption.NOFOLLOW_LINKS)) {
+            Path quarantine = Files.createTempDirectory(cache, ".quarantine-",
+                PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")));
+            Files.move(target, quarantine.resolve("prior-runtime"), StandardCopyOption.ATOMIC_MOVE);
+            System.err.println("[renderer] Preserved the previous renderer cache in " + quarantine);
+          }
           Files.move(staging, target, StandardCopyOption.ATOMIC_MOVE);
-          if (!valid(target, files)) throw new IOException("Extracted renderer verification failed");
           return target;
         } finally { Common.deleteTree(staging); }
       }

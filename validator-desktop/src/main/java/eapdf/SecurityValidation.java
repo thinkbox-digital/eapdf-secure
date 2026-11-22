@@ -1,6 +1,5 @@
 package eapdf;
 
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import eapdf.security.SecurityVerification;
 import java.nio.file.Files;
@@ -8,6 +7,7 @@ import java.nio.file.Path;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.HexFormat;
+import java.util.List;
 
 /** Read-only security worker. It does not run EA-PDF or PDF/A conformance checks. */
 public final class SecurityValidation {
@@ -15,10 +15,17 @@ public final class SecurityValidation {
 
   public static void main(String[] args) throws Exception {
     if (args.length != 2) throw new IllegalArgumentException("Security worker requires an input and report path");
-    JsonObject report = inspect(Path.of(args[0]), System.getenv("EAPDF_SECURITY_POLICY"),
-        System.getenv("EAPDF_SECURITY_REQUIRED_PROTECTION"));
-    Files.writeString(Path.of(args[1]), new GsonBuilder().setPrettyPrinting().create().toJson(report) + "\n");
+    Path input = Path.of(args[0]), output = Path.of(args[1]);
+    String policy = System.getenv("EAPDF_SECURITY_POLICY");
+    List<Path> protectedInputs = protectedInputs(input, policy);
+    ValidationOutputs.protect(output, protectedInputs);
+    JsonObject report = inspect(input, policy, System.getenv("EAPDF_SECURITY_REQUIRED_PROTECTION"));
+    ValidationSession.writeAtomic(output, report, protectedInputs);
     System.exit("PASS".equals(text(report, "status")) ? 0 : 2);
+  }
+
+  static List<Path> protectedInputs(Path input, String policy) {
+    return policy == null || policy.isBlank() ? List.of(input) : List.of(input, Path.of(policy));
   }
 
   static JsonObject inspect(Path input, String policy, String required) throws Exception {

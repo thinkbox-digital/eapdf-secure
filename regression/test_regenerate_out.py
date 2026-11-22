@@ -67,11 +67,11 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual('PADES_B_LTA',config['signing']['protection'])
         self.assertEqual('http://timestamp.digicert.com',config['signing']['tsaUrl'])
 
-    def test_missing_security_files_stop_generation_before_clearing_output(self):
+    def test_missing_security_files_stop_generation_before_publishing_output(self):
         self.local_security_config();(self.root/'config/signer.p12').unlink()
         self.source('one.eml');(self.root/'VERSION').write_text('2.0.0-beta.1')
         (self.root/'out').mkdir();existing=self.root/'out/keep.pdf';existing.write_bytes(b'preserve')
-        with patch.dict(runner.os.environ,{},clear=True),patch.object(sys,'argv',['regenerate','sample','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),patch.object(runner,'clear_output') as clear,redirect_stdout(io.StringIO()),patch.object(sys,'stderr',io.StringIO()):
+        with patch.dict(runner.os.environ,{},clear=True),patch.object(sys,'argv',['regenerate','sample','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),patch.object(runner,'prepare_output') as clear,redirect_stdout(io.StringIO()),patch.object(sys,'stderr',io.StringIO()):
             with self.assertRaises(SystemExit):runner.main()
         clear.assert_not_called();self.assertEqual(b'preserve',existing.read_bytes())
 
@@ -98,7 +98,7 @@ class RegenerationTests(unittest.TestCase):
             log.write_text('rejected' if command[-1]=='preflight' else 'compiled')
             return {'exit_code':1 if command[-1]=='preflight' else 0,'timeout':False,'seconds':0.1}
         stderr = io.StringIO()
-        with patch.dict(runner.os.environ,{},clear=True),patch.object(sys,'argv',['regenerate','sample','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),patch.object(runner.shutil,'which',return_value='/usr/bin/java'),patch.object(runner,'execute',execute),patch.object(runner,'clear_output') as clear,redirect_stdout(io.StringIO()),patch.object(sys,'stderr',stderr):
+        with patch.dict(runner.os.environ,{},clear=True),patch.object(sys,'argv',['regenerate','sample','--workers','1']),patch.object(runner,'available_memory',return_value=8*1024**3),patch.object(runner.shutil,'which',return_value='/usr/bin/java'),patch.object(runner,'execute',execute),patch.object(runner,'prepare_output') as clear,redirect_stdout(io.StringIO()),patch.object(sys,'stderr',stderr):
             with self.assertRaises(SystemExit):runner.main()
         clear.assert_not_called();self.assertEqual(b'preserve',existing.read_bytes())
         self.assertIn('rejected', stderr.getvalue())
@@ -119,7 +119,7 @@ class RegenerationTests(unittest.TestCase):
             self.assertEqual(workspace.parent, evidence.parent)
             self.assertEqual(self.root/'.generator_web_tmp', evidence.parent.parent)
             self.assertTrue((evidence/'runtime-jars.json').is_file())
-            return {'id': task['id'], 'status': 'PASS'}
+            return {'id': task['id'], 'status': 'PASS', 'documents': []}
 
         with (
             patch.dict(runner.os.environ, {}, clear=True),
@@ -136,7 +136,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual([], list((self.root/'.generator_web_tmp').iterdir()))
 
     def test_failed_security_check_publishes_no_pdfs_from_job(self):
-        source=self.source('source.eml');runner.clear_output(self.root)
+        source=self.source('source.eml');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir();workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
         args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
@@ -160,7 +160,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertFalse(list((self.root/'out').rglob('*.pdf')))
 
     def test_java_security_failure_cannot_be_hidden_by_conformance_pass(self):
-        source=self.source('source.eml');runner.clear_output(self.root)
+        source=self.source('source.eml');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir();workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json'}}))
         args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=1,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
@@ -253,7 +253,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual(b'preserve',existing.read_bytes())
 
     def test_failed_document_is_not_downgraded_by_later_incomplete_document(self):
-        source=self.source('mixed.eml');runner.clear_output(self.root)
+        source=self.source('mixed.eml');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
@@ -280,7 +280,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual(['FAIL','INCOMPLETE'],[d['validation'] for d in result['documents']])
 
     def test_incomplete_validation_regenerates_warning_once_and_preserves_reports(self):
-        source=self.source('nested.msg');runner.clear_output(self.root)
+        source=self.source('nested.msg');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
@@ -311,7 +311,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertIn('could not be completed',attempts[1]['validationWarning'])
         self.assertEqual([b'%PDF-original',b'%PDF-warning'],validated)
         self.assertEqual('INCOMPLETE',result['status']);self.assertTrue(result['validation_warning'])
-        self.assertEqual(b'%PDF-warning',(self.root/result['documents'][0]['path']).read_bytes())
+        self.assertEqual(b'%PDF-warning',Path(result['documents'][0]['staged']).read_bytes())
         folder=evidence/task['id'];initial=folder/'initial-validation'
         self.assertEqual('initial conversion',(initial/'conversion.log').read_text())
         self.assertIn('warning conversion',(folder/'conversion.log').read_text())
@@ -320,7 +320,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual('source nested.msg',source.read_text())
 
     def test_failed_validation_regenerates_warning_once_and_preserves_failure(self):
-        source=self.source('nested.msg');runner.clear_output(self.root)
+        source=self.source('nested.msg');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
@@ -351,7 +351,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertIn('checks failed',attempts[1]['validationWarning'])
         self.assertEqual([b'%PDF-original',b'%PDF-warning'],validated)
         self.assertEqual('FAIL',result['status']);self.assertTrue(result['validation_warning'])
-        self.assertEqual(b'%PDF-warning',(self.root/result['documents'][0]['path']).read_bytes())
+        self.assertEqual(b'%PDF-warning',Path(result['documents'][0]['staged']).read_bytes())
         folder=evidence/task['id'];initial=folder/'initial-validation'
         self.assertEqual('initial conversion',(initial/'conversion.log').read_text())
         self.assertIn('warning conversion',(folder/'conversion.log').read_text())
@@ -360,7 +360,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual('source nested.msg',source.read_text())
 
     def test_crashed_warning_recheck_cannot_reuse_the_previous_report(self):
-        source=self.source('nested.msg');runner.clear_output(self.root)
+        source=self.source('nested.msg');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
@@ -392,7 +392,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertTrue(list((evidence/tasks[0]['id']/'initial-validation').glob('*.summary.json')))
 
     def test_older_creator_cannot_publish_an_unconfirmed_warning(self):
-        source=self.source('nested.msg');runner.clear_output(self.root)
+        source=self.source('nested.msg');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
@@ -414,7 +414,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertFalse(list((self.root/'out').rglob('*.pdf')))
 
     def test_warning_conversion_failure_keeps_original_and_reports_failure(self):
-        source=self.source('nested.msg');runner.clear_output(self.root)
+        source=self.source('nested.msg');runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         config=self.root/'config.json';config.write_text(json.dumps({'signing':{'policyPath':'policy.json','enabled':True,'c2pa':True,'protection':'PADES_B_LTA'}}))
@@ -436,8 +436,8 @@ class RegenerationTests(unittest.TestCase):
         with patch.object(runner,'execute',execute),redirect_stdout(io.StringIO()):
             result=runner.run_task(tasks[0],args,evidence,workspace,config,{str(source):runner.digest(source)},2*1024**3)
         self.assertEqual('FAIL',result['status']);self.assertFalse(result['validation_warning'])
-        self.assertIn('original PDF retained',result['reason'])
-        self.assertEqual(b'%PDF-original',(self.root/result['documents'][0]['path']).read_bytes())
+        self.assertIn('initial attempt kept in staging',result['reason'])
+        self.assertEqual(b'%PDF-original',Path(result['documents'][0]['staged']).read_bytes())
 
     def test_final_summary_lists_failures_incomplete_and_missing_outputs(self):
         evidence=self.root/'evidence';evidence.mkdir()
@@ -479,22 +479,42 @@ class RegenerationTests(unittest.TestCase):
             self.assertTrue(runner.final_summary([],evidence,['in/changed.eml']))
         self.assertIn('SOURCE INTEGRITY FAIL: in/changed.eml',output.getvalue())
 
-    def test_clear_does_not_follow_links(self):
+    def test_prepare_preserves_existing_files_and_links(self):
         outside=self.root/'preserved';outside.mkdir();(outside/'keep').write_text('keep')
         (self.root/'out').symlink_to(outside,target_is_directory=True)
-        with self.assertRaises(RuntimeError):runner.clear_output(self.root)
+        with self.assertRaises(RuntimeError):runner.prepare_output(self.root)
         (self.root/'out').unlink();(self.root/'out').mkdir()
         (self.root/'out'/'link').symlink_to(outside,target_is_directory=True)
         (self.root/'out'/'old.pdf').write_text('old')
-        runner.clear_output(self.root)
+        runner.prepare_output(self.root)
         self.assertEqual('keep',(outside/'keep').read_text())
-        self.assertEqual(set(runner.KINDS),{p.name for p in (self.root/'out').iterdir()})
+        self.assertEqual('old',(self.root/'out/old.pdf').read_text())
+        self.assertTrue((self.root/'out/link').is_symlink())
+        self.assertTrue(all((self.root/'out'/kind).is_dir() for kind in runner.KINDS))
+    def test_publication_preserves_nested_operator_files_and_colliding_pdfs(self):
+        runner.prepare_output(self.root)
+        operator = self.root/'out'/'notes'
+        operator.mkdir()
+        (operator/'keep.txt').write_text('keep')
+        destination = self.root/'out/eml/message_1s.pdf'
+        destination.write_bytes(b'previous')
+        staged = self.source('one.eml')
+        document = {'path': str(destination.relative_to(self.root)), 'staged': str(staged),
+                    'sha256': runner.digest(staged)}
+        runner.publish_run([{'id': 'one', 'status': 'PASS', 'documents': [document]}])
+        created = self.root/document['path']
+        self.assertNotEqual(destination, created)
+        self.assertTrue(created.name.endswith('_1s.pdf'))
+        self.assertEqual(staged.read_bytes(), created.read_bytes())
+        self.assertEqual(b'previous', destination.read_bytes())
+        self.assertEqual('keep', (operator/'keep.txt').read_text())
+
     def test_failed_publication_preserves_previous_file_and_cleans_temporary_copy(self):
         original=self.source('source.eml')
         output=self.root/'out';output.mkdir()
         destination=output/'ready.pdf';destination.write_bytes(b'previous')
         with patch.object(runner.shutil,'copystat',side_effect=OSError('copy failed')):
-            with self.assertRaises(OSError):runner.publish_pdf(original,destination)
+            with self.assertRaises(OSError):runner.publish_pdf(original,destination,'ready','1s',runner.digest(original))
         self.assertEqual(b'previous',destination.read_bytes())
         self.assertEqual([destination],list(output.iterdir()))
     def test_validation_status_uses_small_sidecar_without_loading_full_report(self):
@@ -541,7 +561,7 @@ class RegenerationTests(unittest.TestCase):
         self.assertEqual({'creator','validator'},set(json.loads((evidence/'runtime-jars.json').read_text())))
     def test_isolated_publication_reports_and_original_hashes(self):
         source=self.source('space name.eml')
-        runner.clear_output(self.root)
+        runner.prepare_output(self.root)
         evidence=self.root/'evidence';evidence.mkdir()
         workspace=self.root/'workspace';workspace.mkdir()
         args=SimpleNamespace(security_classes=Path('/tmp/classes'),jobs=2,creator_jar=Path('creator.jar'),validator_jar=Path('validator.jar'),timeout=60)
@@ -562,17 +582,18 @@ class RegenerationTests(unittest.TestCase):
                 (out/'progress.json').write_text('{}')
             else:
                 published=list((self.root/'out/eml').glob('*.pdf'))
-                self.assertEqual(2,len(published),'all converted PDFs must be visible before validation begins')
+                self.assertEqual([],published,'staged files must remain unpublished during validation')
                 progress=json.loads(next(evidence.rglob('result.json')).read_text())
                 self.assertEqual('VALIDATING',progress['status'])
                 self.assertEqual(2,len(progress['documents']))
-                self.assertEqual(2,len(list((self.root/'out/eml').iterdir())), 'no incomplete publication files remain')
+                self.assertEqual([],list((self.root/'out/eml').iterdir()))
                 Path(command[-1]).write_text(json.dumps({'summary':{'status':'PASS'},'security':VERIFIED_SECURITY}))
             return {'exit_code':0,'timeout':False,'seconds':0.1}
         _,tasks=runner.tasks_for([source],'everything')
         with patch.object(runner,'execute',execute):
             result=runner.run_task(next(t for t in tasks if t['profile']=='1s'),args,evidence,workspace,config,{str(source):runner.digest(source)},2*1024**3)
         self.assertEqual('PASS',result['status'])
+        runner.publish_run([result])
         pdf=next((self.root/'out/eml').iterdir())
         self.assertTrue(pdf.name.endswith('_1s.pdf'))
         self.assertEqual(2,len(list((self.root/'out').rglob('*.*'))))

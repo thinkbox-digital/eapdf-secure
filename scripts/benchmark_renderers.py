@@ -16,6 +16,7 @@ import json
 import math
 import os
 from pathlib import Path
+from creator_progress import creator_progress
 import re
 import shutil
 import signal
@@ -303,8 +304,12 @@ def run_case(case, backend, repetition, args):
             if worker_rows:
                 result["weasyprint_workers"] = worker_rows
                 result["worker_reported_peak_rss_bytes"] = max(row.get("peakRssKiB", 0) * 1024 for row in worker_rows)
-            if (generated / "logs").exists(): shutil.copytree(generated / "logs", folder / "creator-file-logs")
-            if (generated / "progress.json").exists(): shutil.copy2(generated / "progress.json", folder / "progress.json")
+            with suppress(FileNotFoundError):
+                progress = creator_progress(folder / "conversion.log")
+                shutil.copy2(progress, folder / "progress.json")
+                logs = progress.parent / "logs"
+                if logs.is_dir():
+                    shutil.copytree(logs, folder / "creator-file-logs")
             if result["conversion"]["exit_code"] != 0 or not output.is_file():
                 result["status"] = "REJECTED"
                 return result

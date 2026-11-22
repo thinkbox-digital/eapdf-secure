@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
 import {createServer} from 'node:http';
-import {readFile, mkdir, rm} from 'node:fs/promises';
+import {readFile, mkdir, rm, writeFile} from 'node:fs/promises';
 import {basename, dirname, extname, join, resolve, sep} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {chromium} from 'playwright';
@@ -152,6 +152,17 @@ async function firefoxReader() {
   await close(probe);
   const downloads = directory + '-downloads';
   await mkdir(downloads);
+  // A minimal add-on reserves Main's published ID when a Main build is unavailable in CI.
+  const mainId = 'eapdf-m0-viewer@thinkbox.local';
+  const secureId = 'eapdf-secure-viewer@thinkbox.local';
+  const peer = process.env.EAPDF_MAIN_FIREFOX_DIR ?? directory + '-main-identity';
+  if (!process.env.EAPDF_MAIN_FIREFOX_DIR) {
+    await mkdir(peer);
+    await writeFile(join(peer, 'manifest.json'), JSON.stringify({
+      manifest_version: 3, name: 'Main extension identity check', version: '1.0.0',
+      browser_specific_settings: {gecko: {id: mainId}},
+    }));
+  }
   const driver = spawn(process.env.GECKODRIVER_PATH ?? 'geckodriver',
     ['--allow-system-access', '--host', '127.0.0.1', '--port', new URL(address).port],
     {stdio: 'inherit', env: {...process.env, MOZ_REMOTE_ALLOW_SYSTEM_ACCESS: '1'}});
@@ -195,7 +206,25 @@ async function firefoxReader() {
     }}});
     session = result.sessionId;
     await call('/window/rect', {width: 1440, height: 1000});
-    const addon = await call('/moz/addon/install', {path: directory, temporary: true});
+    const install = path => call('/moz/addon/install', {path, temporary: true});
+    assert.equal(await install(peer), mainId);
+    const addon = await install(directory);
+    assert.equal(addon, secureId);
+    const assertBothActive = async () => {
+      await call('/moz/context', {context: 'chrome'});
+      const active = await call('/execute/async', {args: [[mainId, secureId]], script: `
+        const done = arguments[arguments.length - 1];
+        const {AddonManager} = ChromeUtils.importESModule('resource://gre/modules/AddonManager.sys.mjs');
+        AddonManager.getAddonsByIDs(arguments[0]).then(addons => done(addons.map(addon => addon?.isActive === true)));
+      `});
+      assert.deepEqual(active, [true, true], 'Both Firefox identities must remain active');
+      await call('/moz/context', {context: 'content'});
+    };
+    await assertBothActive();
+    await call('/moz/addon/uninstall', {id: mainId});
+    assert.equal(await install(peer), mainId);
+    await assertBothActive();
+    console.log('PASS: Secure and Main Firefox IDs coexist in either installation order.');
     await call('/moz/context', {context: 'chrome'});
     const id = await evaluate(addonId => {
       Services.io.offline = true;
@@ -226,4 +255,4 @@ async function firefoxReader() {
 
 if (browser === 'firefox') await firefoxReader();
 else await chromiumReader();
-console.log(`PASS: ${browser} opened all six validated PDFs, navigated messages and children, and downloaded exact bytes.`);
+console.log(`PASS: ${browser} opened all ${Object.keys(documents).length} validated PDFs, navigated messages and children, and downloaded exact bytes.`);
