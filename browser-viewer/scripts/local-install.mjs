@@ -1,5 +1,5 @@
 // Refresh a permanent unpacked extension directory; keep its path and directory intact.
-import {readFile,writeFile,readdir,lstat,mkdir,rm} from 'node:fs/promises';
+import {readFile,writeFile,readdir,lstat,mkdir,mkdtemp,link,rename,rm,unlink} from 'node:fs/promises';
 import {join,resolve,dirname} from 'node:path';
 import {createHash} from 'node:crypto';
 import {extensionVersion} from './extension-version.mjs';
@@ -35,21 +35,79 @@ export async function installLocalBuild(source,destination,expectedVersion){
   const manifest=JSON.parse(payloads.get('manifest.json'));
   if(manifest.version!==extensionVersion(info.project))throw Error('Extension manifest version differs from the build.');
  }
- await mkdir(dirname(destination),{recursive:true});await directory(destination);
- let previous={files:{}};
- try{previous=JSON.parse(await regular(join(destination,'build-info.json')));}catch(error){if(error.code!=='ENOENT')throw error;}
- const stale=Object.keys(previous.files).filter(name=>!payloads.has(safeName(name)));
- // Preflight every destination before writing. Unrelated files are preserved.
- for(const name of [...payloads.keys(),'build-info.json',...stale]){
-  const parts=name.split('/');let parent=destination;
-  for(const part of parts.slice(0,-1)){parent=join(parent,part);await directory(parent);}
-  try{if(!(await lstat(join(destination,name))).isFile())throw Error('Refusing to replace a non-file install entry: '+name);}
-  catch(error){if(error.code!=='ENOENT')throw error;}
+ await mkdir(dirname(destination),{recursive:true});
+ await directory(destination);
+ const currentHash = async path => {
+  try { return digest(await regular(path)); }
+  catch(error) { if(error.code!=='ENOENT')throw error; }
+ };
+ const metadata = join(destination, 'build-info.json');
+ let previousBytes;
+ try { previousBytes = await regular(metadata); }
+ catch(error) { if(error.code!=='ENOENT')throw error; }
+ const previous = previousBytes ? JSON.parse(previousBytes) : {files:{}};
+ const stale = Object.keys(previous.files).filter(name => !payloads.has(safeName(name)));
+ const targetHashes = new Map();
+ for (const [name, bytes] of payloads) {
+  let parent = destination;
+  for (const part of name.split('/').slice(0, -1)) {
+   parent = join(parent, part);
+   await directory(parent);
+  }
+  const existing = await currentHash(join(destination, name));
+  if (existing !== undefined && existing !== previous.files[name] && existing !== digest(bytes)) {
+   throw new Error('Refusing to replace a changed or unmanaged install file: ' + name);
+  }
+  targetHashes.set(name, existing);
  }
- for(const [name,bytes]of payloads)await writeFile(join(destination,name),bytes);
- for(const name of stale)await rm(join(destination,name),{force:true});
- for(const [name,hash]of Object.entries(info.files))if(digest(await regular(join(destination,name)))!==hash)throw Error('Installed hash mismatch: '+name);
- await writeFile(join(destination,'build-info.json'),infoBytes);
+
+ const staging = await mkdtemp(join(destination, '.eapdf-install-'));
+ try {
+  for (const [name, bytes] of [...payloads, ['build-info.json', infoBytes]]) {
+   const file = join(staging, name);
+   await mkdir(dirname(file), {recursive:true});
+   await writeFile(file, bytes, { flag: 'wx' });
+  }
+  for (const [name, hash] of targetHashes) {
+   const file = join(destination, name);
+   if (await currentHash(file) !== hash) throw new Error('Install file changed during update: ' + name);
+   if (hash === undefined) await link(join(staging, name), file);
+   else if (hash !== info.files[name]) await rename(join(staging, name), file);
+  }
+  for (const [name, hash] of Object.entries(info.files)) {
+   if (await currentHash(join(destination, name)) !== hash) throw new Error('Installed hash mismatch: ' + name);
+  }
+  if (await currentHash(metadata) !== (previousBytes ? digest(previousBytes) : undefined)) {
+   throw new Error('Install metadata changed during update');
+  }
+  const stagedMetadata = join(staging, 'build-info.json');
+  if (previousBytes) await rename(stagedMetadata, metadata);
+  else await link(stagedMetadata, metadata);
+
+  for (const name of stale) {
+   let parent = destination;
+   let present = true;
+   for (const part of name.split('/').slice(0, -1)) {
+    parent = join(parent, part);
+    try {
+     if (!(await lstat(parent)).isDirectory()) { present = false; break; }
+    } catch (error) {
+     if (error.code !== 'ENOENT') throw error;
+     present = false;
+     break;
+    }
+   }
+   if (!present) continue;
+   const file = join(destination, name);
+   try {
+    if ((await lstat(file)).isFile() && await currentHash(file) === previous.files[name]) await unlink(file);
+   } catch (error) {
+    if (error.code !== 'ENOENT') throw error;
+   }
+  }
+ } finally {
+  await rm(staging, { recursive: true, force: true });
+ }
  console.log(`Updated local viewer ${info.project}: ${destination}`);
  return info;
 }

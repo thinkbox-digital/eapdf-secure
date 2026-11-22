@@ -8,6 +8,7 @@ import { extensionVersion } from './extension-version.mjs';
 import { makeSbom } from './sbom.mjs';
 import { verifyPatchedPdfjs } from './pdfjs-patch.mjs';
 
+import { publishViewerBuilds } from './publish-viewer-builds.mjs';
 const root = fileURLToPath(new URL('../', import.meta.url));
 process.chdir(root);
 const temporary = await mkdtemp(join(tmpdir(), 'eapdf-viewer-build-'));
@@ -27,6 +28,7 @@ async function hashes(directory, prefix = '') {
   return result;
 }
 
+let stage;
 try {
   execFileSync(process.execPath, ['scripts/licenses.mjs'], { stdio: 'inherit' });
   const patch = await verifyPatchedPdfjs();
@@ -34,9 +36,10 @@ try {
   execFileSync('node_modules/.bin/esbuild',['src/interpret-worker.ts','--bundle','--format=esm','--platform=browser','--outfile='+join(temporary,'interpret-worker.js')],{stdio:'inherit'});
   execFileSync('node_modules/.bin/esbuild',['src/thread-worker.ts','--bundle','--format=esm','--platform=browser','--outfile='+join(temporary,'thread-worker.js')],{stdio:'inherit'});
   execFileSync('node_modules/.bin/esbuild',['src/security-worker.ts','--bundle','--format=esm','--platform=browser','--outfile='+join(temporary,'security-worker.js')],{stdio:'inherit'});
-  await rm('dist', { recursive: true, force: true });
-  for (const browser of ['chromium', 'firefox']) {
-    const directory = join('dist', browser);
+  stage = await mkdtemp('.viewer-stage-');
+  const browsers = ['chromium', 'firefox'];
+  for (const browser of browsers) {
+    const directory = join(stage, browser);
     await mkdir(join(directory, 'vendor/pdfjs'), { recursive: true });
     await cp(temporary, directory, { recursive: true });
     await cp(join(temporary, 'extension/background.js'), join(directory, 'background.js'));
@@ -72,7 +75,7 @@ try {
       delete manifest.key;
       manifest.background = { scripts: ['background.js'], type: 'module' };
       manifest.browser_specific_settings = { gecko: {
-        id: 'eapdf-m0-viewer@thinkbox.local', strict_min_version: '158.0',
+        id: 'eapdf-secure-viewer@thinkbox.local', strict_min_version: '158.0',
         data_collection_permissions: { required: ['none'] },
       } };
     }
@@ -85,8 +88,10 @@ try {
       pdfjsPatches: Object.fromEntries((patch.patches ?? []).map(name => [name, patch.localInputs[name]])),
       node: process.versions.node, files: await hashes(directory),
     }, null, 2) + '\n');
-    console.log(`Built ${directory} with PDF.js ${dependency.version}`);
+    console.log(`Built ${browser} with PDF.js ${dependency.version}`);
   }
+  await publishViewerBuilds(stage, 'dist', browsers);
 } finally {
+  if (stage) await rm(stage, { recursive: true, force: true });
   await rm(temporary, { recursive: true, force: true });
 }

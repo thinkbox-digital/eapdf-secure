@@ -1,6 +1,5 @@
 package eapdf;
 
-import com.google.gson.GsonBuilder;
 import com.google.gson.JsonObject;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -9,6 +8,7 @@ import java.awt.FlowLayout;
 import java.awt.Insets;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -49,6 +49,7 @@ public final class SecurityValidatorGui {
   };
   private final JTable table = new JTable(rows);
   private JsonObject report;
+  private List<Path> checkedInputs = List.of();
   private boolean running, stopping, closeRequested;
 
   SecurityValidatorGui(Engine engine) { this.engine = engine; }
@@ -94,6 +95,14 @@ public final class SecurityValidatorGui {
     JPanel footer = new JPanel(new BorderLayout(0, 8)); status.putClientProperty("html.disable", Boolean.TRUE); footer.add(status, BorderLayout.CENTER); footer.add(progress, BorderLayout.SOUTH); content.add(footer, BorderLayout.SOUTH);
     browse.addActionListener(event -> choose(file, "PDF files", "pdf")); chooseTrust.addActionListener(event -> choose(trustPolicy, "Trust policy JSON", "json"));
     verify.addActionListener(event -> start()); file.addActionListener(event -> start()); stop.addActionListener(event -> requestStop()); save.addActionListener(event -> save());
+    var inputChanges = new javax.swing.event.DocumentListener() {
+      @Override public void insertUpdate(javax.swing.event.DocumentEvent event) { clearReport(); }
+      @Override public void removeUpdate(javax.swing.event.DocumentEvent event) { clearReport(); }
+      @Override public void changedUpdate(javax.swing.event.DocumentEvent event) { clearReport(); }
+    };
+    file.getDocument().addDocumentListener(inputChanges);
+    trustPolicy.getDocument().addDocumentListener(inputChanges);
+    protection.addActionListener(event -> clearReport());
     stop.setEnabled(false); save.setEnabled(false); frame.setContentPane(content); frame.setSize(1120, 760);
     var bounds = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment().getMaximumWindowBounds(); frame.setSize(Math.min(frame.getWidth(), bounds.width), Math.min(frame.getHeight(), bounds.height));
     frame.setMinimumSize(new Dimension(Math.min(700, bounds.width), Math.min(480, bounds.height))); frame.setLocationRelativeTo(null); frame.setVisible(true);
@@ -107,17 +116,41 @@ public final class SecurityValidatorGui {
     var picker = new JFileChooser(); picker.setFileFilter(new FileNameExtensionFilter(description, extension));
     if (picker.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION) target.setText(picker.getSelectedFile().getAbsolutePath());
   }
+  private void clearReport() {
+    report = null;
+    checkedInputs = List.of();
+    save.setEnabled(false);
+    rows.setRowCount(0);
+    detail.setText("");
+    status.setText("Choose a PDF to verify C2PA and PDF signature protection.");
+  }
+
   private void start() {
     if (running) return;
-    Path input; String policy = trustPolicy.getText().strip();
+    clearReport();
+    Path input;
+    List<Path> sources;
+    String policy = trustPolicy.getText().strip();
     try {
       input = Path.of(file.getText().strip()).toAbsolutePath().normalize();
-      if (file.getText().isBlank() || !Files.isRegularFile(input) || !Files.isReadable(input)) throw new java.io.IOException("Choose a readable PDF.");
-      if (!policy.isEmpty() && (!Files.isRegularFile(Path.of(policy)) || !Files.isReadable(Path.of(policy)))) throw new java.io.IOException("The trust JSON cannot be read.");
-      if (!policy.isEmpty()) policy = Path.of(policy).toAbsolutePath().normalize().toString();
+      if (file.getText().isBlank() || !Files.isRegularFile(input) || !Files.isReadable(input))
+        throw new IOException("Choose a readable PDF.");
+      var protectedFiles = new java.util.ArrayList<>(List.of(input, input.toRealPath()));
+      if (!policy.isEmpty()) {
+        Path selected = Path.of(policy).toAbsolutePath().normalize();
+        if (!Files.isRegularFile(selected) || !Files.isReadable(selected))
+          throw new IOException("The trust JSON cannot be read.");
+        // Preserve the selected spelling for relative paths inside the policy.
+        policy = selected.toString();
+        protectedFiles.add(selected);
+        protectedFiles.add(selected.toRealPath());
+      }
+      sources = List.copyOf(protectedFiles);
     } catch (Exception error) { status.setText("Verification did not start."); detail.setText(error.getMessage()); return; }
     String required = switch (protection.getSelectedIndex()) { case 1 -> "CMS_AND_PDF"; case 2 -> "CMS_AND_PDF_TIMESTAMPED"; case 3 -> "PADES_B_LTA"; default -> ""; };
-    String selectedPolicy = policy; report = null; rows.setRowCount(0); detail.setText(""); stopping = false; setRunning(true);
+    String selectedPolicy = policy;
+    stopping = false;
+    setRunning(true);
     status.setText("Verifying " + input.getFileName() + "…");
     new SwingWorker<JsonObject, Void>() {
       @Override protected JsonObject doInBackground() throws Exception { return engine.verify(input, selectedPolicy, required); }
@@ -125,7 +158,10 @@ public final class SecurityValidatorGui {
         try {
           JsonObject checked = get();
           if (stopping) throw new CancellationException();
-          report = checked; display(checked); save.setEnabled(true);
+          report = checked;
+          checkedInputs = sources;
+          display(checked);
+          save.setEnabled(true);
         } catch (InterruptedException error) { Thread.currentThread().interrupt(); status.setText("Verification interrupted."); }
         catch (CancellationException error) { status.setText("Stopped. Verification was not completed."); }
         catch (ExecutionException error) {
@@ -158,8 +194,14 @@ public final class SecurityValidatorGui {
     var picker = new JFileChooser(); picker.setSelectedFile(new java.io.File("eapdf-security-report.json"));
     if (picker.showSaveDialog(frame) != JFileChooser.APPROVE_OPTION) return;
     Path destination = picker.getSelectedFile().toPath();
-    if (Files.exists(destination) && JOptionPane.showConfirmDialog(frame, "Replace the existing report?", "Save report", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
-    try { Files.writeString(destination, new GsonBuilder().setPrettyPrinting().create().toJson(report) + "\n"); }
-    catch (Exception error) { JOptionPane.showMessageDialog(frame, error.getMessage(), "Unable to save report", JOptionPane.ERROR_MESSAGE); }
+    try {
+      destination = ValidationOutputs.entry(destination);
+      ValidationOutputs.protect(destination, checkedInputs);
+      if (Files.exists(destination) && JOptionPane.showConfirmDialog(frame, "Replace the existing report?",
+          "Save report", JOptionPane.YES_NO_OPTION) != JOptionPane.YES_OPTION) return;
+      ValidationSession.writeAtomic(destination, report, checkedInputs);
+    } catch (IOException error) {
+      JOptionPane.showMessageDialog(frame, error.getMessage(), "Unable to save report", JOptionPane.ERROR_MESSAGE);
+    }
   }
 }

@@ -142,18 +142,35 @@ def active_conversion(root):
     return None
 
 
-def clear_output(root):
+def prepare_output(root):
     output = root/'out'
     if output.is_symlink() or output.resolve() != root.resolve()/'out':
-        raise RuntimeError('Refusing an out directory that is a symlink or resolves outside the project.')
+        raise RuntimeError('Refusing a symlinked or out-of-tree output directory.')
     output.mkdir(exist_ok=True)
-    for child in output.iterdir():
-        if child.is_dir() and not child.is_symlink(): shutil.rmtree(child)
-        else: child.unlink()
-    for kind in KINDS: (output/kind).mkdir()
+    for kind in KINDS:
+        folder = output/kind
+        if folder.is_symlink():
+            raise RuntimeError('Refusing a symlinked output directory: '+str(folder))
+        folder.mkdir(exist_ok=True)
 
 
-def publish_pdf(source, destination):
+def publish_run(results):
+    """Publish verified PDFs using a hard link as an atomic no-replace operation."""
+    prepare_output(ROOT)
+    for result in sorted(results, key=lambda entry: entry['id']):
+        for document in result['documents']:
+            source = Path(document['staged'])
+            destination = ROOT/document['path']
+            stem, profile = destination.stem.rsplit('_', 1)
+            if digest(source) != document['sha256']:
+                raise RuntimeError('Staged PDF changed before publication: '+str(source))
+            output = publish_pdf(source, destination, stem, profile, document['sha256'])
+            document['report_basename'] = destination.name
+            document['path'] = str(output.relative_to(ROOT))
+            document['published'] = True
+
+
+def publish_pdf(source, destination, stem, profile, expected_hash):
     # The final PDF name appears only after the complete copy is closed.
     checksum = hashlib.sha256()
     handle, pending = tempfile.mkstemp(prefix='.'+destination.stem+'-', suffix='.tmp', dir=destination.parent)
@@ -163,8 +180,20 @@ def publish_pdf(source, destination):
                 output.write(block)
                 checksum.update(block)
         shutil.copystat(source, pending)
-        os.replace(pending, destination)
-        return checksum.hexdigest()
+        if checksum.hexdigest() != expected_hash:
+            raise RuntimeError('Staged PDF changed while copying: '+str(source))
+        candidate = destination
+        copy = 0
+        while True:
+            try:
+                os.link(pending, candidate)
+                return candidate
+            except FileExistsError:
+                if not candidate.is_symlink() and candidate.is_file() and digest(candidate) == expected_hash:
+                    return candidate
+                copy += 1
+                suffix = expected_hash[:12] + ('' if copy == 1 else f'-{copy}')
+                candidate = destination.with_name(f'{stem}_{suffix}_{profile}.pdf')
     finally:
         Path(pending).unlink(missing_ok=True)
 
@@ -202,7 +231,10 @@ def required_security_met(security):
 
 def _run_task(task, args, evidence, workspace, config, hashes, heap, warning=False):
     name, profile = task['id'], task['profile']
-    folder = evidence/name; folder.mkdir(exist_ok=warning)
+    folder = evidence/name
+    if warning:
+        folder = folder/'warning-attempt'
+    folder.mkdir(parents=warning)
     stage = workspace/(name+'-validation-warning' if warning else name); stage.mkdir()
     generated = stage/'generated'; generated.mkdir()
     scratch = stage/'scratch'; scratch.mkdir()
@@ -249,16 +281,13 @@ def _run_task(task, args, evidence, workspace, config, hashes, heap, warning=Fal
         for n,pdf in enumerate(pdfs,1):
             filename=(name if profile not in ('1s','1si') else name.rsplit('_',1)[0]+f'_{n:06d}_{profile}')+'.pdf'
             destination=ROOT/'out'/task['type']/filename
-            checksum=publish_pdf(pdf,destination)
-            result['documents'].append({'path':str(destination.relative_to(ROOT)),'sha256':checksum,'validation':'PENDING'})
+            result['documents'].append({'path':str(destination.relative_to(ROOT)),'staged':str(pdf),'sha256':digest(pdf),'validation':'PENDING'})
             (folder/'result.json').write_text(json.dumps(result,indent=2)+'\n')
-            print('Converted: '+str(destination)+' (validation pending)',flush=True)
-        # Publish every complete PDF from this creator job before validation starts.
+            print('Staged: '+filename+' (validation pending)',flush=True)
+        # Validate the staged bytes before any output is published.
         for pdf,document in zip(pdfs,result['documents']):
             filename=Path(document['path']).name
             report=folder/(filename+'.validation.json')
-            for stale in (report,Path(str(report)+'.summary.json'),Path(str(report)+'.progress.json')):
-                stale.unlink(missing_ok=True)
             validation_env=validation_environment(environment,pdf,getattr(args,'workers',1))
             validation_env['EAPDF_SECURITY_POLICY']=json.loads(config.read_text())['signing']['policyPath']
             validation_env['EAPDF_SECURITY_REQUIRED_PROTECTION']='PADES_B_LTA'
@@ -314,11 +343,17 @@ def run_task(task, args, evidence, workspace, config, hashes, heap):
     replacement['validation_warning']=True
     replacement['initial_validation_status']=result['status']
     replacement['initial_validation_evidence']=str(initial)
-    # A rejected second conversion leaves the already-published original in place.
+    # Keep the first attempt in staging when the warning conversion fails.
     if not replacement['documents']:
         replacement['documents']=result['documents']
         replacement['validation_warning']=False
-        replacement['reason']='Could not generate the validation-warning replacement; original PDF retained. '+replacement.get('reason','')
+        replacement['reason']='Could not generate the validation-warning replacement; initial attempt kept in staging. '+replacement.get('reason','')
+    for report in folder.glob('*.validation*'):
+        report.unlink()
+    for report in (folder/'warning-attempt').glob('*.validation*'):
+        report.replace(folder/report.name)
+    if (folder/'warning-attempt/conversion.log').is_file():
+        shutil.copy2(folder/'warning-attempt/conversion.log', folder/'conversion.log')
     (folder/'result.json').write_text(json.dumps(replacement,indent=2)+'\n')
     return replacement
 
@@ -350,7 +385,7 @@ def final_summary(results, evidence, changed=()):
                   or d.get('validation_execution',{}).get('exit_code',1) not in (0,2)]
         # Source omissions can leave a valid PDF but an incomplete conversion.
         for document in affected or documents:
-            lines.append('  File: '+str(ROOT/document['path'])+' (validation: '+document.get('validation','UNAVAILABLE')+')')
+            lines.append('  File: '+str(ROOT/document['path']) + (' (staged, unpublished)' if 'staged' in document and not document.get('published') else '')+' (validation: '+document.get('validation','UNAVAILABLE')+')')
             validation_log = log_tail(folder/(Path(document['path']).name+'.validation.log'))
             if validation_log:
                 lines.append('  Validation log:')
@@ -394,7 +429,7 @@ def snapshot_jars(args, evidence):
 
 
 def main():
-    parser=argparse.ArgumentParser(prog='eapdf-regenerate-experimental',description='Clear project out/ and regenerate a sample or every supported in/ file with required C2PA and PAdES B-LTA. Uses config/signing-digicert.local.json unless EAPDF_CONFIG selects a custom configuration. Working files are removed at the end of the run. Results are printed to the terminal.',epilog='Examples: eapdf-regenerate-experimental sample; eapdf-regenerate-experimental everything --workers 4 --jobs 2. Use --dry-run to preview without clearing out/ or opening credentials. EML/MSG sources are randomly grouped by type into archives of up to 20 messages, covering every selected source. Each PST/MBOX source produces only 1m, 1mi, 1c and 1ci archives; no individual-message extraction. PST files larger than 250 MB (250,000,000 bytes) are skipped. Single-email 1m/1mi cases are reported not applicable.')
+    parser=argparse.ArgumentParser(prog='eapdf-regenerate-experimental',description='Regenerate a sample or every supported in/ file with required C2PA and PAdES B-LTA. Uses config/signing-digicert.local.json unless EAPDF_CONFIG selects a custom configuration. Working files are removed at the end of the run. Results are printed to the terminal.',epilog='Examples: eapdf-regenerate-experimental sample; eapdf-regenerate-experimental everything --workers 4 --jobs 2. Use --dry-run to preview without writing to out/ or opening credentials. EML/MSG sources are randomly grouped by type into archives of up to 20 messages, covering every selected source. Each PST/MBOX source produces only 1m, 1mi, 1c and 1ci archives; no individual-message extraction. PST files larger than 250 MB (250,000,000 bytes) are skipped. Single-email 1m/1mi cases are reported not applicable.')
     parser.add_argument('mode',choices=('sample','everything'))
     parser.add_argument('--creator',default=os.environ.get('EAPDF_CREATOR'))
     parser.add_argument('--workers',type=int,help='Concurrent Java jobs (default: CPU/memory bounded auto)')
@@ -454,18 +489,17 @@ def main():
         compilation=execute(['javac','-cp',str(args.creator_jar),'-d',runtime,str(args.security_helper)],
                             evidence/'security-compile.log',args.timeout,environment)
         if compilation['exit_code']:
-            parser.error('Cannot prepare C2PA/PAdES B-LTA checks; out/ was not cleared.\n'
+            parser.error('Cannot prepare C2PA/PAdES B-LTA checks; out/ was not changed.\n'
                          + log_tail(evidence/'security-compile.log'))
         with tempfile.TemporaryDirectory(prefix='eapdf-regenerate-preflight-',dir='/tmp') as scratch:
             preflight=execute(security_command(args,heap,scratch)+['preflight'],evidence/'security-preflight.log',args.timeout,environment)
         if preflight['exit_code']:
-            parser.error('C2PA/PAdES B-LTA signing preflight failed; out/ was not cleared.\n'
+            parser.error('C2PA/PAdES B-LTA signing preflight failed; out/ was not changed.\n'
                          + log_tail(evidence/'security-preflight.log'))
         hashes={str(p):digest(p) for p in selected}
         (evidence/'sources.json').write_text(json.dumps({'selected':[{'path':str(p.relative_to(ROOT)),'sha256':hashes[str(p)]} for p in selected],'skipped':skipped,'not_selected':[str(p.relative_to(ROOT)) for p in paths if p not in selected],'unsupported':[str(p.relative_to(ROOT)) for p in paths if p.suffix.lower()[1:] not in KINDS]},indent=2)+'\n')
         (evidence/'plan.json').write_text(json.dumps([{**task,'sources':[str(p.relative_to(ROOT)) for p in task['sources']]} for task in tasks],indent=2)+'\n')
-        print('Clearing '+str(ROOT/'out')+'; temporary run evidence: '+str(evidence),flush=True)
-        clear_output(ROOT)
+        print('Preparing verified outputs; temporary run evidence: '+str(evidence),flush=True)
         results=[]
         with ThreadPoolExecutor(max_workers=args.workers) as pool:
             futures=[pool.submit(run_task,t,args,evidence,jobs,config_file,hashes,heap) for t in tasks]
@@ -474,6 +508,9 @@ def main():
                 (evidence/'summary.json').write_text(json.dumps(results,indent=2)+'\n')
         changed=[str(p) for p in selected if digest(p)!=hashes[str(p)]]
         (evidence/'source-check.json').write_text(json.dumps({'unchanged':not changed,'changed':changed},indent=2)+'\n')
+        if not changed and all(row['status'] in ('PASS','NOT_APPLICABLE') for row in results):
+            publish_run(results)
+            (evidence/'summary.json').write_text(json.dumps(results,indent=2)+'\n')
         return 1 if final_summary(results,evidence,changed) else 0
 
 if __name__=='__main__':

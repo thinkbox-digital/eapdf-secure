@@ -3,3 +3,4 @@ dist/
 test-results/
 releases/
 local-install/
+.viewer-stage-*/

@@ -40,9 +40,11 @@ class SecurityValidatorDesktopSmokeTests {
     var gui = reference.get(); var frame = field(gui, "frame", JFrame.class);
     Path input = temporary.resolve("input.pdf"), saved = temporary.resolve("security.json");
     Files.writeString(input, "controlled GUI input");
+    Path policy = Files.writeString(temporary.resolve("policy.json"), "{}");
     try {
       SwingUtilities.invokeAndWait(() -> {
         field(gui, "file", JTextField.class).setText(input.toString());
+        field(gui, "trustPolicy", JTextField.class).setText(policy.toString());
         field(gui, "protection", JComboBox.class).setSelectedIndex(3);
         field(gui, "verify", JButton.class).doClick();
       });
@@ -55,18 +57,23 @@ class SecurityValidatorDesktopSmokeTests {
         assertEquals("Not verified", table.getValueAt(2, 1));
         table.setRowSelectionInterval(2, 2);
         assertTrue(field(gui, "detail", JTextArea.class).getText().contains("SIGNER_REQUIRES_EXTERNAL_C2PA_TRUST_POLICY"));
-        var picker = new Timer(100, event -> {
-          for (Window window : Window.getWindows()) {
-            JFileChooser chooser = chooser(window);
-            if (chooser != null && chooser.isShowing()) {
-              ((Timer) event.getSource()).stop(); chooser.setSelectedFile(saved.toFile()); chooser.approveSelection(); return;
-            }
-          }
-        });
-        picker.start(); try { field(gui, "save", JButton.class).doClick(); } finally { picker.stop(); }
+        saveTo(gui, saved);
+        saveTo(gui, input);
+        saveTo(gui, policy);
       });
       assertEquals("UNKNOWN", JsonParser.parseString(Files.readString(saved)).getAsJsonObject().get("status").getAsString());
-      SwingUtilities.invokeAndWait(() -> field(gui, "verify", JButton.class).doClick());
+      assertEquals("controlled GUI input", Files.readString(input));
+      assertEquals("{}", Files.readString(policy));
+      SwingUtilities.invokeAndWait(() -> {
+        field(gui, "file", JTextField.class).setText(temporary.resolve("missing.pdf").toString());
+        assertFalse(field(gui, "save", JButton.class).isEnabled());
+        field(gui, "verify", JButton.class).doClick();
+        assertTrue(field(gui, "status", JLabel.class).getText().contains("did not start"));
+        assertEquals(0, field(gui, "table", JTable.class).getRowCount());
+        assertNull(field(gui, "report", JsonObject.class));
+        field(gui, "file", JTextField.class).setText(input.toString());
+        field(gui, "verify", JButton.class).doClick();
+      });
       assertTrue(started.await(10, TimeUnit.SECONDS));
       SwingUtilities.invokeAndWait(() -> {
         assertFalse(field(gui, "save", JButton.class).isEnabled());
@@ -78,10 +85,35 @@ class SecurityValidatorDesktopSmokeTests {
     } finally { cancelled.countDown(); SwingUtilities.invokeAndWait(frame::dispose); }
   }
 
-  private static JFileChooser chooser(java.awt.Container parent) {
-    if (parent instanceof JFileChooser chooser) return chooser;
+  private static void saveTo(SecurityValidatorGui gui, Path target) {
+    var picker = new Timer(50, event -> {
+      for (Window window : Window.getWindows()) {
+        if (!window.isShowing()) continue;
+        var chooser = component(window, JFileChooser.class);
+        if (chooser != null) {
+          chooser.setSelectedFile(target.toFile());
+          chooser.approveSelection();
+          return;
+        }
+        var dialog = component(window, JOptionPane.class);
+        if (dialog != null) {
+          // Accept a replace prompt if this regression ever reappears, so the
+          // assertions verify that neither of the protected files was touched.
+          dialog.setValue(JOptionPane.YES_OPTION);
+          return;
+        }
+      }
+    });
+    picker.start();
+    try { field(gui, "save", JButton.class).doClick(); }
+    finally { picker.stop(); }
+  }
+
+  private static <T> T component(java.awt.Container parent, Class<T> type) {
+    if (type.isInstance(parent)) return type.cast(parent);
     for (var child : parent.getComponents()) if (child instanceof java.awt.Container container) {
-      var found = chooser(container); if (found != null) return found;
+      var found = component(container, type);
+      if (found != null) return found;
     }
     return null;
   }

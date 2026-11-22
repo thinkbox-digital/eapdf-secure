@@ -44,3 +44,21 @@ test('updates reject symbolic links instead of writing outside the install direc
   await assert.rejects(lstat(join(outside,'library.js')),{code:'ENOENT'});
  }finally{await rm(temporary,{recursive:true,force:true});}
 });
+
+test('modified obsolete files survive and collisions fail before replacing the installed reader',async()=>{
+ const temporary=await mkdtemp(join(tmpdir(),'eapdf-local-install-ownership-'));
+ try{
+  const old=join(temporary,'old'),current=join(temporary,'current'),install=join(temporary,'install');
+  await fixture(old,'1.4.0-beta.3',{'obsolete.js':'old implementation'});
+  await fixture(current,'1.5.0-beta.3',{'new.js':'new implementation'});
+  await installLocalBuild(old,install,'1.4.0-beta.3');
+  await writeFile(join(install,'new.js'),'unmanaged');
+  await assert.rejects(installLocalBuild(current,install,'1.5.0-beta.3'),/changed or unmanaged/);
+  assert.equal(await readFile(join(install,'viewer.html'),'utf8'),'1.4.0-beta.3');
+  assert.equal(await readFile(join(install,'new.js'),'utf8'),'unmanaged');
+  await rm(join(install,'new.js'));
+  await writeFile(join(install,'obsolete.js'),'operator edit');
+  await installLocalBuild(current,install,'1.5.0-beta.3');
+  assert.equal(await readFile(join(install,'obsolete.js'),'utf8'),'operator edit');
+ }finally{await rm(temporary,{recursive:true,force:true});}
+});
