@@ -69,7 +69,7 @@
   },
   "dependencies": {
     "@xmldom/xmldom": "0.9.12",
-    "asn1js": "4.0.0",
+    "asn1js": "4.1.0",
     "pdfjs-dist": "6.5.438",
     "pkijs": "4.0.1"
   },
