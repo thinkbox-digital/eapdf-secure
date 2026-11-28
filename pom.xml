@@ -41,7 +41,7 @@
       <dependency><groupId>org.apache.poi</groupId><artifactId>poi</artifactId><version>6.0.0</version></dependency>
       <dependency><groupId>commons-io</groupId><artifactId>commons-io</artifactId><version>2.22.0</version></dependency>
       <dependency><groupId>com.github.bbottema</groupId><artifactId>rtf-to-html</artifactId><version>2.0.3</version></dependency>
-      <dependency><groupId>com.google.j2objc</groupId><artifactId>j2objc-annotations</artifactId><version>3.0.0</version></dependency>
+      <dependency><groupId>com.google.j2objc</groupId><artifactId>j2objc-annotations</artifactId><version>3.1</version></dependency>
       <dependency><groupId>com.google.code.gson</groupId><artifactId>gson</artifactId><version>2.15.0</version></dependency>
       <dependency><groupId>io.grpc</groupId><artifactId>grpc-context</artifactId><version>1.70.0</version></dependency>
       <dependency>
